@@ -36,6 +36,8 @@ comparison link. Keep proposed and unmerged changes out of released sections.
 - Stop terminal initialization after navigation unmounts it while xterm is loading,
   avoiding abandoned terminal resources. ([#932](https://github.com/BitterSecurity/Decepticon/pull/932))
 
+- Discover all registered `/agent` orchestrators across assistant catalog pages,
+  retaining the current selection if discovery fails or times out. (#943)
 - Start engagement terminals only after opening Live, preserving visited mode
   terminals across tab navigation. ([#934](https://github.com/BitterSecurity/Decepticon/pull/934))
 
