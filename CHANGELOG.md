@@ -26,6 +26,8 @@ comparison link. Keep proposed and unmerged changes out of released sections.
   does not start a second workflow from a release published with `GITHUB_TOKEN`.
 - Restore injected runtime handling for OPPLAN task dispatch and finding-quality
   checks. ([#923](https://github.com/BitterSecurity/Decepticon/pull/923))
+- Bind tmux command completion to the submitted shell command, preserving printed
+  prompt markers and waiting for the final exit status of multiline commands. (#945)
 - Buffer Ollama tool-bound requests on the wire as well as in the response
   parser, while preserving text streaming, token callbacks, and usage accounting.
   ([#940](https://github.com/BitterSecurity/Decepticon/issues/940))
