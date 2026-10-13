@@ -52,6 +52,8 @@ comparison link. Keep proposed and unmerged changes out of released sections.
   ([#931](https://github.com/BitterSecurity/Decepticon/pull/931))
 - Stop disconnected terminal startup before it can replace an attached session
   or spawn an orphan PTY. (#930)
+- Route ChatGPT OAuth profiles through current Codex models (GPT-6 Astra,
+  GPT-6.1 Sol, GPT-6 Luna), and remove retired OAuth routes from the model picker.
 - Follow renamed-repository redirects during installer release lookup, pin
   explicit-version config downloads to the matching release, and correct the
   version recovery command. ([#927](https://github.com/BitterSecurity/Decepticon/pull/927))
