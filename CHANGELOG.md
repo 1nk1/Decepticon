@@ -56,6 +56,9 @@ comparison link. Keep proposed and unmerged changes out of released sections.
   explicit-version config downloads to the matching release, and correct the
   version recovery command. ([#927](https://github.com/BitterSecurity/Decepticon/pull/927))
 
+- Apply CLI `/model` selection and clearing through persisted graph state,
+  including Soundwave, specialists, and resumed runs, while preserving
+  provider-specific model settings.
 - Allow freshly onboarded installations to start without a legacy credential
   migration backup; continue reporting unreadable backup files.
 
