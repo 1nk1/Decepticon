@@ -50,16 +50,13 @@ var executableFn = os.Executable
 // never auto-selected); the difference is a bake/soak delay, not
 // pre-release inclusion.
 //
-//   - ChannelStable (default): the newest FINAL release that has baked on
+//   - ChannelStable: the newest FINAL release that has baked on
 //     the latest channel for at least the soak window (default ~1 week) —
 //     a delayed, more-vetted promotion. Maps to GHCR ":stable".
-//   - ChannelLatest: the newest FINAL release, immediately (GitHub
+//   - ChannelLatest (default): the newest FINAL release, immediately (GitHub
 //     "latest", which excludes pre-releases). Maps to GHCR ":latest".
 //
-// Decepticon defaults to stable (conservative for an offensive-security
-// tool); the channel semantics match Claude Code's soak model, only the
-// default differs (Claude Code defaults to latest). Selected via the
-// "DECEPTICON_CHANNEL" key in ".env".
+// Selected via the "DECEPTICON_CHANNEL" key in ".env".
 type Channel string
 
 const (
@@ -89,14 +86,13 @@ func resolveStableSoak() time.Duration {
 }
 
 // ResolveChannel normalizes a raw "DECEPTICON_CHANNEL" value. Empty or
-// unrecognized values resolve to the safe default (stable) so a typo can
-// never silently opt a security-tool user onto the faster channel.
+// unrecognized values resolve to the default (latest).
 func ResolveChannel(raw string) Channel {
 	switch strings.ToLower(strings.TrimSpace(raw)) {
-	case string(ChannelLatest):
-		return ChannelLatest
-	default:
+	case string(ChannelStable):
 		return ChannelStable
+	default:
+		return ChannelLatest
 	}
 }
 
