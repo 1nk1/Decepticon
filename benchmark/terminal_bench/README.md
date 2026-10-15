@@ -13,9 +13,12 @@ Harbor environment API into the sandbox protocol expected by those bash tools.
 It does not implement a second shell tool or bypass Harbor's task container.
 Use the Make target from the repository root; it preserves that root on
 `PYTHONPATH` when Harbor changes into each trial directory.
-The `decepticon_tbench_agent.py` bootstrap sets Decepticon's existing
-single-component import guard before Python evaluates the parent `benchmark`
-package, preventing the unrelated 16-agent graph from entering the run.
+The canonical Harbor entry is
+`benchmark.terminal_bench:DecepticonTerminalBenchAgent`. Its package initializer
+sets Decepticon's single-component import guard before importing the agent,
+preventing the unrelated 16-agent graph from entering the run. The root
+`decepticon_tbench_agent.py` remains as a compatibility entry for existing
+Harbor job configs that may store the older path.
 
 ## Prerequisites
 
@@ -55,8 +58,11 @@ Harbor accepts `--n-attempts`, `--n-concurrent`, and `--job-name` through
 run. Follow the benchmark's current submission requirements when preparing a
 leaderboard result.
 
-Results are written under Harbor's default `jobs/` directory. Every successful
-agent run includes:
+Results are written under `benchmark/results/terminal-bench/` by default
+(`make terminal-bench-full` / `run_full.sh` honor `TERMINAL_BENCH_JOBS_DIR` to
+override it; `make terminal-bench` honors a trailing `--jobs-dir` in `ARGS`,
+which wins over the default since Harbor's CLI uses last-flag-wins parsing).
+Every successful agent run includes:
 
 ```text
 agent/
@@ -72,7 +78,7 @@ execution, verifier start/end timestamps, and the verifier reward. Inspect all
 of them with:
 
 ```bash
-uv run harbor view jobs
+uv run harbor view benchmark/results/terminal-bench
 ```
 
 For a machine-readable summary of one trial:
@@ -83,7 +89,7 @@ jq '{reward: .verifier_result.rewards,
               cache: .agent_result.n_cache_tokens,
               output: .agent_result.n_output_tokens},
      timing: {environment_setup, agent_setup, agent_execution, verifier}}' \
-  jobs/<job-name>/<trial-name>/result.json
+  benchmark/results/terminal-bench/<job-name>/<trial-name>/result.json
 ```
 
 Harbor records token counts; the LiteLLM configuration may also report

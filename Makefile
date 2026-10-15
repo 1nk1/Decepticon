@@ -404,9 +404,10 @@ TERMINAL_BENCH_EFFORT ?= max
 terminal-bench:
 	DECEPTICON_SKIP_BOOT=1 PYTHONPATH="$(CURDIR)$${PYTHONPATH:+:$${PYTHONPATH}}" \
 	uv run harbor run --dataset terminal-bench/terminal-bench-2-1 \
-		--agent decepticon_tbench_agent:DecepticonTerminalBenchAgent \
+		--agent benchmark.terminal_bench:DecepticonTerminalBenchAgent \
 		--model "$(TERMINAL_BENCH_MODEL)" \
-		--agent-kwarg "reasoning_effort=$(TERMINAL_BENCH_EFFORT)" $(ARGS)
+		--agent-kwarg "reasoning_effort=$(TERMINAL_BENCH_EFFORT)" \
+		--jobs-dir benchmark/results/terminal-bench $(ARGS)
 
 terminal-bench-full:
 	TERMINAL_BENCH_MODEL="$(TERMINAL_BENCH_MODEL)" \
