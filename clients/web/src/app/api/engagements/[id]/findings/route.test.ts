@@ -135,6 +135,169 @@ No real vulnerability or target interaction.
   }
 });
 
+test("findings projection decodes a literal block scalar verification_rationale", async () => {
+  const directory = await mkdtemp(join(testTempRoot, "engagement-findings-"));
+  const previousWorkspace = process.env.WORKSPACE_PATH;
+  try {
+    const fixture = `---
+id: FIND-901
+title: Literal block scalar rationale
+result_kind: vulnerability
+verification_status: verified
+verification_rationale: |
+  Confirmed via manual replay:
+  - step one
+  ---
+  - step two
+report_status: complete
+---
+
+## Summary
+Fixture for literal block scalar frontmatter.
+
+## Verification
+Replayed manually.
+`;
+    const [finding] = await fetchFindings(directory, fixture);
+    assert.equal(
+      finding.verificationRationale,
+      "Confirmed via manual replay:\n- step one\n---\n- step two\n",
+    );
+    assert.equal(finding.reportStatus, "complete");
+  } finally {
+    if (previousWorkspace === undefined) delete process.env.WORKSPACE_PATH;
+    else process.env.WORKSPACE_PATH = previousWorkspace;
+    globalThis.__engagementFindingsTestRows = undefined;
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("findings projection decodes a folded block scalar verification_rationale", async () => {
+  const directory = await mkdtemp(join(testTempRoot, "engagement-findings-"));
+  const previousWorkspace = process.env.WORKSPACE_PATH;
+  try {
+    const fixture = `---
+id: FIND-901
+title: Folded block scalar rationale
+result_kind: observation
+verification_status: unverified
+verification_rationale: >
+  This rationale wraps across
+  several source lines but folds
+  ---
+  into one paragraph.
+report_status: draft
+---
+
+## Summary
+Fixture for folded block scalar frontmatter.
+
+## Verification
+No real target interaction.
+`;
+    const [finding] = await fetchFindings(directory, fixture);
+    assert.equal(
+      finding.verificationRationale,
+      "This rationale wraps across several source lines but folds --- into one paragraph.\n",
+    );
+    assert.equal(finding.reportStatus, "draft");
+  } finally {
+    if (previousWorkspace === undefined) delete process.env.WORKSPACE_PATH;
+    else process.env.WORKSPACE_PATH = previousWorkspace;
+    globalThis.__engagementFindingsTestRows = undefined;
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("findings projection decodes escaped quotes in a double-quoted verification_rationale", async () => {
+  const directory = await mkdtemp(join(testTempRoot, "engagement-findings-"));
+  const previousWorkspace = process.env.WORKSPACE_PATH;
+  try {
+    const fixture = `---
+id: FIND-901
+title: Quoted escape rationale
+result_kind: vulnerability
+verification_status: verified
+verification_rationale: "Confirmed via \\"curl\\" PoC; see note.\\nReplay recorded."
+report_status: complete
+---
+
+## Summary
+Fixture for a double-quoted rationale with escapes.
+
+## Verification
+Replayed via curl.
+`;
+    const [finding] = await fetchFindings(directory, fixture);
+    assert.equal(
+      finding.verificationRationale,
+      'Confirmed via "curl" PoC; see note.\nReplay recorded.',
+    );
+  } finally {
+    if (previousWorkspace === undefined) delete process.env.WORKSPACE_PATH;
+    else process.env.WORKSPACE_PATH = previousWorkspace;
+    globalThis.__engagementFindingsTestRows = undefined;
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("findings projection decodes doubled single-quote escapes in verification_rationale", async () => {
+  const directory = await mkdtemp(join(testTempRoot, "engagement-findings-"));
+  const previousWorkspace = process.env.WORKSPACE_PATH;
+  try {
+    const fixture = `---
+id: FIND-901
+title: Single-quoted escape rationale
+result_kind: vulnerability
+verification_status: verified
+verification_rationale: 'It''s confirmed: the endpoint leaks data.'
+report_status: complete
+---
+
+## Summary
+Fixture for a single-quoted rationale with a doubled-quote escape.
+
+## Verification
+Replayed manually.
+`;
+    const [finding] = await fetchFindings(directory, fixture);
+    assert.equal(
+      finding.verificationRationale,
+      "It's confirmed: the endpoint leaks data.",
+    );
+  } finally {
+    if (previousWorkspace === undefined) delete process.env.WORKSPACE_PATH;
+    else process.env.WORKSPACE_PATH = previousWorkspace;
+    globalThis.__engagementFindingsTestRows = undefined;
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("findings projection ignores malformed frontmatter instead of throwing", async () => {
+  const directory = await mkdtemp(join(testTempRoot, "engagement-findings-"));
+  const previousWorkspace = process.env.WORKSPACE_PATH;
+  try {
+    const fixture = `---
+title: "unterminated
+---
+
+## Summary
+Fixture with invalid YAML frontmatter.
+
+## Verification
+N/A
+`;
+    const [finding] = await fetchFindings(directory, fixture);
+    assert.equal(finding.title, "FIND-901.md");
+    assert.equal(finding.resultKind, undefined);
+  } finally {
+    if (previousWorkspace === undefined) delete process.env.WORKSPACE_PATH;
+    else process.env.WORKSPACE_PATH = previousWorkspace;
+    globalThis.__engagementFindingsTestRows = undefined;
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
 test("findings projection keeps legacy heading-based records working without frontmatter", async () => {
   const directory = await mkdtemp(join(testTempRoot, "engagement-findings-"));
   const previousWorkspace = process.env.WORKSPACE_PATH;
