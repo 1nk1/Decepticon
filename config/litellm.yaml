@@ -914,9 +914,9 @@ model_list:
   # model_list entry for them (merge_dynamic_models only registers models an
   # explicit DECEPTICON_MODEL* override names), so every call 400s.
   # ponytail: per-token cost unverified against the gateway's own rate card
-  # (pinned to $0 like the other unconfirmed-rate gateways above); fill in
-  # once published. Cost tracking only — BudgetMiddleware reads actual spend
-  # from LiteLLM's /spend/tags API, not this field.
+  # (pinned to $0 like the other unconfirmed-rate gateways above). Zero prices
+  # can make LiteLLM's /spend/tags report $0 for these routes, so
+  # BudgetMiddleware spending caps may not fire. Add only verified rates.
   - model_name: cheaperinference/claude-sonnet-5
     litellm_params:
       model: openai/claude-sonnet-5
