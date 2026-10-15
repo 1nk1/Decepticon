@@ -9,6 +9,7 @@ import pytest
 from decepticon.middleware.budget import (
     BudgetEnforcementMiddleware,
     BudgetExceeded,
+    BudgetSpendUntracked,
     _SpendCache,
 )
 
@@ -72,62 +73,95 @@ def test_over_cap_raises_budget_exceeded():
     assert exc_info.value.cap_usd == 10.0
 
 
-def test_warns_once_when_active_credential_has_untracked_spend(monkeypatch, caplog):
-    """Cheaper Inference / Kimi routes are pinned to $0 in litellm.yaml (no
-    published rate card), so /spend/tags never moves for them and a budget
-    cap configured on top of that credential can never trigger. The
-    middleware must disclose this loudly exactly once, not leave an operator
-    to discover a silently-dead guardrail.
-    """
+def test_budget_rejects_unpriced_active_credential_before_spend_lookup(monkeypatch, caplog):
     monkeypatch.setenv("DECEPTICON_AUTH_PRIORITY", "cheaper_inference_api")
     monkeypatch.setenv("CHEAPER_INFERENCE_API_KEY", "ci_live_" + "a" * 24)
-
+    queries = []
     mw = BudgetEnforcementMiddleware(
         engagement_cap_usd=10.0,
         per_agent_cap_usd=0.0,
-        spend_provider=lambda _k: 0.0,
+        spend_provider=lambda key: queries.append(key) or 0.0,
     )
 
     class _Req:
         state = {"engagement_name": "test"}
         runtime = None
 
-    # decepticon_core.utils.logging sets the "decepticon" logger to
-    # propagate=False so library output doesn't double up in apps that own
-    # their own root handler; caplog hooks the root logger, so re-enable
-    # propagation for the duration of the call (see test_factory.py's
-    # test_explicit_priority_no_creds_logs_error for the same pattern).
     monkeypatch.setattr(logging.getLogger("decepticon"), "propagate", True)
+    with caplog.at_level(logging.ERROR, logger="decepticon.middleware.budget"):
+        with pytest.raises(BudgetSpendUntracked, match="cheaper_inference_api"):
+            mw._enforce(_Req())
+        with pytest.raises(BudgetSpendUntracked):
+            mw._enforce(_Req())
 
-    with caplog.at_level(logging.WARNING, logger="decepticon.middleware.budget"):
+    assert queries == []
+    assert len([r for r in caplog.records if "Cannot enforce" in r.getMessage()]) == 1
+
+
+def test_budget_rejects_unpriced_fallback_even_with_priced_primary(monkeypatch):
+    monkeypatch.setenv("DECEPTICON_AUTH_PRIORITY", "anthropic_api,cheaper_inference_api")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-" + "a" * 40)
+    monkeypatch.setenv("CHEAPER_INFERENCE_API_KEY", "ci_live_" + "a" * 24)
+    mw = BudgetEnforcementMiddleware(engagement_cap_usd=10.0, spend_provider=lambda _k: 0.0)
+
+    class _Req:
+        state = {"engagement_name": "test"}
+        runtime = None
+
+    with pytest.raises(BudgetSpendUntracked):
         mw._enforce(_Req())
-        mw._enforce(_Req())  # second call must not re-disclose
-
-    disclosures = [r for r in caplog.records if "cheaper_inference_api" in r.getMessage()]
-    assert len(disclosures) == 1
-    assert "NEVER trigger" in disclosures[0].getMessage()
 
 
-def test_no_untracked_spend_warning_for_a_normally_billed_credential(monkeypatch, caplog):
+def test_budget_rejects_unpriced_kimi_route(monkeypatch):
+    monkeypatch.setenv("DECEPTICON_AUTH_PRIORITY", "kimi_api")
+    monkeypatch.setenv("KIMI_API_KEY", "sk-kimi-" + "a" * 32)
+    mw = BudgetEnforcementMiddleware(per_agent_cap_usd=10.0, spend_provider=lambda _k: 0.0)
+
+    class _Req:
+        state = {"engagement_name": "test"}
+        runtime = None
+
+    with pytest.raises(BudgetSpendUntracked, match="kimi_api"):
+        mw._enforce(_Req())
+
+
+def test_model_handler_not_called_when_unpriced_budget_is_blocked(monkeypatch):
+    monkeypatch.setenv("DECEPTICON_AUTH_PRIORITY", "cheaper_inference_api")
+    monkeypatch.setenv("CHEAPER_INFERENCE_API_KEY", "ci_live_" + "a" * 24)
+    mw = BudgetEnforcementMiddleware(engagement_cap_usd=10.0, spend_provider=lambda _k: 0.0)
+    calls = []
+
+    class _Req:
+        state = {"engagement_name": "test"}
+        runtime = None
+
+    with pytest.raises(BudgetSpendUntracked):
+        mw.wrap_model_call(_Req(), lambda request: calls.append(request))
+    assert calls == []
+
+
+def test_budget_allows_normally_billed_credential(monkeypatch):
     monkeypatch.setenv("DECEPTICON_AUTH_PRIORITY", "anthropic_api")
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-" + "a" * 40)
-
-    mw = BudgetEnforcementMiddleware(
-        engagement_cap_usd=10.0,
-        per_agent_cap_usd=0.0,
-        spend_provider=lambda _k: 0.0,
-    )
+    mw = BudgetEnforcementMiddleware(engagement_cap_usd=10.0, spend_provider=lambda _k: 0.0)
 
     class _Req:
         state = {"engagement_name": "test"}
         runtime = None
 
-    monkeypatch.setattr(logging.getLogger("decepticon"), "propagate", True)
+    mw._enforce(_Req())
 
-    with caplog.at_level(logging.WARNING, logger="decepticon.middleware.budget"):
-        mw._enforce(_Req())
 
-    assert not [r for r in caplog.records if "NEVER trigger" in r.getMessage()]
+def test_budget_disabled_allows_unpriced_credential(monkeypatch):
+    monkeypatch.setenv("DECEPTICON_AUTH_PRIORITY", "cheaper_inference_api")
+    monkeypatch.setenv("CHEAPER_INFERENCE_API_KEY", "ci_live_" + "a" * 24)
+    mw = BudgetEnforcementMiddleware(engagement_cap_usd=0.0)
+
+    class _Req:
+        state = {"engagement_name": "test"}
+        runtime = None
+
+    mw._enforce(_Req())
 
 
 def test_per_agent_cap_is_checked_separately():

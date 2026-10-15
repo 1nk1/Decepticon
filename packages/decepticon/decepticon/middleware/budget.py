@@ -38,6 +38,11 @@ Disabled by default
 A non-positive ``ENGAGEMENT_USD`` cap means the middleware is a no-op. This
 preserves the current behavior for users who haven't opted in.
 
+When a cap is enabled, a credential chain containing an unpriced metered
+Cheaper Inference or Kimi route is rejected before a model call. Their
+placeholder $0 LiteLLM prices cannot enforce a USD cap, including when such
+a route is reached as a fallback.
+
 Architectural notes
 -------------------
 - LiteLLM proxy spend is the source of truth, NOT a local counter. A
@@ -62,7 +67,6 @@ from typing import Any, ClassVar
 from langchain.agents.middleware import AgentMiddleware
 from typing_extensions import override
 
-from decepticon.llm.factory import auth_inventory
 from decepticon_core.types.llm import AuthMethod
 
 log = logging.getLogger(__name__)
@@ -73,8 +77,8 @@ log = logging.getLogger(__name__)
 # /spend/tags aggregates SUM(spend) computed from those model_info fields
 # times usage, so a $0 route reports $0 spend there no matter how much the
 # provider actually charges. Budget enforcement built on that API is a
-# silent no-op for these methods: caps never trip because the tracked spend
-# never moves. See the "ponytail: per-token cost unverified" comments in
+# unable to enforce caps for these methods: tracked spend never moves.
+# A configured cap therefore blocks a chain containing either method. See the "ponytail: per-token cost unverified" comments in
 # config/litellm.yaml's cheaperinference/ and kimi/ blocks.
 _SPEND_UNTRACKED_METHODS: frozenset[AuthMethod] = frozenset(
     {AuthMethod.CHEAPER_INFERENCE_API, AuthMethod.KIMI_API}
@@ -91,6 +95,20 @@ class BudgetExceeded(RuntimeError):
         super().__init__(
             f"Budget exceeded ({scope}): spent ${spent_usd:.4f} of ${cap_usd:.2f} cap. "
             "Raise the cap via DECEPTICON_BUDGET__* or end the engagement."
+        )
+
+
+class BudgetSpendUntracked(RuntimeError):
+    """Raised when an active route has no usable price for a configured cap."""
+
+    def __init__(self, methods: frozenset[AuthMethod]) -> None:
+        self.methods = methods
+        names = ", ".join(sorted(method.value for method in methods))
+        super().__init__(
+            f"Cannot enforce DECEPTICON_BUDGET__* caps while {names} is in the "
+            "active credential chain: its LiteLLM route has a placeholder $0 "
+            "price, so /spend/tags cannot measure provider charges. Disable "
+            "that credential for this run or remove the budget cap."
         )
 
 
@@ -241,45 +259,33 @@ class BudgetEnforcementMiddleware(AgentMiddleware):
     def _enabled(self) -> bool:
         return self._engagement_cap > 0 or self._per_agent_cap > 0
 
-    def _warn_if_spend_untracked(self) -> None:
-        """Disclose once if a configured cap can never trip.
+    def _reject_if_spend_untracked(self) -> None:
+        """Fail closed when a configured budget could miss a billed fallback.
 
-        Caps are compared against LiteLLM's ``/spend/tags`` total, which is
-        computed from each route's ``model_info`` cost-per-token fields.
-        ``_SPEND_UNTRACKED_METHODS`` routes are pinned to $0 there (no
-        published rate card), so an engagement run entirely on one of them
-        accrues real provider cost while the tracked spend — and therefore
-        every cap in this middleware — stays at $0 forever. That is a silent
-        safety gap, not a bug in the enforcement logic, so surface it loudly
-        once per middleware instance rather than let an operator discover it
-        by trusting a budget cap that never fires.
+        The whole active credential chain matters: a priced primary may
+        fall back to an unpriced route during a single engagement. A warning
+        cannot make the configured hard cap enforceable in that case.
         """
-        if self._disclosed_untracked_spend or not self._enabled():
+        if not self._enabled():
             return
-        self._disclosed_untracked_spend = True
         try:
+            # Keep factory import lazy: factory and middleware initialization
+            # otherwise form a module import cycle.
+            from decepticon.llm.factory import auth_inventory  # noqa: PLC0415
+
             active = set(auth_inventory().resolved_chain)
         except Exception as exc:  # noqa: BLE001
-            log.warning("could not resolve auth inventory for budget disclosure: %s", exc)
+            log.warning("could not resolve auth inventory for budget preflight: %s", exc)
             return
-        untracked = active & _SPEND_UNTRACKED_METHODS
+        untracked = frozenset(active & _SPEND_UNTRACKED_METHODS)
         if not untracked:
             return
-        names = ", ".join(sorted(m.value for m in untracked))
-        log.warning(
-            "DECEPTICON_BUDGET__* caps are configured but the active credential "
-            "chain includes %s, whose config/litellm.yaml routes carry a "
-            "placeholder $0 cost (no published rate card) instead of a real "
-            "per-token price. LiteLLM's /spend/tags will report $0 spend for "
-            "any call routed through %s no matter what the provider actually "
-            "bills, so these caps will NEVER trigger for that traffic. Monitor "
-            "spend on the provider's own dashboard instead of relying on this "
-            "guardrail while %s is in the active chain.",
-            names,
-            names,
-            names,
-        )
-        _emit_spend_untracked_event(frozenset(untracked))
+        with self._lock:
+            if not self._disclosed_untracked_spend:
+                self._disclosed_untracked_spend = True
+                log.error("%s", BudgetSpendUntracked(untracked))
+                _emit_spend_untracked_event(untracked)
+        raise BudgetSpendUntracked(untracked)
 
     def _scope_keys(self, request: Any) -> tuple[str, str]:
         """Pull engagement_id and agent_id from request state; fall back to env."""
@@ -336,7 +342,7 @@ class BudgetEnforcementMiddleware(AgentMiddleware):
     def _enforce(self, request: Any) -> None:
         if not self._enabled():
             return
-        self._warn_if_spend_untracked()
+        self._reject_if_spend_untracked()
         engagement, agent = self._scope_keys(request)
         self._check_one("engagement", f"engagement:{engagement}", self._engagement_cap)
         self._check_one("agent", f"agent:{engagement}:{agent}", self._per_agent_cap)
