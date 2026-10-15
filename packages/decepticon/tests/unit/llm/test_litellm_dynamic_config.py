@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 import yaml
@@ -1011,3 +1013,31 @@ def test_cheaper_inference_key_only_resolves_end_to_end(monkeypatch: pytest.Monk
         assert params["model"] == f"openai/{expected_model.split('/', 1)[1]}"
         assert params["api_base"] == api_base
         assert params["api_key"] == f"os.environ/{api_key_env}"
+
+
+def test_cheaper_inference_key_only_generated_model_list(tmp_path: Path) -> None:
+    """The factory's key-only tier aliases must survive proxy config generation."""
+    from decepticon.llm.factory import auth_inventory  # noqa: PLC0415
+    from decepticon_core.types.llm import (  # noqa: PLC0415
+        AuthMethod,
+        Credentials,
+        Tier,
+        resolve_chain,
+    )
+
+    api_key = "ci_live_" + "a" * 24
+    config_path = _MODULE_PATH.parent / "litellm.yaml"
+    with patch.dict(os.environ, {"CHEAPER_INFERENCE_API_KEY": api_key}, clear=True):
+        inventory = auth_inventory()
+        assert inventory.resolved_chain == (AuthMethod.CHEAPER_INFERENCE_API,)
+        output = write_dynamic_config(config_path, tmp_path / "generated.yaml")
+
+    generated = yaml.safe_load(output.read_text(encoding="utf-8"))
+    routes = {entry["model_name"]: entry["litellm_params"] for entry in generated["model_list"]}
+    credentials = Credentials(methods=list(inventory.resolved_chain))
+    for tier in (Tier.HIGH, Tier.MID, Tier.LOW):
+        [alias] = resolve_chain(tier, credentials)
+        params = routes[alias]
+        assert params["model"] == f"openai/{alias.split('/', 1)[1]}"
+        assert params["api_base"] == "https://api.cheaperinference.com/v1"
+        assert params["api_key"] == "os.environ/CHEAPER_INFERENCE_API_KEY"
