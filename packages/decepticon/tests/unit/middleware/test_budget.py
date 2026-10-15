@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 import pytest
 
 from decepticon.middleware.budget import (
@@ -68,6 +70,64 @@ def test_over_cap_raises_budget_exceeded():
         mw._enforce(_Req())
     assert exc_info.value.scope == "engagement"
     assert exc_info.value.cap_usd == 10.0
+
+
+def test_warns_once_when_active_credential_has_untracked_spend(monkeypatch, caplog):
+    """Cheaper Inference / Kimi routes are pinned to $0 in litellm.yaml (no
+    published rate card), so /spend/tags never moves for them and a budget
+    cap configured on top of that credential can never trigger. The
+    middleware must disclose this loudly exactly once, not leave an operator
+    to discover a silently-dead guardrail.
+    """
+    monkeypatch.setenv("DECEPTICON_AUTH_PRIORITY", "cheaper_inference_api")
+    monkeypatch.setenv("CHEAPER_INFERENCE_API_KEY", "ci_live_" + "a" * 24)
+
+    mw = BudgetEnforcementMiddleware(
+        engagement_cap_usd=10.0,
+        per_agent_cap_usd=0.0,
+        spend_provider=lambda _k: 0.0,
+    )
+
+    class _Req:
+        state = {"engagement_name": "test"}
+        runtime = None
+
+    # decepticon_core.utils.logging sets the "decepticon" logger to
+    # propagate=False so library output doesn't double up in apps that own
+    # their own root handler; caplog hooks the root logger, so re-enable
+    # propagation for the duration of the call (see test_factory.py's
+    # test_explicit_priority_no_creds_logs_error for the same pattern).
+    monkeypatch.setattr(logging.getLogger("decepticon"), "propagate", True)
+
+    with caplog.at_level(logging.WARNING, logger="decepticon.middleware.budget"):
+        mw._enforce(_Req())
+        mw._enforce(_Req())  # second call must not re-disclose
+
+    disclosures = [r for r in caplog.records if "cheaper_inference_api" in r.getMessage()]
+    assert len(disclosures) == 1
+    assert "NEVER trigger" in disclosures[0].getMessage()
+
+
+def test_no_untracked_spend_warning_for_a_normally_billed_credential(monkeypatch, caplog):
+    monkeypatch.setenv("DECEPTICON_AUTH_PRIORITY", "anthropic_api")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-" + "a" * 40)
+
+    mw = BudgetEnforcementMiddleware(
+        engagement_cap_usd=10.0,
+        per_agent_cap_usd=0.0,
+        spend_provider=lambda _k: 0.0,
+    )
+
+    class _Req:
+        state = {"engagement_name": "test"}
+        runtime = None
+
+    monkeypatch.setattr(logging.getLogger("decepticon"), "propagate", True)
+
+    with caplog.at_level(logging.WARNING, logger="decepticon.middleware.budget"):
+        mw._enforce(_Req())
+
+    assert not [r for r in caplog.records if "NEVER trigger" in r.getMessage()]
 
 
 def test_per_agent_cap_is_checked_separately():

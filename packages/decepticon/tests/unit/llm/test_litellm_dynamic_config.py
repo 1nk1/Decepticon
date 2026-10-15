@@ -966,3 +966,48 @@ def test_every_gateway_routed_method_model_is_statically_registered() -> None:
             if model_name not in routes:
                 missing.append(model_name)
     assert not missing, f"gateway-routed models missing from litellm.yaml model_list: {missing}"
+
+
+def test_cheaper_inference_key_only_resolves_end_to_end(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Close the loop the three tests above only check one link of:
+    credential detection -> tier model selection -> proxy registration.
+
+    With ONLY ``CHEAPER_INFERENCE_API_KEY`` configured (no other provider
+    credential in the environment), the factory's auth detection must
+    select exactly ``cheaper_inference_api``, ``resolve_chain`` must resolve
+    every tier to a ``cheaperinference/*`` model id, and each of those ids
+    must be the one actually registered in litellm.yaml with the matching
+    api_key/api_base. A gap anywhere in that chain means a key-only
+    Cheaper Inference deployment 400s on its very first model call.
+    """
+    from decepticon.llm.factory import auth_inventory  # noqa: PLC0415
+    from decepticon_core.types.llm import (  # noqa: PLC0415
+        METHOD_MODELS,
+        AuthMethod,
+        Credentials,
+        Tier,
+        resolve_chain,
+    )
+
+    monkeypatch.setenv("DECEPTICON_AUTH_PRIORITY", "cheaper_inference_api")
+    monkeypatch.setenv("CHEAPER_INFERENCE_API_KEY", "ci_live_" + "a" * 24)
+
+    inventory = auth_inventory()
+    assert inventory.resolved_chain == (AuthMethod.CHEAPER_INFERENCE_API,)
+
+    config_path = Path(__file__).resolve().parents[5] / "config" / "litellm.yaml"
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    routes = {entry["model_name"]: entry["litellm_params"] for entry in config["model_list"]}
+    api_base, api_key_env = OPENAI_COMPAT_GATEWAYS["cheaperinference"]
+
+    credentials = Credentials(methods=list(inventory.resolved_chain))
+    for tier, expected_model in METHOD_MODELS[AuthMethod.CHEAPER_INFERENCE_API].items():
+        assert tier in (Tier.HIGH, Tier.MID, Tier.LOW)
+        chain = resolve_chain(tier, credentials)
+        assert chain == [expected_model]
+
+        assert expected_model in routes, f"{expected_model} missing from litellm.yaml model_list"
+        params = routes[expected_model]
+        assert params["model"] == f"openai/{expected_model.split('/', 1)[1]}"
+        assert params["api_base"] == api_base
+        assert params["api_key"] == f"os.environ/{api_key_env}"
