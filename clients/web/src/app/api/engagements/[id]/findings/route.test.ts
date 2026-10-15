@@ -147,6 +147,7 @@ verification_status: verified
 verification_rationale: |
   Confirmed via manual replay:
   - step one
+  ---
   - step two
 report_status: complete
 ---
@@ -160,7 +161,7 @@ Replayed manually.
     const [finding] = await fetchFindings(directory, fixture);
     assert.equal(
       finding.verificationRationale,
-      "Confirmed via manual replay:\n- step one\n- step two\n",
+      "Confirmed via manual replay:\n- step one\n---\n- step two\n",
     );
     assert.equal(finding.reportStatus, "complete");
   } finally {
@@ -183,6 +184,7 @@ verification_status: unverified
 verification_rationale: >
   This rationale wraps across
   several source lines but folds
+  ---
   into one paragraph.
 report_status: draft
 ---
@@ -196,8 +198,9 @@ No real target interaction.
     const [finding] = await fetchFindings(directory, fixture);
     assert.equal(
       finding.verificationRationale,
-      "This rationale wraps across several source lines but folds into one paragraph.\n",
+      "This rationale wraps across several source lines but folds --- into one paragraph.\n",
     );
+    assert.equal(finding.reportStatus, "draft");
   } finally {
     if (previousWorkspace === undefined) delete process.env.WORKSPACE_PATH;
     else process.env.WORKSPACE_PATH = previousWorkspace;

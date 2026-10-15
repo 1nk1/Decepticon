@@ -39,7 +39,7 @@ function parseFrontmatter(content: string): { metadata: Record<string, string>; 
   if (lines[0]?.trim() !== "---") {
     return { metadata: {}, body: content };
   }
-  const end = lines.findIndex((line, i) => i > 0 && line.trim() === "---");
+  const end = lines.findIndex((line, i) => i > 0 && /^---[ \t\r]*$/.test(line));
   if (end === -1) {
     return { metadata: {}, body: content };
   }
