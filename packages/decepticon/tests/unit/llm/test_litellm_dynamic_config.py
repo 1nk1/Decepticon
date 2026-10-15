@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 import yaml
@@ -875,6 +877,25 @@ def test_kimi_gateway_registered_in_openai_compat_gateways() -> None:
     assert key_env == "KIMI_API_KEY"
 
 
+def test_kimi_tiers_are_registered_in_static_litellm_config() -> None:
+    """Same gap as the Cheaper Inference regression below, for Kimi for
+    Coding: no static litellm.yaml entry existed for its METHOD_MODELS
+    aliases, so a KIMI_API_KEY-only deployment would 400 on every call.
+    """
+    config_path = Path(__file__).resolve().parents[5] / "config" / "litellm.yaml"
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    routes = {entry["model_name"]: entry["litellm_params"] for entry in config["model_list"]}
+
+    api_base, api_key_env = OPENAI_COMPAT_GATEWAYS["kimi"]
+    for model_name in ("kimi/k3", "kimi/kimi-for-coding", "kimi/kimi-for-coding-highspeed"):
+        assert model_name in routes, f"{model_name} missing from litellm.yaml model_list"
+        params = routes[model_name]
+        assert params["model"] == f"openai/{model_name.split('/', 1)[1]}"
+        assert params["api_base"] == api_base
+        assert params["api_key"] == f"os.environ/{api_key_env}"
+        assert params.get("additional_drop_params") == ["temperature"]
+
+
 def test_build_model_entry_routes_cheaper_inference_gateway() -> None:
     entry = build_model_entry("cheaperinference/gpt-5.4-mini")
 
@@ -898,3 +919,125 @@ def test_cheaper_inference_gateway_registered_in_openai_compat_gateways() -> Non
     base, key_env = OPENAI_COMPAT_GATEWAYS["cheaperinference"]
     assert base == "https://api.cheaperinference.com/v1"
     assert key_env == "CHEAPER_INFERENCE_API_KEY"
+
+
+def test_cheaper_inference_tiers_are_registered_in_static_litellm_config() -> None:
+    """Regression: #956 wired CHEAPER_INFERENCE_API through build_model_entry
+    and METHOD_MODELS but never added static litellm.yaml model_list entries
+    for the resolved HIGH/MID/LOW aliases. Every other OPENAI_COMPAT_GATEWAYS
+    provider (opencode, vercel, hf, venice, nanogpt, synthetic, zenmux,
+    qianfan, cfgateway) has one — without it, a deployment configuring ONLY
+    CHEAPER_INFERENCE_API_KEY resolves the factory's tier models to ids the
+    proxy's model_list never registers (merge_dynamic_models only adds models
+    an explicit DECEPTICON_MODEL* override names), so every call 400s.
+    """
+    config_path = Path(__file__).resolve().parents[5] / "config" / "litellm.yaml"
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    routes = {entry["model_name"]: entry["litellm_params"] for entry in config["model_list"]}
+
+    api_base, api_key_env = OPENAI_COMPAT_GATEWAYS["cheaperinference"]
+    for model_name in (
+        "cheaperinference/claude-sonnet-5",
+        "cheaperinference/gpt-5.4",
+        "cheaperinference/gpt-5.4-mini",
+    ):
+        assert model_name in routes, f"{model_name} missing from litellm.yaml model_list"
+        params = routes[model_name]
+        assert params["model"] == f"openai/{model_name.split('/', 1)[1]}"
+        assert params["api_base"] == api_base
+        assert params["api_key"] == f"os.environ/{api_key_env}"
+
+
+def test_every_gateway_routed_method_model_is_statically_registered() -> None:
+    """General form of the cheaper-inference regression above: any
+    METHOD_MODELS entry whose model id uses an OPENAI_COMPAT_GATEWAYS prefix
+    must have a matching static litellm.yaml model_list entry, or a
+    single-credential deployment for that AuthMethod 400s on every call.
+    """
+    from decepticon_core.types.llm import METHOD_MODELS  # noqa: PLC0415
+
+    config_path = Path(__file__).resolve().parents[5] / "config" / "litellm.yaml"
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    routes = {entry["model_name"]: entry["litellm_params"] for entry in config["model_list"]}
+
+    missing: list[str] = []
+    for method_models in METHOD_MODELS.values():
+        for model_name in method_models.values():
+            if _provider_prefix(model_name) not in OPENAI_COMPAT_GATEWAYS:
+                continue
+            if model_name not in routes:
+                missing.append(model_name)
+    assert not missing, f"gateway-routed models missing from litellm.yaml model_list: {missing}"
+
+
+def test_cheaper_inference_key_only_resolves_end_to_end(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Close the loop the three tests above only check one link of:
+    credential detection -> tier model selection -> proxy registration.
+
+    With ONLY ``CHEAPER_INFERENCE_API_KEY`` configured (no other provider
+    credential in the environment), the factory's auth detection must
+    select exactly ``cheaper_inference_api``, ``resolve_chain`` must resolve
+    every tier to a ``cheaperinference/*`` model id, and each of those ids
+    must be the one actually registered in litellm.yaml with the matching
+    api_key/api_base. A gap anywhere in that chain means a key-only
+    Cheaper Inference deployment 400s on its very first model call.
+    """
+    from decepticon.llm.factory import auth_inventory  # noqa: PLC0415
+    from decepticon_core.types.llm import (  # noqa: PLC0415
+        METHOD_MODELS,
+        AuthMethod,
+        Credentials,
+        Tier,
+        resolve_chain,
+    )
+
+    monkeypatch.setenv("DECEPTICON_AUTH_PRIORITY", "cheaper_inference_api")
+    monkeypatch.setenv("CHEAPER_INFERENCE_API_KEY", "ci_live_" + "a" * 24)
+
+    inventory = auth_inventory()
+    assert inventory.resolved_chain == (AuthMethod.CHEAPER_INFERENCE_API,)
+
+    config_path = Path(__file__).resolve().parents[5] / "config" / "litellm.yaml"
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    routes = {entry["model_name"]: entry["litellm_params"] for entry in config["model_list"]}
+    api_base, api_key_env = OPENAI_COMPAT_GATEWAYS["cheaperinference"]
+
+    credentials = Credentials(methods=list(inventory.resolved_chain))
+    for tier, expected_model in METHOD_MODELS[AuthMethod.CHEAPER_INFERENCE_API].items():
+        assert tier in (Tier.HIGH, Tier.MID, Tier.LOW)
+        chain = resolve_chain(tier, credentials)
+        assert chain == [expected_model]
+
+        assert expected_model in routes, f"{expected_model} missing from litellm.yaml model_list"
+        params = routes[expected_model]
+        assert params["model"] == f"openai/{expected_model.split('/', 1)[1]}"
+        assert params["api_base"] == api_base
+        assert params["api_key"] == f"os.environ/{api_key_env}"
+
+
+def test_cheaper_inference_key_only_generated_model_list(tmp_path: Path) -> None:
+    """The factory's key-only tier aliases must survive proxy config generation."""
+    from decepticon.llm.factory import auth_inventory  # noqa: PLC0415
+    from decepticon_core.types.llm import (  # noqa: PLC0415
+        AuthMethod,
+        Credentials,
+        Tier,
+        resolve_chain,
+    )
+
+    api_key = "ci_live_" + "a" * 24
+    config_path = _MODULE_PATH.parent / "litellm.yaml"
+    with patch.dict(os.environ, {"CHEAPER_INFERENCE_API_KEY": api_key}, clear=True):
+        inventory = auth_inventory()
+        assert inventory.resolved_chain == (AuthMethod.CHEAPER_INFERENCE_API,)
+        output = write_dynamic_config(config_path, tmp_path / "generated.yaml")
+
+    generated = yaml.safe_load(output.read_text(encoding="utf-8"))
+    routes = {entry["model_name"]: entry["litellm_params"] for entry in generated["model_list"]}
+    credentials = Credentials(methods=list(inventory.resolved_chain))
+    for tier in (Tier.HIGH, Tier.MID, Tier.LOW):
+        [alias] = resolve_chain(tier, credentials)
+        params = routes[alias]
+        assert params["model"] == f"openai/{alias.split('/', 1)[1]}"
+        assert params["api_base"] == "https://api.cheaperinference.com/v1"
+        assert params["api_key"] == "os.environ/CHEAPER_INFERENCE_API_KEY"

@@ -869,6 +869,79 @@ model_list:
       input_cost_per_token: 0.000001
       output_cost_per_token: 0.000005
 
+  # Kimi for Coding — https://api.kimi.com/coding/v1. Same gap as Cheaper
+  # Inference below: METHOD_MODELS (AuthMethod.KIMI_API) and
+  # OPENAI_COMPAT_GATEWAYS wire the dynamic path, but no static route was
+  # ever added, so a key-only deployment 400s on every call.
+  # ``additional_drop_params: ["temperature"]`` must be set here too — Kimi
+  # for Coding rejects any temperature other than exactly 1 (see
+  # llm/factory.py::_model_is_kimi_coding), and because this model_name is
+  # now statically registered, ``build_model_entry`` (which would otherwise
+  # add that param dynamically) never runs for it.
+  - model_name: kimi/k3
+    litellm_params:
+      model: openai/k3
+      api_base: https://api.kimi.com/coding/v1
+      api_key: os.environ/KIMI_API_KEY
+      additional_drop_params: ["temperature"]
+    model_info:
+      input_cost_per_token: 0
+      output_cost_per_token: 0
+  - model_name: kimi/kimi-for-coding
+    litellm_params:
+      model: openai/kimi-for-coding
+      api_base: https://api.kimi.com/coding/v1
+      api_key: os.environ/KIMI_API_KEY
+      additional_drop_params: ["temperature"]
+    model_info:
+      input_cost_per_token: 0
+      output_cost_per_token: 0
+  - model_name: kimi/kimi-for-coding-highspeed
+    litellm_params:
+      model: openai/kimi-for-coding-highspeed
+      api_base: https://api.kimi.com/coding/v1
+      api_key: os.environ/KIMI_API_KEY
+      additional_drop_params: ["temperature"]
+    model_info:
+      input_cost_per_token: 0
+      output_cost_per_token: 0
+
+  # Cheaper Inference — https://api.cheaperinference.com/v1. One key gives
+  # access to models from several labs. Mirrors METHOD_MODELS
+  # (AuthMethod.CHEAPER_INFERENCE_API) in decepticon_core.types.llm — without
+  # a static route here, a deployment with ONLY CHEAPER_INFERENCE_API_KEY set
+  # resolves to these model ids at request time but the LiteLLM proxy has no
+  # model_list entry for them (merge_dynamic_models only registers models an
+  # explicit DECEPTICON_MODEL* override names), so every call 400s.
+  # ponytail: per-token cost unverified against the gateway's own rate card
+  # (pinned to $0 like the other unconfirmed-rate gateways above). Zero prices
+  # can make LiteLLM's /spend/tags report $0 for these routes, so
+  # BudgetMiddleware spending caps may not fire. Add only verified rates.
+  - model_name: cheaperinference/claude-sonnet-5
+    litellm_params:
+      model: openai/claude-sonnet-5
+      api_base: https://api.cheaperinference.com/v1
+      api_key: os.environ/CHEAPER_INFERENCE_API_KEY
+    model_info:
+      input_cost_per_token: 0
+      output_cost_per_token: 0
+  - model_name: cheaperinference/gpt-5.4
+    litellm_params:
+      model: openai/gpt-5.4
+      api_base: https://api.cheaperinference.com/v1
+      api_key: os.environ/CHEAPER_INFERENCE_API_KEY
+    model_info:
+      input_cost_per_token: 0
+      output_cost_per_token: 0
+  - model_name: cheaperinference/gpt-5.4-mini
+    litellm_params:
+      model: openai/gpt-5.4-mini
+      api_base: https://api.cheaperinference.com/v1
+      api_key: os.environ/CHEAPER_INFERENCE_API_KEY
+    model_info:
+      input_cost_per_token: 0
+      output_cost_per_token: 0
+
   # ── Subscription OAuth routes ──────────────────────────────────────────
   # ChatGPT (auth/gpt-*), Gemini Advanced (gemini-sub/*), Copilot
   # (copilot/*), SuperGrok (grok-sub/*), and Perplexity Pro (pplx-sub/*)
