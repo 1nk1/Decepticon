@@ -475,7 +475,10 @@ METHOD_MODELS: dict[AuthMethod, dict[Tier, str]] = {
         # exposing ``creator/model`` slugs across most major vendors.
         Tier.HIGH: "nanogpt/anthropic/claude-opus-4.6",
         Tier.MID: "nanogpt/anthropic/claude-sonnet-4.6",
-        Tier.LOW: "nanogpt/anthropic/claude-3-5-haiku-20241022",
+        # Was pinned to the legacy claude-3-5-haiku-20241022 id, which has no
+        # matching litellm.yaml route (that file registers the current-gen
+        # claude-haiku-4.5, matching every sibling gateway's LOW tier below).
+        Tier.LOW: "nanogpt/anthropic/claude-haiku-4.5",
     },
     AuthMethod.SYNTHETIC_API: {
         # Synthetic — https://api.synthetic.new/openai/v1. Open-weight

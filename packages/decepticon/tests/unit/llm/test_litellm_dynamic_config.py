@@ -875,6 +875,25 @@ def test_kimi_gateway_registered_in_openai_compat_gateways() -> None:
     assert key_env == "KIMI_API_KEY"
 
 
+def test_kimi_tiers_are_registered_in_static_litellm_config() -> None:
+    """Same gap as the Cheaper Inference regression below, for Kimi for
+    Coding: no static litellm.yaml entry existed for its METHOD_MODELS
+    aliases, so a KIMI_API_KEY-only deployment would 400 on every call.
+    """
+    config_path = Path(__file__).resolve().parents[5] / "config" / "litellm.yaml"
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    routes = {entry["model_name"]: entry["litellm_params"] for entry in config["model_list"]}
+
+    api_base, api_key_env = OPENAI_COMPAT_GATEWAYS["kimi"]
+    for model_name in ("kimi/k3", "kimi/kimi-for-coding", "kimi/kimi-for-coding-highspeed"):
+        assert model_name in routes, f"{model_name} missing from litellm.yaml model_list"
+        params = routes[model_name]
+        assert params["model"] == f"openai/{model_name.split('/', 1)[1]}"
+        assert params["api_base"] == api_base
+        assert params["api_key"] == f"os.environ/{api_key_env}"
+        assert params.get("additional_drop_params") == ["temperature"]
+
+
 def test_build_model_entry_routes_cheaper_inference_gateway() -> None:
     entry = build_model_entry("cheaperinference/gpt-5.4-mini")
 
@@ -898,3 +917,52 @@ def test_cheaper_inference_gateway_registered_in_openai_compat_gateways() -> Non
     base, key_env = OPENAI_COMPAT_GATEWAYS["cheaperinference"]
     assert base == "https://api.cheaperinference.com/v1"
     assert key_env == "CHEAPER_INFERENCE_API_KEY"
+
+
+def test_cheaper_inference_tiers_are_registered_in_static_litellm_config() -> None:
+    """Regression: #956 wired CHEAPER_INFERENCE_API through build_model_entry
+    and METHOD_MODELS but never added static litellm.yaml model_list entries
+    for the resolved HIGH/MID/LOW aliases. Every other OPENAI_COMPAT_GATEWAYS
+    provider (opencode, vercel, hf, venice, nanogpt, synthetic, zenmux,
+    qianfan, cfgateway) has one — without it, a deployment configuring ONLY
+    CHEAPER_INFERENCE_API_KEY resolves the factory's tier models to ids the
+    proxy's model_list never registers (merge_dynamic_models only adds models
+    an explicit DECEPTICON_MODEL* override names), so every call 400s.
+    """
+    config_path = Path(__file__).resolve().parents[5] / "config" / "litellm.yaml"
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    routes = {entry["model_name"]: entry["litellm_params"] for entry in config["model_list"]}
+
+    api_base, api_key_env = OPENAI_COMPAT_GATEWAYS["cheaperinference"]
+    for model_name in (
+        "cheaperinference/claude-sonnet-5",
+        "cheaperinference/gpt-5.4",
+        "cheaperinference/gpt-5.4-mini",
+    ):
+        assert model_name in routes, f"{model_name} missing from litellm.yaml model_list"
+        params = routes[model_name]
+        assert params["model"] == f"openai/{model_name.split('/', 1)[1]}"
+        assert params["api_base"] == api_base
+        assert params["api_key"] == f"os.environ/{api_key_env}"
+
+
+def test_every_gateway_routed_method_model_is_statically_registered() -> None:
+    """General form of the cheaper-inference regression above: any
+    METHOD_MODELS entry whose model id uses an OPENAI_COMPAT_GATEWAYS prefix
+    must have a matching static litellm.yaml model_list entry, or a
+    single-credential deployment for that AuthMethod 400s on every call.
+    """
+    from decepticon_core.types.llm import METHOD_MODELS  # noqa: PLC0415
+
+    config_path = Path(__file__).resolve().parents[5] / "config" / "litellm.yaml"
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    routes = {entry["model_name"]: entry["litellm_params"] for entry in config["model_list"]}
+
+    missing: list[str] = []
+    for method_models in METHOD_MODELS.values():
+        for model_name in method_models.values():
+            if _provider_prefix(model_name) not in OPENAI_COMPAT_GATEWAYS:
+                continue
+            if model_name not in routes:
+                missing.append(model_name)
+    assert not missing, f"gateway-routed models missing from litellm.yaml model_list: {missing}"
