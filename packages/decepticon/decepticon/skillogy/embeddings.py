@@ -44,6 +44,18 @@ _KNOWN_DIMS: dict[str, int] = {
     "gemini-embedding-001": 3072,
 }
 _DEFAULT_DIM = 1536
+# The Compose service passes the OpenAI key as a credential signal for its
+# default embedding route. An absent/placeholder key cannot serve that route,
+# even when the LiteLLM proxy itself is reachable. Keep standalone callers
+# compatible when the signal is absent (None).
+_OPENAI_EMBED_MODELS = frozenset(
+    {
+        "openai/text-embedding-3-small",
+        "openai/text-embedding-3-large",
+        "text-embedding-3-small",
+        "text-embedding-3-large",
+    }
+)
 
 _REQUEST_TIMEOUT = 30.0
 # Embedding providers rate-limit aggressively (Voyage's no-payment free tier
@@ -91,16 +103,21 @@ def embed_dim() -> int:
 
 
 def _proxy() -> tuple[str, str] | None:
-    """``(base_url, api_key)`` for the litellm proxy, or ``None`` if unconfigured."""
+    """Return the LiteLLM proxy only when the selected route can be used."""
     base = os.environ.get("DECEPTICON_LLM__PROXY_URL", "").strip()
     key = os.environ.get("DECEPTICON_LLM__PROXY_API_KEY", "").strip()
     if not base or not key:
         return None
+    openai_key = os.environ.get("DECEPTICON_SKILLOGY_OPENAI_API_KEY")
+    if openai_key is not None and embed_model() in _OPENAI_EMBED_MODELS:
+        value = openai_key.strip().lower()
+        if not value or value.startswith("your-") or "placeholder" in value:
+            return None
     return base.rstrip("/"), key
 
 
 def available() -> bool:
-    """True when an embedding model is reachable (proxy configured)."""
+    """True when a proxy and the selected route's credential are configured."""
     return _proxy() is not None
 
 

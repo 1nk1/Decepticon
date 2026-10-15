@@ -23,6 +23,7 @@ def _isolated_env(tmp_path: Any, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("DECEPTICON_LLM__PROXY_URL", raising=False)
     monkeypatch.delenv("DECEPTICON_LLM__PROXY_API_KEY", raising=False)
     monkeypatch.delenv("DECEPTICON_SKILLOGY_EMBED_MODEL", raising=False)
+    monkeypatch.delenv("DECEPTICON_SKILLOGY_OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("DECEPTICON_SKILLOGY_EMBED_DIM", raising=False)
     monkeypatch.setenv("DECEPTICON_SKILLOGY_EMBED_CACHE", str(tmp_path / "embed-cache"))
 
@@ -44,6 +45,37 @@ def test_unavailable_without_proxy() -> None:
 def test_available_with_proxy(monkeypatch: pytest.MonkeyPatch) -> None:
     _set_proxy(monkeypatch)
     assert embeddings.available() is True
+
+
+@pytest.mark.parametrize("openai_key", ["", "  ", "your-openai-key-here", "placeholder"])
+def test_default_route_without_openai_key_skips_http(
+    monkeypatch: pytest.MonkeyPatch, openai_key: str
+) -> None:
+    _set_proxy(monkeypatch)
+    monkeypatch.setenv("DECEPTICON_SKILLOGY_OPENAI_API_KEY", openai_key)
+    calls = _fake_response(monkeypatch, {"x": [1.0]})
+    assert embeddings.available() is False
+    assert embeddings.embed_batch(["x"]) == [None]
+    assert calls == []
+
+
+def test_default_route_with_openai_key_retains_proxy(monkeypatch: pytest.MonkeyPatch) -> None:
+    _set_proxy(monkeypatch)
+    monkeypatch.setenv("DECEPTICON_SKILLOGY_OPENAI_API_KEY", "sk-proj-" + "a" * 32)
+    calls = _fake_response(monkeypatch, {"x": [1.0]})
+    assert embeddings.available() is True
+    assert embeddings.embed_text("x") == [1.0]
+    assert len(calls) == 1
+
+
+def test_explicit_other_embedding_route_retains_proxy(monkeypatch: pytest.MonkeyPatch) -> None:
+    _set_proxy(monkeypatch)
+    monkeypatch.setenv("DECEPTICON_SKILLOGY_OPENAI_API_KEY", "")
+    monkeypatch.setenv("DECEPTICON_SKILLOGY_EMBED_MODEL", "voyage/voyage-3")
+    calls = _fake_response(monkeypatch, {"x": [1.0]})
+    assert embeddings.available() is True
+    assert embeddings.embed_text("x") == [1.0]
+    assert calls[0]["model"] == "voyage/voyage-3"
 
 
 def test_embed_dim_defaults_and_overrides(monkeypatch: pytest.MonkeyPatch) -> None:
