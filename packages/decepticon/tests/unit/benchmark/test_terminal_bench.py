@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import os
 import shlex
 import subprocess
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 from typing import cast
@@ -171,3 +173,52 @@ def test_service_unit_has_no_destructive_prestart_hook() -> None:
     content = unit.read_text()
     for banned in ("ExecStartPre", "unlink", "rm ", "rm -"):
         assert banned not in content, f"found banned token {banned!r} in {unit}"
+
+
+def test_package_entry_sets_skip_boot_before_loading_agent() -> None:
+    """The canonical Harbor module must guard the Decepticon import itself."""
+    root = Path(__file__).parents[5]
+    env = os.environ.copy()
+    env.pop("DECEPTICON_SKIP_BOOT", None)
+    subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import os; from benchmark.terminal_bench import "
+            "DecepticonTerminalBenchAgent; "
+            "assert os.environ['DECEPTICON_SKIP_BOOT'] == '1'; "
+            "assert DecepticonTerminalBenchAgent.__module__ == "
+            "'benchmark.terminal_bench.agent'",
+        ],
+        cwd=root,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+
+def test_full_runner_dry_run_from_other_cwd_writes_nothing(tmp_path: Path) -> None:
+    """Direct execution previews cached tasks without creating jobs or locks."""
+    root = Path(__file__).parents[5]
+    runner = root / "benchmark/terminal_bench/run_full.sh"
+    task_file = tmp_path / "cache/tasks/packages/terminal-bench/fixture/environment/task.toml"
+    task_file.parent.mkdir(parents=True)
+    task_file.write_text('docker_image = "example.invalid/fixture:latest"\n')
+    jobs_dir = tmp_path / "results/terminal-bench"
+    env = os.environ.copy()
+    env.update(
+        TERMINAL_BENCH_TASKS_ROOT=str(task_file.parents[2]),
+        TERMINAL_BENCH_EXPECTED_TASKS="1",
+        TERMINAL_BENCH_JOBS_DIR=str(jobs_dir),
+    )
+    result = subprocess.run(
+        [str(runner), "--dry-run"],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert "tasks=1" in result.stdout
+    assert not jobs_dir.exists()

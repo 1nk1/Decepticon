@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-jobs_dir="${TERMINAL_BENCH_JOBS_DIR:-${repo_root}/jobs}"
+jobs_dir="${TERMINAL_BENCH_JOBS_DIR:-${repo_root}/benchmark/results/terminal-bench}"
 job_prefix="${TERMINAL_BENCH_JOB_PREFIX:-decepticon-bash-luna-max-tbench-2-1-full}"
 model="${TERMINAL_BENCH_MODEL:-auth/gpt-5.6-luna}"
 effort="${TERMINAL_BENCH_EFFORT:-max}"
@@ -45,13 +45,6 @@ if [[ ! -d "$tasks_root" ]]; then
     exit 1
 fi
 
-mkdir -p "$jobs_dir"
-exec 9>"${jobs_dir}/.${job_prefix}.lock"
-if ! flock -n 9; then
-    printf 'Another %s runner is already active.\n' "$job_prefix" >&2
-    exit 0
-fi
-
 declare -a tasks=()
 declare -a images=()
 while IFS= read -r task_file; do
@@ -71,10 +64,19 @@ if ((${#tasks[@]} != expected_tasks)); then
     exit 1
 fi
 
+# Everything above only reads the Harbor task cache. Check --dry-run before
+# any write (jobs_dir creation, lock file) so it is genuinely a preview.
 if [[ "$dry_run" == true ]]; then
     printf 'tasks=%d attempts=%d trials=%d batch_size=%d batches=%d concurrency=%d model=%s effort=%s\n' \
         "${#tasks[@]}" "$attempts" "$(( ${#tasks[@]} * attempts ))" "$batch_size" \
         "$(( (${#tasks[@]} + batch_size - 1) / batch_size ))" "$concurrency" "$model" "$effort"
+    exit 0
+fi
+
+mkdir -p "$jobs_dir"
+exec 9>"${jobs_dir}/.${job_prefix}.lock"
+if ! flock -n 9; then
+    printf 'Another %s runner is already active.\n' "$job_prefix" >&2
     exit 0
 fi
 
@@ -127,7 +129,7 @@ for ((start = 0; start < ${#tasks[@]}; start += batch_size)); do
     done
 
     if [[ -f "${job_path}/config.json" ]]; then
-        uv run harbor job resume \
+        uv run --project "$repo_root" harbor job resume \
             --job-path "$job_path" \
             --filter-error-type CancelledError \
             --filter-error-type EnvironmentStartTimeoutError
@@ -136,9 +138,9 @@ for ((start = 0; start < ${#tasks[@]}; start += batch_size)); do
         for ((index = start; index < end; index += 1)); do
             include_args+=(--include-task-name "${tasks[index]}")
         done
-        uv run harbor run \
+        uv run --project "$repo_root" harbor run \
             --dataset terminal-bench/terminal-bench-2-1 \
-            --agent decepticon_tbench_agent:DecepticonTerminalBenchAgent \
+            --agent benchmark.terminal_bench:DecepticonTerminalBenchAgent \
             --model "$model" \
             --agent-kwarg "reasoning_effort=${effort}" \
             --n-attempts "$attempts" \
