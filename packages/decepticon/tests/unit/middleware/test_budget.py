@@ -7,6 +7,7 @@ import logging
 import pytest
 
 from decepticon.middleware.budget import (
+    BudgetCredentialCheckUnavailable,
     BudgetEnforcementMiddleware,
     BudgetExceeded,
     BudgetSpendUntracked,
@@ -71,6 +72,72 @@ def test_over_cap_raises_budget_exceeded():
         mw._enforce(_Req())
     assert exc_info.value.scope == "engagement"
     assert exc_info.value.cap_usd == 10.0
+
+
+def test_budget_blocks_when_credential_inventory_fails(monkeypatch):
+    from decepticon.llm import factory
+
+    def broken_inventory():
+        raise RuntimeError("credential inventory unavailable")
+
+    monkeypatch.setattr(factory, "auth_inventory", broken_inventory)
+    queries = []
+    calls = []
+    mw = BudgetEnforcementMiddleware(
+        engagement_cap_usd=10.0, spend_provider=lambda key: queries.append(key) or 0.0
+    )
+
+    class _Req:
+        state = {"engagement_name": "test"}
+        runtime = None
+
+    with pytest.raises(BudgetCredentialCheckUnavailable, match="model call blocked"):
+        mw.wrap_model_call(_Req(), lambda request: calls.append(request))
+    assert calls == []
+    assert queries == []
+
+
+@pytest.mark.asyncio
+async def test_async_budget_blocks_when_credential_inventory_fails(monkeypatch):
+    from decepticon.llm import factory
+
+    def broken_inventory():
+        raise RuntimeError("credential inventory unavailable")
+
+    monkeypatch.setattr(factory, "auth_inventory", broken_inventory)
+    queries = []
+    calls = []
+    mw = BudgetEnforcementMiddleware(
+        per_agent_cap_usd=10.0, spend_provider=lambda key: queries.append(key) or 0.0
+    )
+
+    class _Req:
+        state = {"engagement_name": "test"}
+        runtime = None
+
+    async def handler(request):
+        calls.append(request)
+
+    with pytest.raises(BudgetCredentialCheckUnavailable, match="model call blocked"):
+        await mw.awrap_model_call(_Req(), handler)
+    assert calls == []
+    assert queries == []
+
+
+def test_disabled_budget_does_not_require_credential_inventory(monkeypatch):
+    from decepticon.llm import factory
+
+    def broken_inventory():
+        raise RuntimeError("credential inventory unavailable")
+
+    monkeypatch.setattr(factory, "auth_inventory", broken_inventory)
+    mw = BudgetEnforcementMiddleware(engagement_cap_usd=0.0, per_agent_cap_usd=0.0)
+
+    class _Req:
+        state = {"engagement_name": "test"}
+        runtime = None
+
+    mw._enforce(_Req())
 
 
 def test_budget_rejects_unpriced_active_credential_before_spend_lookup(monkeypatch, caplog):

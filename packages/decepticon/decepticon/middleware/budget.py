@@ -76,10 +76,10 @@ log = logging.getLogger(__name__)
 # from the gateway) rather than a real per-token price. LiteLLM's
 # /spend/tags aggregates SUM(spend) computed from those model_info fields
 # times usage, so a $0 route reports $0 spend there no matter how much the
-# provider actually charges. Budget enforcement built on that API is a
+# provider actually charges. Budget enforcement built on that API is
 # unable to enforce caps for these methods: tracked spend never moves.
-# A configured cap therefore blocks a chain containing either method. See the "ponytail: per-token cost unverified" comments in
-# config/litellm.yaml's cheaperinference/ and kimi/ blocks.
+# A configured cap therefore blocks a chain containing either method. See
+# the "ponytail: per-token cost unverified" comments in config/litellm.yaml.
 _SPEND_UNTRACKED_METHODS: frozenset[AuthMethod] = frozenset(
     {AuthMethod.CHEAPER_INFERENCE_API, AuthMethod.KIMI_API}
 )
@@ -109,6 +109,17 @@ class BudgetSpendUntracked(RuntimeError):
             "active credential chain: its LiteLLM route has a placeholder $0 "
             "price, so /spend/tags cannot measure provider charges. Disable "
             "that credential for this run or remove the budget cap."
+        )
+
+
+class BudgetCredentialCheckUnavailable(RuntimeError):
+    """Raised when a configured budget cannot verify the active auth chain."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            "Cannot verify the active credential chain for DECEPTICON_BUDGET__* "
+            "caps; model call blocked because an unpriced fallback could bypass "
+            "the spending limit."
         )
 
 
@@ -275,8 +286,8 @@ class BudgetEnforcementMiddleware(AgentMiddleware):
 
             active = set(auth_inventory().resolved_chain)
         except Exception as exc:  # noqa: BLE001
-            log.warning("could not resolve auth inventory for budget preflight: %s", exc)
-            return
+            log.error("could not resolve auth inventory for budget preflight; blocking model call")
+            raise BudgetCredentialCheckUnavailable() from exc
         untracked = frozenset(active & _SPEND_UNTRACKED_METHODS)
         if not untracked:
             return
