@@ -57,7 +57,7 @@ def ingest_embeddings(backend: Neo4jBackend) -> dict[str, int]:
     disabled for this boot, and ``find_skill`` uses full-text lexical results.
     """
     if not embeddings.available():
-        log.info("skillogy embeddings unavailable (no litellm proxy env); skipping vector ingest")
+        log.info("skillogy embeddings unavailable (no usable proxy route); skipping vector ingest")
         return {"embedded": 0, "skipped": 0, "failed": 0}
 
     dim = embeddings.embed_dim()
