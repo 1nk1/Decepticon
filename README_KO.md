@@ -150,7 +150,7 @@ AI + 해킹 도구들은 대부분 nmap 돌리고 리포트 출력하는 데모�
 
 **Decepticon은 전문 자율 레드팀 에이전트입니다.** 실제 공격자처럼 현실적인 공격 체인을 실행합니다 — 정찰, 초기 침투, 권한 상승, 횡이동, C2 — 스캐너가 아닌 실제 공격자의 방식으로.
 
-모든 Red 작업은 승인한 대상과 기계적으로 적용되는 RoE에서 시작합니다. 선택형 Plan 모드에서는 Soundwave 인터뷰를 거쳐 **RoE**, **ConOps**, **디컨플릭션 플랜**, MITRE ATT&CK 매핑이 포함된 **OPPLAN**까지 구성한 뒤 Red로 전환할 수 있습니다.
+모든 Red 작업은 운영자가 가져오고 명시적으로 승인한 RoE에서 시작합니다. `/scope import <file> --confirm` 다음 `/mode red approve`로 승인하며 Plan은 선택 사항입니다. Soundwave는 ConOps·디컨플릭션 등 계획 문서를 작성하고, OPPLAN은 Red 실행 오케스트레이터가 구성합니다.
 
 → **[인게이지먼트 워크플로 상세](docs/engagement-workflow.md)**
 
@@ -162,7 +162,7 @@ AI + 해킹 도구들은 대부분 nmap 돌리고 리포트 출력하는 데모�
 
 **진짜 인터랙티브 셸.** 실제 공격 도구들은 인터랙티브합니다 (`msfconsole`, `sliver-client`, `evil-winrm`). Decepticon은 영구 tmux 세션에서 명령을 실행하고 인터랙티브 프롬프트를 자동 감지합니다 — 도구가 프롬프트를 띄우면 우회책 없이 후속 명령을 보냅니다.
 
-**하드닝된 샌드박스 격리.** 모든 명령은 운영 네트워크(`sandbox-net`)의 Kali Linux 샌드박스에서 실행되며, 관리망(`decepticon-net`)과 분리되어 있습니다. LangGraph는 Docker 소켓으로 샌드박스를 제어합니다. → **[아키텍처](docs/architecture.md)**
+**하드닝된 샌드박스 격리.** 모든 명령은 운영 네트워크(`sandbox-net`)의 Kali Linux 샌드박스에서 실행되며, 관리망(`decepticon-net`)과 분리되어 있습니다. LangGraph는 샌드박스 HTTP API로 도구 실행을 제어합니다. → **[아키텍처](docs/architecture.md)**
 
 **공격이 방어를 만든다.** 계획 중인 [공격형 백신](docs/offensive-vaccine.md) 루프는 발견된 취약점을 공격 → 방어 → 검증 사이클로 전환하는 방향입니다.
 

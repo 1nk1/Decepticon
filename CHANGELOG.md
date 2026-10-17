@@ -15,6 +15,8 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed integration review for [#1002](https://github.com/BitterSecurity/Decepticon/pull/1002): preserve #1001 workflow/scope contracts alongside session restoration and CLI UX; align launcher and Korean documentation with optional Plan and explicit scope approval.
+
 ### Proposed — not merged or released
 
 - Complete Red-first OSS client launch and keep Soundwave exclusively in optional

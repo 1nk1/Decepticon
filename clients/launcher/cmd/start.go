@@ -256,7 +256,7 @@ func runStart(cmd *cobra.Command, args []string) error {
 	}
 	ui.Info("Mode: Red · Decepticon")
 	if !choice.AuthorizationConfirmed {
-		ui.Info("Scope not ready: use /mode plan to prepare scope, then import the reviewed RoE and approve it before Red execution.")
+		ui.Info("Scope not ready: import reviewed scope with /scope import <file> --confirm, then /mode red approve. Optional planning: /mode plan.")
 	} else {
 		ui.Info("Saved scope loaded. Execution checks RoE and approval before running tools.")
 	}

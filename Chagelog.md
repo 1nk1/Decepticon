@@ -22,3 +22,6 @@ Proposed CLI experience work is recorded under canonical Unreleased:
 [PR #1002](https://github.com/BitterSecurity/Decepticon/pull/1002).
 Includes queue preservation during connection failures and accurate Blue reconnection state.
 It is not released; see [CLI compatibility notes](docs/cli-experience.md).
+
+PR #1002 integration review preserves #1001 scope/workflow contracts and corrects
+launcher/Korean onboarding instructions; see canonical Unreleased.
