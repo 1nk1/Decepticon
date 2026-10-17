@@ -18,6 +18,20 @@ under Unreleased in the canonical history; it is not part of merged PR #999.
 See [PR #1001](https://github.com/BitterSecurity/Decepticon/pull/1001)
 for Red-first launch, operator approval, adapter contracts and documentation cleanup.
 
+Proposed CLI experience work is recorded under canonical Unreleased:
+[PR #1002](https://github.com/BitterSecurity/Decepticon/pull/1002).
+Includes queue preservation during connection failures and accurate Blue reconnection state.
+It is not released; see [CLI compatibility notes](docs/cli-experience.md).
+
+PR #1002 integration review preserves #1001 scope/workflow contracts and corrects
+launcher/Korean onboarding instructions; see canonical Unreleased.
+
+PR #1002 review corrections retain recoverable pause state, prevent queued-input
+transfer to another conversation and correct Delete; see canonical Unreleased.
+
 PR #1001 review corrections (proposed, unreleased) preserve resumed planning pins,
 defer workflow catalog resolution to the target server, and reject scope-validation
 redirects. See the linked canonical Unreleased entry for compatibility details.
+
+PR #1002 also fixes WSL cold startup using the bundled native Prisma migration
+CLI; normal migrations and database preservation remain in place.

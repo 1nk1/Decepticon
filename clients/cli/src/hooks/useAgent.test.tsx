@@ -26,6 +26,8 @@ vi.mock("../utils/threadStore.js", () => ({
   saveThread: vi.fn(async () => {}),
   touchThread: vi.fn(async () => {}),
   loadThreadByIndex: vi.fn(async () => null),
+  listThreads: vi.fn(async () => []),
+  validateThread: vi.fn(async (threadId: string) => ({ threadId, assistantId: "soundwave", engagementName: "eng-abc", workspacePath: "/tmp/ws", legacyMetadata: false })),
 }));
 
 vi.mock("../commands/rolePurpose.js", () => ({
@@ -44,6 +46,8 @@ let useAgent: (typeof import("./useAgent.js"))["useAgent"];
 
 // ── Common event fixtures ────────────────────────────────────────────────────
 const noopValuesEvent: StreamEvent = { event: "values", data: { messages: [] } };
+
+const completedValuesEvent: StreamEvent = { event: "values", data: { messages: [{ type: "ai", content: "Completed" }] } };
 
 const engagementReadyEvent: StreamEvent = {
   event: "custom",
@@ -180,6 +184,43 @@ describe("useAgent — engagement handoff lifecycle", () => {
     act(() => result.current.submit("continue"));
     await act(async () => { await vi.runAllTimersAsync(); });
     expect((mockState.client!.runs.stream as Mock).mock.calls.at(-1)?.[0]).toBe(thread);
+  });
+
+  it("restores the validated latest session transcript before allowing input", async () => {
+    // Given explicit continue and a persisted assistant-specific conversation.
+    vi.stubEnv("DECEPTICON_RESUME_LATEST", "true");
+    const store = await import("../utils/threadStore.js");
+    vi.mocked(store.loadThreadByIndex).mockResolvedValueOnce({ threadId: "saved", assistantId: "soundwave", lastUsed: "today", title: "saved", legacyMetadata: false });
+    const client = mockState.client;
+    if (!client) throw new TypeError("Missing fixture");
+    client.threads.getState.mockResolvedValueOnce({ values: { messages: [{ type: "human", content: "previous request" }, { type: "ai", content: "previous answer" }] }, tasks: [{ interrupts: [{ value: { type: "ask_user_question", id: "restore-q", question: "Continue?" } }] }] });
+    // When the hook initializes.
+    const { result } = renderHook(() => useAgent());
+    await act(async () => { await vi.runAllTimersAsync(); });
+    // Then the original transcript and validated thread are available for export and continued input.
+    expect(result.current.threadId).toBe("saved");
+    expect(result.current.activeQuestion?.sourceId).toBe("restore-q");
+    expect(result.current.runState).toBe("paused");
+    expect(result.current.events.map(event => event.content)).toEqual(["previous request", "previous answer"]);
+  });
+
+  it("delivers multiple queued messages in FIFO order after editing and removal", async () => {
+    // Given a running stream and three queued messages.
+    const stream = createControllableStream();
+    const client = mockState.client;
+    if (!client) throw new TypeError("Missing fixture");
+    let completedRuns = 1;
+    client.runs.stream.mockReturnValueOnce(stream).mockImplementation(() => createMockStream([{ event: "values", data: { messages: Array.from({ length: ++completedRuns }, (_, index) => ({ type: "ai", content: `Completed ${index}` })) } }]));
+    const { result } = renderHook(() => useAgent());
+    act(() => result.current.submit("initial"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    act(() => { result.current.enqueue("first"); result.current.enqueue("remove"); result.current.enqueue("third"); result.current.removeQueuedMessage(1); result.current.editQueuedMessage(1, "edited"); });
+    expect(result.current.queuedMessages).toEqual(["first", "edited"]);
+    // When the active run completes.
+    await act(async () => { await stream.emit(completedValuesEvent); stream.end(); await vi.runAllTimersAsync(); });
+    // Then each remaining item is delivered once in order.
+    expect(client.runs.stream.mock.calls.map(call => call[2].input.messages[0].content)).toEqual(["initial", "first", "edited"]);
+    expect(result.current.queuedMessages).toEqual([]);
   });
 
   it("sends the selected model through graph input on set, repeat, change and clear", async () => {
@@ -329,7 +370,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
 
     const notices = result.current.events.filter((event) => event.type === "system");
     expect(notices.at(-1)?.content).toBe(
-      "Could not restore this session. Check server availability and the session ID.",
+      "Could not restore this session: Session not found",
     );
   });
 
@@ -393,6 +434,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
       await firstStream.emit(engagementReadyEvent);
     });
     await act(async () => {
+      await firstStream.emit(completedValuesEvent);
       firstStream.end();
       await vi.runAllTimersAsync(); // fire setTimeout(0) auto-submit
     });
@@ -439,6 +481,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
       await firstStream.emit(engagementReadyEvent);
     });
     await act(async () => {
+      await firstStream.emit(completedValuesEvent);
       firstStream.end();
       await vi.runAllTimersAsync();
     });
@@ -638,6 +681,47 @@ describe("useAgent — engagement handoff lifecycle", () => {
     await act(async () => { stream.end(); });
   });
 
+  it("keeps the original paused session recoverable when a mode lookup fails", async () => {
+    const stream = createControllableStream();
+    const client = mockState.client;
+    if (!client) throw new TypeError("Missing client fixture");
+    client.runs.stream.mockReturnValueOnce(stream);
+    const { listThreads } = await import("../utils/threadStore.js");
+    const { result } = renderHook(() => useAgent({ resumeThread: true }));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    act(() => result.current.submit("original"));
+    await act(async () => { await vi.runAllTimersAsync(); await stream.emit({ event: "metadata", data: { run_id: "active-run" } }); });
+    vi.mocked(listThreads).mockRejectedValueOnce(new Error("lookup offline"));
+    await act(async () => { expect(await result.current.selectAssistant("decepticon")).toBe(false); });
+    expect(result.current.assistantId).toBe("soundwave");
+    expect(result.current.runState).toBe("paused");
+    act(() => result.current.resume());
+    await act(async () => { await vi.runAllTimersAsync(); });
+    expect(client.runs.stream).toHaveBeenCalledTimes(2);
+    await act(async () => { stream.end(); });
+  });
+
+  it("refuses restoring another session while undelivered messages remain", async () => {
+    const stream = createControllableStream();
+    const client = mockState.client;
+    if (!client) throw new TypeError("Missing client fixture");
+    client.runs.stream.mockReturnValueOnce(stream);
+    const { result } = renderHook(() => useAgent());
+    act(() => result.current.submit("original"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    act(() => result.current.enqueue("belongs to original"));
+    await act(async () => { await stream.emit({ event: "error", data: { message: "offline" } }); stream.end(); await vi.runAllTimersAsync(); });
+    const original = result.current.threadId;
+    const { validateThread } = await import("../utils/threadStore.js");
+    vi.mocked(validateThread).mockClear();
+    act(() => result.current.resume("other-thread"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    expect(validateThread).not.toHaveBeenCalled();
+    expect(result.current.threadId).toBe(original);
+    expect(result.current.queuedMessages).toEqual(["belongs to original"]);
+    expect(result.current.events.at(-1)?.content).toContain("/queue");
+  });
+
   it("isolates a late thread creation after switching while connecting", async () => {
     let finishCreate = (_thread: { thread_id: string }) => {};
     (mockState.client!.threads.create as Mock).mockImplementationOnce(() => new Promise((resolve) => { finishCreate = resolve; }));
@@ -823,6 +907,43 @@ describe("useAgent — engagement handoff lifecycle", () => {
     expect(result.current.activeQuestion?.sourceId).toBe("paused-question");
   });
 
+  it("retains all waiting messages without auto-retrying them after thread creation fails", async () => {
+    const client = mockState.client;
+    if (!client) throw new TypeError("Missing client fixture");
+    client.threads.create.mockRejectedValue(new Error("server unavailable"));
+    const { result } = renderHook(() => useAgent());
+    act(() => result.current.submit("initial"));
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    act(() => { result.current.enqueue("queued one"); result.current.enqueue("queued two"); });
+    await act(async () => { await vi.runAllTimersAsync(); });
+    expect(result.current.queuedMessages).toEqual(["queued one", "queued two"]);
+    expect(client.threads.create).toHaveBeenCalledTimes(5);
+    expect(client.runs.stream).not.toHaveBeenCalled();
+    client.threads.create.mockResolvedValue({ thread_id: "recovered" });
+    let completedRuns = 0;
+    client.runs.stream.mockImplementation(() => createMockStream([{
+      event: "values", data: { messages: Array.from({ length: ++completedRuns }, () => ({ type: "ai", content: "Recovered" })) },
+    }]));
+    act(() => result.current.submit("retry initial"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    expect(client.runs.stream.mock.calls.map(call => call[2].input.messages[0].content)).toEqual(["retry initial", "queued one", "queued two"]);
+    expect(result.current.queuedMessages).toEqual([]);
+  });
+
+  it("retains waiting messages when the server reports a streaming error", async () => {
+    const client = mockState.client;
+    if (!client) throw new TypeError("Missing client fixture");
+    const stream = createControllableStream();
+    client.runs.stream.mockReturnValueOnce(stream);
+    const { result } = renderHook(() => useAgent());
+    act(() => result.current.submit("initial"));
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    act(() => result.current.enqueue("waiting"));
+    await act(async () => { await stream.emit({ event: "error", data: { message: "provider unavailable" } }); stream.end(); await vi.runAllTimersAsync(); });
+    expect(result.current.queuedMessages).toEqual(["waiting"]);
+    expect(client.runs.stream).toHaveBeenCalledTimes(1);
+  });
+
   it("recovers after thread creation retries are exhausted", async () => {
     const mc = mockState.client!;
     const createThread = mc.threads.create as Mock;
@@ -863,6 +984,17 @@ describe("useAgent — engagement handoff lifecycle", () => {
     expect(result.current.runState).toBe("idle");
   });
 
+  it("routes the next prompt to the restored session assistant instead of the previous mode override", async () => {
+    const { setAssistantOverride } = await import("../commands/assistantOverride.js");
+    setAssistantOverride("decepticon");
+    const { result } = renderHook(() => useAgent());
+    act(() => result.current.resume("plan-thread"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    act(() => result.current.submit("continue restored work"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    expect(mockState.client?.runs.stream).toHaveBeenCalledWith("plan-thread", "soundwave", expect.anything());
+  });
+
   it("keeps queuedMessage intact after a legacy engagement_ready event", async () => {
     const firstStream = createControllableStream();
     const secondStream = createMockStream([noopValuesEvent]);
@@ -899,6 +1031,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
 
     // Now end the stream — handleStreamComplete handoff branch auto-submits
     await act(async () => {
+      await firstStream.emit(completedValuesEvent);
       firstStream.end();
       await vi.runAllTimersAsync();
     });

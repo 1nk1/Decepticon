@@ -7,6 +7,14 @@ FROM ghcr.io/berriai/litellm:v1.88.1
 # python so xxhash lands where the litellm process imports from.
 RUN python -m ensurepip --upgrade && python -m pip install --no-cache-dir xxhash
 
+# Use LiteLLM's cached native migration CLI. Re-importing the generated
+# Python Prisma client on each retry can consume its 60-second deadline.
+RUN prisma_cli="$(find /root/.cache/prisma-python/binaries -path '*/node_modules/.bin/prisma' -print -quit)" && \
+    test -n "$prisma_cli" && test -x "$prisma_cli" && \
+    ln -s "$prisma_cli" /usr/local/bin/decepticon-prisma
+ENV PRISMA_OFFLINE_MODE=true \
+    PRISMA_CLI_PATH=/usr/local/bin/decepticon-prisma
+
 COPY config/http_client.py /app/http_client.py
 COPY config/oauth_token_store.py /app/oauth_token_store.py
 COPY config/claude_code_handler.py /app/claude_code_handler.py

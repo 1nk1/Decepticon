@@ -15,6 +15,12 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed WSL startup correction in [#1002](https://github.com/BitterSecurity/Decepticon/pull/1002): use LiteLLM’s supported offline migration mode and its bundled native Prisma CLI. Resolve the CLI at image build time and fail the build if missing. Avoid repeated generated Python-client imports exhausting migration deadlines; retain normal schema migrations and existing database volumes.
+
+- Proposed PR review corrections for [#1002](https://github.com/BitterSecurity/Decepticon/pull/1002): keep a paused conversation recoverable when destination mode lookup fails; refuse cross-session restoration while undelivered queued messages remain; give Delete forward-delete semantics.
+
+- Proposed integration review for [#1002](https://github.com/BitterSecurity/Decepticon/pull/1002): preserve #1001 workflow/scope contracts alongside session restoration and CLI UX; align launcher and Korean documentation with optional Plan and explicit scope approval.
+
 ### Proposed — not merged or released
 
 - [PR #1001 review corrections](https://github.com/BitterSecurity/Decepticon/pull/1001):
@@ -48,6 +54,23 @@ Keep proposed and unmerged changes out of released sections.
   [PR #1001](https://github.com/BitterSecurity/Decepticon/pull/1001).
 
 ### Added
+
+- Proposed CLI experience improvements: searchable mode/model/session pickers,
+  multiline editing, private persistent drafts/history and external-editor input,
+  a lossless waiting-message queue, compact Blue summaries with incident details,
+  and independent monitor/collector/AI status. Add `/status`, `/sessions`, `/queue`,
+  `/alerts`, private Markdown/JSON `/export`, host `doctor --json`, and explicit
+  startup resume/continue controls. See [compatibility notes](docs/cli-experience.md).
+  [PR #1002](https://github.com/BitterSecurity/Decepticon/pull/1002).
+
+- Fix CLI command completion changing `/mode` into `/model`; preserve exact matches
+  and make arrow/Tab/Enter selection consistent. Open engagements in Red while
+  retaining scope approval checks. Scope and paginate saved sessions, restore
+  pending questions, and offer confirmed migration of older conversation metadata.
+  Mount the selected CLI workspace and persist local UI state across container
+  recreation. Retain waiting messages when session creation or streaming fails,
+  and clear stale Blue connection errors after recovery. No database reset or version bump is required. Updated images and
+  Compose configuration are required; this change has not been released.
 
 - Add a persistent light/dark dashboard toggle, retaining dark as the default.
   Honor system preferences when toggling and keep status/severity labels readable

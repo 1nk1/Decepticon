@@ -16,7 +16,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Client } from "@langchain/langgraph-sdk";
-import { saveThread, touchThread, loadThreadByIndex } from "../utils/threadStore.js";
+import { saveThread, touchThread, loadThreadByIndex, validateThread, listThreads } from "../utils/threadStore.js";
 import type { ActiveQuestion, AgentEvent, AskUserOption } from "../types.js";
 import {
   type SubagentCustomEvent,
@@ -25,7 +25,8 @@ import {
   stripResultTags,
 } from "@decepticon/streaming";
 import { getModelOverride } from "../commands/modelOverride.js";
-import { getAssistantOverride } from "../commands/assistantOverride.js";
+import { getAssistantOverride, setAssistantOverride } from "../commands/assistantOverride.js";
+import { restoredQuestion } from "../utils/sessionQuestion.js";
 import { blueMonitorReady } from "../commands/blue.js";
 import { rolePurpose, type RolePurpose } from "../commands/rolePurpose.js";
 import { assertRedApproved } from "../commands/planMode.js";
@@ -116,6 +117,7 @@ export interface StreamStats {
 export type RunState = "idle" | "connecting" | "streaming" | "paused";
 
 interface UseAgentReturn {
+  readonly isRestoring: boolean;
   submit: (message: string) => void;
   /** Pause the current run at checkpoint (Ctrl+C single). State preserved. */
   interrupt: () => Promise<void>;
@@ -140,6 +142,10 @@ interface UseAgentReturn {
   assistantId: string;
   /** Queued message to auto-submit on completion. */
   queuedMessage: string | null;
+  queuedMessages: readonly string[];
+  threadId: string | null;
+  removeQueuedMessage: (index: number) => void;
+  editQueuedMessage: (index: number, message: string) => void;
   /** Pending operator question while a picker is awaiting an answer. */
   activeQuestion: ActiveQuestion | null;
   /** Submit a structured answer to the current ask_user_question prompt. */
@@ -167,7 +173,7 @@ async function assertAssistantReady(assistant: string, apiUrl: string): Promise<
 
 export function useAgent({
   apiUrl = process.env.DECEPTICON_API_URL || "http://localhost:2024",
-  resumeThread = false,
+  resumeThread = process.env.DECEPTICON_RESUME_LATEST === "true",
 }: UseAgentOptions = {}): UseAgentReturn {
   const clientRef = useRef(new Client({ apiUrl }));
   // Thread ID priority: env var (from web terminal) > --resume flag > new thread
@@ -181,7 +187,7 @@ export function useAgent({
   const switchingRef = useRef(false);
   const streamReadyRef = useRef<Promise<void> | null>(null);
   const streamReadyResolveRef = useRef<(() => void) | null>(null);
-  const queuedMessageRef = useRef<string | null>(null);
+  const queuedMessageRef = useRef<string[]>([]);
 
   const [events, setEvents] = useState<AgentEvent[]>([]);
   const [runState, setRunState] = useState<RunState>("idle");
@@ -190,7 +196,7 @@ export function useAgent({
   const [activeAgent, setActiveAgent] = useState<string | null>(null);
   const [assistantId, setAssistantId] = useState<string>(INITIAL_ASSISTANT_ID);
   const [error, setError] = useState<string | null>(null);
-  const [queuedMessage, setQueuedMessage] = useState<string | null>(null);
+  const [queuedMessages, setQueuedMessages] = useState<string[]>([]);
   const [activeQuestion, setActiveQuestion] = useState<ActiveQuestion | null>(null);
 
   // Ref for runState to avoid stale closures in async callbacks
@@ -213,26 +219,49 @@ export function useAgent({
     runId: string | null;
     question: ActiveQuestion | null;
     askedIds: Set<string>;
-    queued: string | null;
+    queued: string[];
   }>());
 
   // Derived for backward compatibility
   const isStreaming = runState === "streaming" || runState === "connecting";
 
-  // Async initialization: load saved thread for --resume flag
+  // Startup restoration is explicit and validated before a thread can be reused.
+  const [restoring, setRestoring] = useState(Boolean(envThreadId || resumeThread));
+  const restoringRef = useRef(restoring);
   useEffect(() => {
-    if (envThreadId || !resumeThread || resumeInitialized.current) return;
+    if (resumeInitialized.current) return;
     resumeInitialized.current = true;
-    loadThreadByIndex(0).then((saved) => {
-      if (saved) {
+    let stopped = false;
+    const restore = async () => {
+      try {
+        const candidate = envThreadId ?? (resumeThread ? (await loadThreadByIndex(0))?.threadId : undefined);
+        if (!candidate) return;
+        const saved = await validateThread(candidate);
+        const state = await clientRef.current.threads.getState(candidate);
+        if (stopped) return;
+        const messages = (state.values as { messages?: LangChainMessage[] })?.messages ?? [];
+        lastCountRef.current = messages.length;
+        eventsRef.current = messages.flatMap((message): AgentEvent[] => {
+          if (message.type !== "human" && message.type !== "ai") return [];
+          const content = stripResultTags(extractText(message.content));
+          return content ? [{ id: `evt-${++_nextEventId}`, timestamp: Date.now(), type: message.type === "human" ? "user" : "ai_message", content }] : [];
+        });
+        setEvents(eventsRef.current);
+        activeQuestionRef.current = restoredQuestion(state);
+        setActiveQuestion(activeQuestionRef.current);
+        if (activeQuestionRef.current) { runStateRef.current = "paused"; setRunState("paused"); }
         threadIdRef.current = saved.threadId;
-        if (saved.assistantId) {
-          assistantIdRef.current = saved.assistantId;
-          threadAssistantRef.current = saved.assistantId;
-          setAssistantId(saved.assistantId);
-        }
-      }
-    }).catch(() => {});
+        assistantIdRef.current = saved.assistantId;
+        threadAssistantRef.current = saved.assistantId;
+        setAssistantId(saved.assistantId);
+        setAssistantOverride(saved.assistantId);
+      } catch (error) {
+        threadIdRef.current = null;
+        setError(`Session restore failed: ${error instanceof Error ? error.message : String(error)}`);
+      } finally { if (!stopped) { restoringRef.current = false; setRestoring(false); } }
+    };
+    void restore();
+    return () => { stopped = true; };
   }, []);
 
   const addEvent = useCallback(
@@ -267,16 +296,26 @@ export function useAgent({
 
   const enqueue = useCallback(
     (message: string) => {
-      queuedMessageRef.current = message;
-      setQueuedMessage(message);
+      queuedMessageRef.current = [...queuedMessageRef.current, message];
+      setQueuedMessages(queuedMessageRef.current);
       addEvent({ type: "system", content: `Queued: "${message}"` });
     },
     [addEvent],
   );
 
   const clearQueuedMessage = useCallback(() => {
-    queuedMessageRef.current = null;
-    setQueuedMessage(null);
+    queuedMessageRef.current = [];
+    setQueuedMessages([]);
+  }, []);
+
+  const removeQueuedMessage = useCallback((index: number) => {
+    queuedMessageRef.current = queuedMessageRef.current.filter((_, position) => position !== index);
+    setQueuedMessages(queuedMessageRef.current);
+  }, []);
+  const editQueuedMessage = useCallback((index: number, message: string) => {
+    if (!message.trim()) return;
+    queuedMessageRef.current = queuedMessageRef.current.map((value, position) => position === index ? message : value);
+    setQueuedMessages(queuedMessageRef.current);
   }, []);
 
   // ── Stream event processing (shared by submit and resume) ──────
@@ -648,6 +687,7 @@ export function useAgent({
         );
         setRunState("idle");
       }
+      return completionReceived && !serverErrorReceived;
     },
     [addEvent, addSystemEvent, setRunState],
   );
@@ -655,7 +695,7 @@ export function useAgent({
   // ── Handle stream completion (shared by submit and resume) ─────
 
   const handleStreamComplete = useCallback(
-    (abortController: AbortController) => {
+    (abortController: AbortController, drainQueue = true) => {
       if (abortController.signal.aborted) return;
       streamReadyResolveRef.current?.();
       streamReadyResolveRef.current = null;
@@ -674,17 +714,17 @@ export function useAgent({
       resetStreamState();
 
       // Auto-submit queued message
-      const pending = queuedMessageRef.current;
-      if (pending && !switchingRef.current) {
-        queuedMessageRef.current = null;
-        setQueuedMessage(null);
+      const pending = queuedMessageRef.current[0];
+      if (pending && drainQueue && !switchingRef.current) {
+        queuedMessageRef.current = queuedMessageRef.current.slice(1);
+        setQueuedMessages(queuedMessageRef.current);
         const assistant = assistantIdRef.current;
         setTimeout(() => {
           if (assistantIdRef.current === assistant && !switchingRef.current) submitRef.current(pending);
           else {
             const saved = modeSessionsRef.current.get(assistant);
-            if (saved) saved.queued = pending;
-            else { queuedMessageRef.current = pending; setQueuedMessage(pending); }
+            if (saved) saved.queued = [pending, ...saved.queued];
+            else { queuedMessageRef.current = [pending, ...queuedMessageRef.current]; setQueuedMessages(queuedMessageRef.current); }
           }
         }, 0);
       }
@@ -775,8 +815,8 @@ export function useAgent({
 
     runIdRef.current = null;
     // Clear queued message and any pending picker on hard cancel
-    queuedMessageRef.current = null;
-    setQueuedMessage(null);
+    queuedMessageRef.current = [];
+    setQueuedMessages([]);
     setActiveQuestion(null);
     resetStreamState();
     addEvent({ type: "system", content: "Cancelled." });
@@ -785,20 +825,24 @@ export function useAgent({
   // ── Clear ──────────────────────────────────────────────────────
 
   const clearEvents = useCallback(() => {
-    if (switchingRef.current) return;
+    if (switchingRef.current || restoringRef.current) return;
     eventsRef.current = [];
     setEvents([]);
     threadIdRef.current = null;
     lastCountRef.current = 0;
     runIdRef.current = null;
-    queuedMessageRef.current = null;
-    setQueuedMessage(null);
+    queuedMessageRef.current = [];
+    setQueuedMessages([]);
     setActiveQuestion(null);
     askedQuestionIds.current.clear();
     setRunState("idle");
   }, []);
 
   const selectAssistant = useCallback(async (next: string, commit?: () => Promise<void>): Promise<boolean> => {
+    if (restoringRef.current) {
+      addSystemEvent("Wait for session restoration before switching mode.");
+      return false;
+    }
     if (switchingRef.current) {
       addSystemEvent("A mode switch is already in progress. Retry after it finishes.");
       return false;
@@ -808,18 +852,11 @@ export function useAgent({
     switchingRef.current = true;
     try {
       const pausedState = await pauseRun();
-      if (commit) {
-        resetStreamState();
-        runStateRef.current = pausedState;
-        setRunState(pausedState);
-        await commit();
-      }
-      if (next === current) {
-        resetStreamState();
-        runStateRef.current = pausedState;
-        setRunState(pausedState);
-        return true;
-      }
+      resetStreamState();
+      runStateRef.current = pausedState;
+      setRunState(pausedState);
+      if (commit) await commit();
+      if (next === current) return true;
       modeSessionsRef.current.set(current, {
         threadId: threadIdRef.current,
         events: [...eventsRef.current],
@@ -831,18 +868,34 @@ export function useAgent({
         queued: queuedMessageRef.current,
       });
       const saved = modeSessionsRef.current.get(next);
-      threadIdRef.current = saved?.threadId ?? null;
-      lastCountRef.current = saved?.lastCount ?? 0;
-      eventsRef.current = [...(saved?.events ?? [])];
+      const previous = !saved && resumeThread ? (await listThreads({ assistantId: next, limit: 1 }))[0] : undefined;
+      let previousEvents: AgentEvent[] = [];
+      let previousCount = 0;
+      let previousQuestion: ActiveQuestion | null = null;
+      if (previous) {
+        await validateThread(previous.threadId);
+        const state = await clientRef.current.threads.getState(previous.threadId);
+        const messages = (state.values as { messages?: LangChainMessage[] })?.messages ?? [];
+        previousCount = messages.length;
+        previousQuestion = restoredQuestion(state);
+        previousEvents = messages.flatMap((message): AgentEvent[] => {
+          if (message.type !== "human" && message.type !== "ai") return [];
+          const content = stripResultTags(extractText(message.content));
+          return content ? [{ id: `evt-${++_nextEventId}`, timestamp: Date.now(), type: message.type === "human" ? "user" : "ai_message", content }] : [];
+        });
+      }
+      threadIdRef.current = saved?.threadId ?? previous?.threadId ?? null;
+      lastCountRef.current = saved?.lastCount ?? previousCount;
+      eventsRef.current = [...(saved?.events ?? previousEvents)];
       setEvents(eventsRef.current);
       runIdRef.current = saved?.runId ?? null;
-      activeQuestionRef.current = saved?.question ?? null;
+      activeQuestionRef.current = saved?.question ?? previousQuestion;
       setActiveQuestion(activeQuestionRef.current);
       askedQuestionIds.current = new Set(saved?.askedIds);
-      queuedMessageRef.current = saved?.queued ?? null;
-      setQueuedMessage(queuedMessageRef.current);
+      queuedMessageRef.current = saved?.queued ?? [];
+      setQueuedMessages(queuedMessageRef.current);
       resetStreamState();
-      runStateRef.current = saved?.runState ?? "idle";
+      runStateRef.current = saved?.runState ?? (previousQuestion ? "paused" : "idle");
       setRunState(runStateRef.current);
       setError(null);
       assistantIdRef.current = next;
@@ -863,6 +916,7 @@ export function useAgent({
 
   const submit = useCallback(
     (message: string): void => {
+      if (restoringRef.current) { addSystemEvent("Session restoration is in progress; retry shortly."); return; }
       // If streaming/connecting, callers should use enqueue() instead
       if (switchingRef.current) {
         addSystemEvent("Mode switch in progress. Send this message again after it finishes.");
@@ -915,7 +969,7 @@ export function useAgent({
           const denied = error instanceof Error ? error.message : "Mode prerequisite failed.";
           setError(denied);
           addEvent({ type: "system", content: denied });
-          handleStreamComplete(abortController);
+          handleStreamComplete(abortController, false);
           return;
         }
 
@@ -928,7 +982,9 @@ export function useAgent({
               const thread = await client.threads.create();
               if (abortController.signal.aborted) return;
               threadIdRef.current = thread.thread_id;
-              await saveThread(thread.thread_id, selectedAssistant, message);
+              await saveThread(thread.thread_id, selectedAssistant, message).catch((error: unknown) => {
+                addSystemEvent(`Session metadata could not be saved: ${error instanceof Error ? error.message : String(error)}`);
+              });
               break;
             } catch (err) {
               if (abortController.signal.aborted) return;
@@ -938,10 +994,7 @@ export function useAgent({
                 const connectionError = `Connection failed: ${msg}`;
                 setError(connectionError);
                 addEvent({ type: "system", content: connectionError });
-                // Clear queued message to prevent infinite retry loop
-                queuedMessageRef.current = null;
-                setQueuedMessage(null);
-                handleStreamComplete(abortController);
+                handleStreamComplete(abortController, false);
                 return;
               }
               // Server may still be loading graphs — wait and retry
@@ -966,6 +1019,7 @@ export function useAgent({
 
         const streamConfig = configurable ? { configurable } : undefined;
 
+        let completed = false;
         try {
           const stream = client.runs.stream(
             threadIdRef.current!,
@@ -979,7 +1033,7 @@ export function useAgent({
             },
           );
 
-          await processStream(stream, abortController);
+          completed = (await processStream(stream, abortController)) === true;
         } catch (err) {
           // Ignore abort errors — triggered by interrupt() or cancel()
           if (abortController.signal.aborted) return;
@@ -988,7 +1042,7 @@ export function useAgent({
           setError(msg);
         }
 
-        handleStreamComplete(abortController);
+        handleStreamComplete(abortController, completed);
       };
 
       runStream().catch((err) => {
@@ -999,7 +1053,7 @@ export function useAgent({
         resetStreamState();
       });
     },
-    [addEvent, processStream, handleStreamComplete, resetStreamState, apiUrl],
+    [addEvent, processStream, handleStreamComplete, resetStreamState, apiUrl, restoring],
   );
 
   // Ref to submit for use in deferred auto-submit (avoids stale closure)
@@ -1071,6 +1125,7 @@ export function useAgent({
           completionTokens: 0,
         });
 
+        let completed = false;
         try {
           const configurable = prepared.configurable;
           const stream = client.runs.stream(
@@ -1084,12 +1139,12 @@ export function useAgent({
               signal: abortController.signal,
             },
           );
-          await processStream(stream, abortController);
+          completed = (await processStream(stream, abortController)) === true;
         } catch (err) {
           if (abortController.signal.aborted) return;
           setError(err instanceof Error ? err.message : "Answer submit failed");
         }
-        handleStreamComplete(abortController);
+        handleStreamComplete(abortController, completed);
       };
 
       runResume().catch((err) => {
@@ -1107,7 +1162,7 @@ export function useAgent({
 
   const resume = useCallback(
     (value?: string): void => {
-      if (switchingRef.current || abortRef.current) return;
+      if (switchingRef.current || abortRef.current || restoringRef.current) return;
       streamReadyRef.current = null;
       const isPaused = runStateRef.current === "paused";
       const hasThread = !!threadIdRef.current;
@@ -1138,6 +1193,7 @@ export function useAgent({
           setActiveAgent(threadAssistantRef.current);
           setStreamStats({ startTime: Date.now(), totalTokens: 0, promptTokens: 0, completionTokens: 0 });
 
+          let completed = false;
           try {
             const configurable = prepared.configurable;
             const stream = client.runs.stream(
@@ -1151,12 +1207,12 @@ export function useAgent({
                 signal: abortController.signal,
               },
             );
-            await processStream(stream, abortController);
+            completed = (await processStream(stream, abortController)) === true;
           } catch (err) {
             if (abortController.signal.aborted) return;
             setError(err instanceof Error ? err.message : "Resume failed");
           }
-          handleStreamComplete(abortController);
+          handleStreamComplete(abortController, completed);
         };
 
         runResume().catch((err) => {
@@ -1171,17 +1227,26 @@ export function useAgent({
 
       // Case 2: Load a specific thread by ID (from session picker or --resume)
       if (value && runStateRef.current === "idle") {
-        // Clear current events before restoring a different session
-        eventsRef.current = [];
-        setEvents([]);
-
-        threadIdRef.current = value;
-        touchThread(value).catch(() => {});
-        addEvent({ type: "system", content: "Restoring session..." });
-
-        // Fetch thread state and restore conversation history
+        if (queuedMessageRef.current.length > 0) {
+          addSystemEvent("Handle waiting messages with /queue before switching sessions.");
+          return;
+        }
+        restoringRef.current = true;
+        setRestoring(true);
         const client = clientRef.current;
-        client.threads.getState(value).then((state) => {
+        void validateThread(value).then(async (saved) => {
+          const state = await client.threads.getState(value);
+          eventsRef.current = [];
+          setEvents([]);
+          activeQuestionRef.current = restoredQuestion(state);
+          setActiveQuestion(activeQuestionRef.current);
+          if (activeQuestionRef.current) { runStateRef.current = "paused"; setRunState("paused"); }
+          threadIdRef.current = value;
+          assistantIdRef.current = saved.assistantId;
+          threadAssistantRef.current = saved.assistantId;
+          setAssistantId(saved.assistantId);
+          setAssistantOverride(saved.assistantId);
+          await touchThread(value).catch((error: unknown) => addSystemEvent(`Session timestamp could not be saved: ${error instanceof Error ? error.message : String(error)}`));
           const msgs = (state.values as { messages?: LangChainMessage[] })?.messages ?? [];
           lastCountRef.current = msgs.length;
 
@@ -1196,9 +1261,12 @@ export function useAgent({
           }
 
           addEvent({ type: "system", content: "Session restored. Send a message to continue." });
-        }).catch(() => {
-          addEvent({ type: "system", content: "Could not restore this session. Check server availability and the session ID." });
+        }).catch((error: unknown) => {
+          addEvent({ type: "system", content: `Could not restore this session: ${error instanceof Error ? error.message : String(error)}` });
           lastCountRef.current = 0;
+        }).finally(() => {
+          restoringRef.current = false;
+          setRestoring(false);
         });
         return;
       }
@@ -1210,6 +1278,7 @@ export function useAgent({
   );
 
   return {
+    isRestoring: restoring,
     submit,
     interrupt,
     cancel,
@@ -1223,7 +1292,11 @@ export function useAgent({
     streamStats,
     activeAgent,
     assistantId,
-    queuedMessage,
+    queuedMessage: queuedMessages[0] ?? null,
+    queuedMessages,
+    removeQueuedMessage,
+    editQueuedMessage,
+    threadId: threadIdRef.current,
     activeQuestion,
     answerQuestion,
     error,

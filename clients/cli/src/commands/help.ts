@@ -20,7 +20,13 @@ const help: Command = {
       "Shortcuts:",
       "  ctrl+o  Expand (toggle transcript view)",
       "  ctrl+c  Pause stream (1x) / cancel (2x) / exit (idle)",
-      "  Esc     Exit transcript / clear queue",
+      "  Esc     Close picker / dismiss completion / exit transcript / clear queue",
+      "  Tab     Complete the selected command or argument",
+      "  Ctrl+J / Alt+Enter  Insert a newline; Enter sends",
+      "  Up/Down Browse input history (or completion choices)",
+      "  Ctrl+R  Search input history; Enter accepts; Esc cancels",
+      "  Ctrl+G  Edit draft in VISUAL or EDITOR",
+      "  Ctrl+C  Clear an idle draft before exiting",
     ];
 
     ctx.addSystemEvent(lines.join("\n"));

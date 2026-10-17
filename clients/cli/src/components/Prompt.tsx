@@ -1,235 +1,149 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
-import { Box, Text, useInput } from "ink";
-import { TextInput } from "@inkjs/ui";
+import React, { useEffect, useRef, useState } from "react";
+import { Box, Text, useInput, useStdin } from "ink";
 import { useTerminalSize } from "../hooks/useTerminalSize.js";
-import { useSpinnerFrame } from "../hooks/useSpinnerFrame.js";
 import { getCommands } from "../commands/registry.js";
+import { getModelOverride } from "../commands/modelOverride.js";
 import { labelForAgent } from "../utils/agents.js";
-import { CLI_VERSION } from "../utils/version.js";
 import type { RunState } from "../hooks/useAgent.js";
+import { completions, completedInput } from "./composerCompletion.js";
+import { editExternally } from "./composerEditor.js";
+import { verticalCursor, draftViewport } from "./composerCursor.js";
+import { useComposer } from "./useComposer.js";
 
 interface PromptProps {
-  runState: RunState;
-  onSubmit: (input: string) => void;
-  /** Currently active agent name, e.g. "recon". null when idle. */
-  activeAgent?: string | null;
-  /** Persistent assistant id ("soundwave" | "decepticon") — shown when no subagent is streaming. */
-  assistantId?: string;
-  /** Queued message waiting to be sent after stream completes. */
-  queuedMessage?: string | null;
-  /** Callback to update the queued message (for editing). */
-  onEditQueue?: (message: string) => void;
+  readonly runState: RunState;
+  readonly onSubmit: (input: string) => void;
+  readonly activeAgent?: string | null;
+  readonly assistantId?: string;
+  readonly queuedMessage?: string | null;
+  readonly onEditQueue?: (message: string) => void;
+  readonly onModalChange?: (active: boolean) => void;
+  readonly onDraftChange?: (value: string) => void;
+  readonly draftRequest?: { readonly id: number; readonly value: string };
+  readonly clearDraftToken?: number;
+  readonly engagement?: string;
+  readonly model?: string;
+  readonly connectionStatus?: string;
 }
 
-const DEBOUNCE_MS = 150;
-
-/** Compact status line: [Decepticon#1.0.0 | ActiveAgent].
- *
- * Shows the streaming subagent (red, blinking) when one is active, otherwise
- * falls back to the persistent assistant id (Soundwave / Decepticon).
- */
-const StatusLine = React.memo(function StatusLine({
-  activeAgent,
-  assistantId,
-}: {
-  activeAgent: string | null;
-  assistantId: string;
-}) {
-  const { tick } = useSpinnerFrame(activeAgent != null);
-  const bright = activeAgent == null || (tick % 12) < 8;
-  const displayed = activeAgent ?? assistantId;
-  const label = labelForAgent(displayed);
-
-  return (
-    <Text>
-      <Text dimColor>{"["}</Text>
-      <Text dimColor>{`Decepticon#${CLI_VERSION}`}</Text>
-      <Text dimColor>{" | "}</Text>
-      {activeAgent ? (
-        <Text color="#ef4444" bold={bright} dimColor={!bright}>
-          {label}
-        </Text>
-      ) : (
-        <Text color="#ef4444">{label}</Text>
-      )}
-      <Text dimColor>{"]"}</Text>
-    </Text>
-  );
+export const Prompt = React.memo(function Prompt(props: PromptProps) {
+  const engagement = props.engagement ?? process.env.DECEPTICON_ENGAGEMENT ?? "default";
+  return <Composer key={engagement} {...props} engagement={engagement} />;
 });
 
-/** Context-sensitive keybinding hints. */
-function KeybindingHints({ runState, hasQueue }: { runState: RunState; hasQueue: boolean }) {
-  switch (runState) {
-    case "streaming":
-    case "connecting":
-      return (
-        <Text dimColor>
-          {"  ctrl+o: expand  ctrl+c: pause  2x: cancel"}
-        </Text>
-      );
-    case "paused":
-      return (
-        <Text dimColor>
-          {"  ctrl+o: expand  ctrl+c: cancel  /resume: continue"}
-        </Text>
-      );
-    default:
-      return (
-        <Text dimColor>
-          {hasQueue
-            ? "  ctrl+o: expand  ctrl+c: clear queue  esc: clear queue"
-            : "  ctrl+o: expand  ctrl+c: exit"}
-        </Text>
-      );
-  }
-}
-
-export const Prompt = React.memo(function Prompt({
-  runState,
-  onSubmit,
-  activeAgent = null,
-  assistantId = "decepticon",
-  queuedMessage = null,
-  onEditQueue,
-}: PromptProps) {
-  const lastSubmitRef = useRef(0);
+function Composer({ runState, onSubmit, activeAgent = null, assistantId = "decepticon",
+  queuedMessage = null, onEditQueue, onDraftChange, onModalChange, draftRequest, clearDraftToken,
+  engagement = "default", model, connectionStatus }: PromptProps) {
   const { columns } = useTerminalSize();
-  const [inputValue, setInputValue] = useState("");
-  const [selectedIdx, setSelectedIdx] = useState(0);
-  const [inputKey, setInputKey] = useState(0);
-
+  const { stdin } = useStdin();
+  const editor = useComposer(engagement);
+  const { value, cursor, replace, setCursor } = editor;
+  const [selected, setSelected] = useState(0);
+  const [dismissed, setDismissed] = useState(false);
+  const [search, setSearch] = useState<string | null>(null);
+  const [searchIndex, setSearchIndex] = useState(0);
+  const paste = useRef<string | null>(null);
+  const lastClear = useRef(clearDraftToken);
+  const lastRequest = useRef<number | undefined>(undefined);
+  const choices = dismissed ? [] : completions(value, getCommands());
+  const matches = search === null ? [] : [...editor.history.current].reverse().filter((item) => item.includes(search));
   const isActive = runState === "streaming" || runState === "connecting";
-
-  // Derive autocomplete entries from command registry
-  const commandEntries = useMemo(() => {
-    const cmds = getCommands();
-    const entries: { cmd: string; desc: string }[] = [];
-    for (const c of cmds) {
-      if (c.isHidden) continue;
-      entries.push({ cmd: `/${c.name}`, desc: c.description });
-      // Aliases work for execution but are hidden from autocomplete
+  useEffect(() => { onModalChange?.(search !== null); return () => { onModalChange?.(false); }; }, [search !== null, onModalChange]);
+  useEffect(() => { setSelected(0); setDismissed(false); onDraftChange?.(value); }, [value, onDraftChange]);
+  useEffect(() => {
+    if (lastClear.current !== clearDraftToken) { replace(""); lastClear.current = clearDraftToken; }
+  }, [clearDraftToken]);
+  useEffect(() => {
+    if (draftRequest && draftRequest.id !== lastRequest.current) {
+      replace(draftRequest.value); lastRequest.current = draftRequest.id;
     }
-    return entries;
+  }, [draftRequest]);
+  useEffect(() => {
+    process.stdout.write("\u001b[?2004h");
+    return () => { process.stdout.write("\u001b[?2004l"); };
   }, []);
 
-  // Filter commands — exclude exact matches (already fully typed)
-  const isTypingCommand =
-    inputValue.startsWith("/") && !inputValue.includes(" ");
-  const filteredCommands = isTypingCommand
-    ? commandEntries.filter(
-        (c) => c.cmd.startsWith(inputValue) && c.cmd !== inputValue,
-      )
-    : [];
-  const showMenu = filteredCommands.length > 0;
-
-  // Reorder suggestions so selected dropdown item is first
-  const suggestionList = showMenu
-    ? filteredCommands.map((c) => c.cmd)
-    : commandEntries.map((c) => c.cmd);
-
-  // Reset selection on input change
-  useEffect(() => {
-    setSelectedIdx(0);
-  }, [inputValue]);
-
-  // Up/Down/Tab — TextInput explicitly ignores these, so they bubble here
-  useInput((_input, key) => {
-    // Up arrow when queued + streaming: load queued message into input for editing
-    if (key.upArrow && queuedMessage && isActive) {
-      setInputValue(queuedMessage);
-      setInputKey((prev) => prev + 1);
+  function insert(text: string) {
+    replace(value.slice(0, cursor) + text + value.slice(cursor));
+    setCursor(cursor + text.length);
+  }
+  useInput((input, key) => {
+    if (input === "[200~") { paste.current = ""; return; }
+    if (input === "[201~") {
+      if (paste.current !== null) { insert(paste.current.replace(/\r\n?/g, "\n")); paste.current = null; }
       return;
     }
-
-    if (!showMenu) return;
-
-    if (key.upArrow) {
-      setSelectedIdx((prev) => Math.max(0, prev - 1));
-    } else if (key.downArrow) {
-      setSelectedIdx((prev) =>
-        Math.min(filteredCommands.length - 1, prev + 1),
-      );
-    } else if (key.tab) {
-      const cmd = filteredCommands[selectedIdx]?.cmd;
-      if (cmd) {
-        setInputValue(cmd);
-        setInputKey((prev) => prev + 1);
-      }
+    if (paste.current !== null) { paste.current += key.return ? "\n" : key.ctrl && input === "j" ? "\n" : input; return; }
+    if (search !== null) {
+      if (key.escape || (key.ctrl && input === "c")) { setSearch(null); return; }
+      if (key.return) { const found = matches[searchIndex]; if (found !== undefined) replace(found); setSearch(null); return; }
+      if ((key.ctrl && input === "r") || key.downArrow) { setSearchIndex((index) => Math.min(matches.length - 1, index + 1)); return; }
+      if (key.upArrow) { setSearchIndex((index) => Math.max(0, index - 1)); return; }
+      if (key.backspace || key.delete) setSearch(search.slice(0, -1));
+      else if (!key.ctrl && !key.meta) setSearch(search + input);
+      setSearchIndex(0);
+      return;
     }
+    if (key.ctrl && input === "r") { setSearch(""); setSearchIndex(0); return; }
+    if (key.ctrl && input === "g") {
+      const wasRaw = stdin.isRaw;
+      // Suspend the terminal itself while Ink retains ownership of its input subscriptions.
+      try { onModalChange?.(true); stdin.setRawMode(false); replace(editExternally(value)); }
+      catch (cause) { editor.setError(cause instanceof Error ? cause.message : String(cause)); }
+      finally { stdin.setRawMode(wasRaw); onModalChange?.(false); }
+      return;
+    }
+    if ((key.ctrl && input === "j") || (key.meta && key.return)) { insert("\n"); return; }
+    if (key.escape) { setDismissed(true); return; }
+    if (key.tab) {
+      const choice = choices.find((item) => item.value === value)?.value ?? choices[selected]?.value;
+      if (choice) replace(choice + (choice.includes(" ") ? "" : " "));
+      return;
+    }
+    if (key.upArrow || key.downArrow) {
+      if (choices.length) { setSelected((index) => (index + (key.upArrow ? -1 : 1) + choices.length) % choices.length); return; }
+      const next = verticalCursor(value, cursor, key.upArrow ? -1 : 1);
+      if (next !== null) setCursor(next);
+      else editor.recall(key.upArrow ? -1 : 1);
+      return;
+    }
+    if (key.return) {
+      const submitted = completedInput(value, choices, selected);
+      if (!submitted.trim()) return;
+      editor.remember(submitted);
+      if (isActive && onEditQueue && !submitted.startsWith("/")) onEditQueue(submitted);
+      else onSubmit(submitted);
+      return;
+    }
+    if (key.leftArrow) { setCursor(Math.max(0, cursor - 1)); return; }
+    if (key.rightArrow) { setCursor(Math.min(value.length, cursor + 1)); return; }
+    if (key.ctrl && input === "a") { setCursor(value.lastIndexOf("\n", cursor - 1) + 1); return; }
+    if (key.ctrl && input === "e") { const end = value.indexOf("\n", cursor); setCursor(end < 0 ? value.length : end); return; }
+    if (key.ctrl && input === "u") { replace(value.slice(cursor)); setCursor(0); return; }
+    if (key.delete) {
+      replace(value.slice(0, cursor) + value.slice(cursor + 1)); setCursor(cursor); return;
+    }
+    if (key.backspace) {
+      replace(value.slice(0, Math.max(0, cursor - 1)) + value.slice(cursor)); setCursor(Math.max(0, cursor - 1)); return;
+    }
+    if (!key.ctrl && !key.meta && input) insert(input.replace(/\u001b\[20[01]~/g, "").replace(/\r\n?/g, "\n"));
   });
-
-  const handleChange = useCallback((value: string) => {
-    setInputValue(value);
-  }, []);
-
-  const handleSubmit = useCallback(
-    (value: string) => {
-      const now = Date.now();
-      if (now - lastSubmitRef.current < DEBOUNCE_MS) return;
-      lastSubmitRef.current = now;
-      setInputValue("");
-      setInputKey((prev) => prev + 1);
-
-      // If streaming and not a slash command, update the queue
-      if (isActive && onEditQueue && !value.startsWith("/")) {
-        onEditQueue(value);
-        return;
-      }
-
-      onSubmit(value);
-    },
-    [onSubmit, isActive, onEditQueue],
-  );
-
-  const maxCmdLen = Math.max(...commandEntries.map((c) => c.cmd.length));
-
+  const mode = assistantId === "soundwave" ? "Plan" : assistantId === "blue_cell" ? "Blue" : "Red";
+  const viewport = draftViewport(value, cursor);
+  const lineCount = viewport.lines;
+  const menuStart = Math.max(0, selected - 5);
   return (
     <Box flexDirection="column" marginTop={1}>
-      {/* Queued message display */}
-      {queuedMessage && isActive && (
-        <Box marginLeft={2} marginBottom={0}>
-          <Text dimColor italic>{"  "}{queuedMessage}</Text>
-        </Box>
-      )}
-
+      {queuedMessage && isActive && <Text dimColor>Queued: {queuedMessage}</Text>}
       <Text dimColor>{"─".repeat(columns)}</Text>
-      <Box flexDirection="row">
-        <Text color="white">{"› "}</Text>
-        <TextInput
-          key={inputKey}
-          placeholder={queuedMessage && isActive ? "Press up to edit queued message" : ""}
-          defaultValue={inputValue || undefined}
-          suggestions={suggestionList}
-          isDisabled={false}
-          onChange={handleChange}
-          onSubmit={handleSubmit}
-        />
-      </Box>
-
+      <Box><Text>{"› "}</Text><Text>{viewport.text.slice(0, viewport.cursor)}<Text inverse>{viewport.text[viewport.cursor] === "\n" || viewport.cursor === viewport.text.length ? " " : viewport.text[viewport.cursor]}</Text>{viewport.text.slice(viewport.cursor + (viewport.text[viewport.cursor] === "\n" ? 0 : 1))}</Text></Box>
+      {lineCount > 3 && <Text dimColor>{lineCount} lines · {value.length} characters · Ctrl+G opens editor</Text>}
       <Text dimColor>{"─".repeat(columns)}</Text>
-
-      {/* Autocomplete menu — below the input divider, Claude Code style */}
-      {showMenu && (
-        <Box flexDirection="column" marginLeft={2}>
-          {filteredCommands.map((cmd, i) => (
-            <Text key={cmd.cmd}>
-              <Text
-                bold={i === selectedIdx}
-                dimColor={i !== selectedIdx}
-              >
-                {` ${cmd.cmd.padEnd(maxCmdLen + 2)}`}
-              </Text>
-              <Text dimColor>{cmd.desc}</Text>
-            </Text>
-          ))}
-        </Box>
-      )}
-
-      {/* Compact status line — always visible */}
-      <StatusLine activeAgent={activeAgent} assistantId={assistantId} />
-
-      {/* Context-sensitive keybinding hints */}
-      <KeybindingHints runState={runState} hasQueue={queuedMessage != null} />
+      {search !== null && <Text>History search: {search} · {matches[searchIndex] ?? "No match"}</Text>}
+      {choices.slice(menuStart, menuStart + 6).map((choice, index) => <Text key={choice.value} bold={index + menuStart === selected} dimColor={index + menuStart !== selected}>{index + menuStart === selected ? "› " : "  "}{choice.value} — {choice.description}</Text>)}
+      <Text><Text bold>{mode}</Text>{" · "}{labelForAgent(activeAgent ?? assistantId)}{columns >= 70 ? ` · ${engagement}` : ""}{columns >= 100 ? ` · ${model || getModelOverride() || "default model"}` : ""}{connectionStatus ? ` · ${connectionStatus}` : ""}</Text>
+      <Text dimColor>{isActive ? "Ctrl+C pause · twice cancel · /queue edit" : runState === "paused" ? "Ctrl+C cancel · /resume continue" : "Enter send · Ctrl+J newline · Ctrl+R history · Ctrl+G editor · Ctrl+C clear/exit"}</Text>
+      {editor.error && <Text color="yellow">Composer: {editor.error}</Text>}
     </Box>
   );
-});
+}

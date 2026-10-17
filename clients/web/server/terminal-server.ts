@@ -124,14 +124,15 @@ function isAllowedOrigin(origin: string | undefined): boolean {
   try { return ALLOWED_ORIGINS.has(new URL(origin).origin); } catch { return false; }
 }
 
-async function createThread(engagementId: string, agentId: string): Promise<string> {
+async function createThread(engagementId: string, agentId: string, engagementSlug: string): Promise<string> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 10000);
   try {
     const res = await fetch(`${LANGGRAPH_API_URL}/threads`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ metadata: { engagement_id: engagementId, decepticon_assistant: agentId } }),
+      body: JSON.stringify({ metadata: { engagement_id: engagementId, decepticon_assistant: agentId,
+        assistantId: agentId, engagement_name: engagementSlug, workspace_path: `/workspace/${engagementSlug}` } }),
       signal: controller.signal,
     });
     if (!res.ok) throw new Error(`Thread create: ${res.status}`);
@@ -258,7 +259,7 @@ wss.on("connection", async (ws: WebSocket, req) => {
   if (ws.readyState !== WebSocket.OPEN) return;
   if (!threadId) {
     try {
-      threadId = await createThread(engagementId, agentId);
+      threadId = await createThread(engagementId, agentId, engagementSlug);
       console.log(`[terminal-server] Created thread: ${threadId}`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
