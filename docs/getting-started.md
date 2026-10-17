@@ -61,8 +61,8 @@ From the terminal UI, run `/web` (or `/web up`) to start the dashboard. It is th
 ## First Real Engagement
 
 1. Launch Decepticon (`decepticon`). To use the browser UI, run `/web` and open <http://localhost:3000>.
-2. In the CLI, choose **New engagement** and enter only its name. The session opens in Plan mode; target and scope are supplied during the conversation. The web dashboard uses its own engagement setup form.
-3. Soundwave prepares and validates the planning bundle. Review and approve its current scope before Red execution.
+2. In the CLI, choose **New engagement** and enter its name. The session defaults to Red. Import a reviewed RoE with `/scope import <file> --confirm`, then use `/mode red approve` before target-facing work. The web dashboard uses its own engagement setup form.
+3. Direct approved Red does not require planning documents. Use `/mode plan` explicitly for optional Soundwave discussion and planning; publication leaves you in Plan. See [engagement workflow](engagement-workflow.md) and [RoE provisioning](roe-provisioning.md).
 4. Use `/mode plan`, `/mode red`, or `/mode blue` within the CLI session, or the web live-view selector. Red runs specialist operations under the approved RoE; Blue investigation needs a connected local sensor.
 
 > **Important**: Only run Decepticon against systems you own or have explicit written authorization to test. See the disclaimer in the main README.

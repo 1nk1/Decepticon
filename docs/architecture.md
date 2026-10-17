@@ -1,5 +1,8 @@
 # Architecture
 
+For agents, skills, business workflows and client adapters, start with the
+[current extension contract](design/extension-contract.md).
+
 ## Overview
 
 Decepticon runs on two Docker networks. Management infrastructure (LLM proxy, databases, agent API) and operational infrastructure (sandbox, C2, targets) are separated so that no offensive tool inside the sandbox can reach the LLM gateway, the API surface, or your credentials over the network. The agent drives the sandbox via the Docker socket, never via TCP.
@@ -176,12 +179,12 @@ ANSI escape codes are stripped and repetitive output lines are compressed before
 Orchestrator reads OPPLAN
         │
         ▼
-  Pick next pending objective
+  Pick ready leaf objective; check scope and evidence
         │
         ▼
   Spawn specialist agent (fresh context)
   ┌─────────────────────────────────────────────┐
-  │  System prompt: RoE + skills + OPPLAN status │
+  │  Context: scope + role-scoped workflow + objective │
   │  Tools: bash → sandbox (via Docker socket)   │
   │         read_file / write_file → workspace/  │
   │         kg_* → Neo4j (bolt://neo4j:7687)     │
@@ -199,7 +202,7 @@ Orchestrator reads OPPLAN
   Findings appended to disk
         │
         ▼
-  Next objective (or Vaccine phase if all done)
+  Next objective or workflow-defined closure
 ```
 
 ---

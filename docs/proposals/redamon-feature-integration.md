@@ -1,5 +1,9 @@
 # Redamon → Decepticon: Feature Integration Candidates
 
+> Historical design/domain reference. Runtime ownership and launch behavior are
+> defined by the [current extension contract](../design/extension-contract.md). Old Soundwave RoE/OPPLAN
+> authoring or mandatory phase descriptions below are not operating instructions.
+
 > Gap analysis of [samugit83/redamon](https://github.com/samugit83/redamon) against the Decepticon codebase
 > (branch `redamon-feature-integration`). Every candidate below was checked against
 > Decepticon's actual source and adversarially re-verified, so the list recommends only

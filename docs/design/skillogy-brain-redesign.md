@@ -1,8 +1,12 @@
 # Skillogy — Brain Redesign (v0.2 Design)
 
+> Historical design/domain reference. Runtime ownership and launch behavior are
+> defined by the [current extension contract](extension-contract.md). Old Soundwave RoE/OPPLAN
+> authoring or mandatory phase descriptions below are not operating instructions.
+
 **Status**: design spec, awaiting implementation
 **Date**: 2026-06-03
-**Supersedes (in spirit)**: [docs/design/skillogy.md](../../design/skillogy.md) (2026-05-28 v0.1 draft)
+**Supersedes (in spirit)**: [docs/design/skillogy.md](skillogy.md) (2026-05-28 v0.1 draft)
 **Replaces (at runtime)**: `decepticon.middleware.skills.SkillsMiddleware` (text-matching catalog)
 **Rebuilds (in package)**: `decepticon.skillogy.*` REST + gRPC service — backend switched from in-memory dict to Neo4j; wire protocol preserved.
 **Target version**: Skillogy v0.2 — "Brain"
@@ -791,10 +795,10 @@ Out of scope for this design doc; tracked here only to confirm that the Phase 1a
 |---|---|---|
 | OQ-1 | ATLAS releases at higher cadence than ATT&CK (~quarterly+). Bump policy in CI? | Pin to released version; auto-PR on new release; human reviews diff before merge. |
 | OQ-2 | Controlled vocabulary for `tags` — when does it become required? | Defer to Phase 1b or later. Free-form until embedding-based semantic clustering shows value. |
-| OQ-3 | Per-agent graph slicing (16 specialists each see only their region)? | **Revised 2026-06-06 — see [ADR-0008](../../adr/0008-skillogy-hard-acl-phase1a.md).** Phase 1a now enforces a *path-prefix ACL* on `find_skill`/`load_skill`/`traverse` (legacy `FilesystemBackend` contract: `/skills/standard/{role}/` + `/skills/shared/`). The single-graph Neo4j model is preserved; per-tenant graph slicing is still a Phase 2 hardening — but the deterministic per-role visibility boundary lands now, not later. |
+| OQ-3 | Per-agent graph slicing (16 specialists each see only their region)? | **Revised 2026-06-06 — see [ADR-0008](../adr/0008-skillogy-hard-acl-phase1a.md).** Phase 1a now enforces a *path-prefix ACL* on `find_skill`/`load_skill`/`traverse` (legacy `FilesystemBackend` contract: `/skills/standard/{role}/` + `/skills/shared/`). The single-graph Neo4j model is preserved; per-tenant graph slicing is still a Phase 2 hardening — but the deterministic per-role visibility boundary lands now, not later. |
 | OQ-4 | Should `aatmf_tactic` get promoted to a `:Framework` node + edges in Phase 1b? | Re-evaluate after AATMF v3 schema stabilizes. Currently preserved as raw frontmatter. |
 | OQ-5 | Hot-swap via runtime `ingest_skill` endpoint? | Not in Phase 1a (rebuild + redeploy). Reintroduce if downstream shows real need. Phase 2 candidate. |
-| OQ-6 | Existing attack-graph schema shares Neo4j — what label collisions are possible? | `:Tactic`/`:Technique` are unique to skill graph; `:Skill` is unique. `:Phase` is shared (already used by OPPLAN middleware?). Verify against [docs/design/attack-graph-schema.md](../../design/attack-graph-schema.md) during Phase 0. |
+| OQ-6 | Existing attack-graph schema shares Neo4j — what label collisions are possible? | `:Tactic`/`:Technique` are unique to skill graph; `:Skill` is unique. `:Phase` is shared (already used by OPPLAN middleware?). Verify against [docs/design/attack-graph-schema.md](attack-graph-schema.md) during Phase 0. |
 | OQ-7 | If gating becomes a concrete requirement (today: `safety_critical`/`gated_by_conops` are 1-file aspirational fields, dropped — see §1.4), where should the gating signal live: re-added frontmatter, runtime engagement state, or a separate `:Gating` node? | Defer until gating is a shippable feature. Prefer engagement-runtime over frontmatter when the time comes — gating that depends on the engagement's authorized scope is naturally runtime, not author-time. |
 
 ---

@@ -83,8 +83,9 @@ sensor investigation. The current direct-scope form accepts:
 
 ### Soundwave Interview
 
-Plan mode runs Soundwave's interview in the terminal and builds the eight-document
-bundle. Red mode can start without this interview from the confirmed direct RoE.
+Plan mode runs Soundwave's optional planning workflow. It prepares seven
+documents alongside the operator-provisioned, read-only RoE; publication leaves
+the user in Plan. Red can start directly from approved scope without this bundle.
 To move from Plan to Red, review the documents and approve the validated bundle
 with the mode selector. Blue mode checks the local sensor before opening its
 defensive agent. Each mode keeps its own terminal session and LangGraph thread.

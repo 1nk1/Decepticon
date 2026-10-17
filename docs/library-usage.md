@@ -1,5 +1,8 @@
 # Decepticon as a Library
 
+For agents, skills, business workflows and client adapters, start with the
+[current extension contract](design/extension-contract.md).
+
 Decepticon is built on top of `langchain` / `langgraph` / `deepagents`
 and follows the same composition idiom: opinionated middleware + tools
 + prompts you can either consume pre-built or compose into something

@@ -2,9 +2,31 @@
 
 Skillogy is Decepticon's knowledge-graph-backed skill discovery system. It replaces text-matching autoload with a typed Neo4j graph built at CI time and exposed to agents through five tools. Skills are still authored as `SKILL.md` files — Skillogy is the discovery layer on top of them.
 
-> **Status**: v0.1 design — see [docs/design/skillogy.md](design/skillogy.md) for the full specification.
->
-> The current production path is still the text-matching `SkillsMiddleware` ([docs/skills.md](skills.md)). Skillogy ships behind a feature flag and becomes default once benchmark validation passes.
+For current ownership and extension rules, see the
+[extension contract](design/extension-contract.md) and
+[canonical skill schema](skill-schema.md). The detailed graph design below
+contains historical phase proposals; validate supported graph edges and tools
+against the installed revision rather than assuming every proposed feature ships.
+Standard factories use their configured skill middleware; graph-backed client
+compositions install Skillogy explicitly.
+
+## Source and serving catalog synchronization
+
+The current builder lives in
+[`skillogy/builder/`](../packages/decepticon/decepticon/skillogy/builder/), and
+[`catalog_sync.py`](../packages/decepticon/decepticon/skillogy/catalog_sync.py)
+reconciles the bundled generated graph. It compares the catalog digest, applies
+changes and the release marker in one transaction, and verifies the skill count.
+Managed updates retire bundle-owned records; first adoption archives unmatched
+legacy records with the old frozen-builder provenance. Unrelated custom graph
+data must be preserved.
+
+Updating SKILL.md alone does not update serving retrieval. Audit source metadata,
+rebuild the packaged graph with the pinned STIX input, inspect identity/body
+hash changes, deploy the catalog-bearing image, and verify the serving digest
+and retrieval. Production overlays can use their own synchronization adapter;
+verify that adapter's contract separately. Neither a local build nor an old
+review report proves a live graph has synchronized.
 
 ---
 
@@ -33,7 +55,7 @@ MITRE STIX v19.1 ┼─► graph_builder ─► skills/.graph/skills.cypher
 AssetType seed ──┘                    (checked into repo, reviewable in PR diff)
 ```
 
-A Python pipeline (`packages/decepticon/decepticon/graph_builder/`) parses every `SKILL.md` frontmatter, imports the pinned MITRE STIX bundle, seeds asset type / phase / agent / MoC nodes, runs an LLM pass to infer prerequisite and applicability edges, validates the result with SHACL-like Cypher rules, and emits a deterministic Cypher dump. The dump is checked into the repo so changes show up in PR diffs.
+A Python pipeline (`packages/decepticon/decepticon/skillogy/builder/`) parses every `SKILL.md` frontmatter, imports the pinned MITRE STIX bundle, seeds asset type / phase / agent / MoC nodes, runs an LLM pass to infer prerequisite and applicability edges, validates the result with SHACL-like Cypher rules, and emits a deterministic Cypher dump. The dump is checked into the repo so changes show up in PR diffs.
 
 ### Runtime (agent)
 

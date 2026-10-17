@@ -1,5 +1,9 @@
 # AI 자율 Red Team 에이전트 — State of the Art (2024-2026)
 
+> Historical design/domain reference. Runtime ownership and launch behavior are
+> defined by the [current extension contract](../design/extension-contract.md). Old Soundwave RoE/OPPLAN
+> authoring or mandatory phase descriptions below are not operating instructions.
+
 > AI를 활용하여 실제 인프라/시스템을 대상으로 Red Team 운영을 자동화하는 기술 리서치 문서.
 > 주의: 이 문서는 AI 모델 안전성 테스트(AI safety red teaming)가 아닌, AI를 "도구로 사용"하여 전통적 인프라를 공격하는 자율 Red Team 에이전트에 대한 것임.
 

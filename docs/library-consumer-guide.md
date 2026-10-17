@@ -1,5 +1,8 @@
 # Library Consumer Guide
 
+For agents, skills, business workflows and client adapters, start with the
+[current extension contract](design/extension-contract.md).
+
 Audience: a commercial product or downstream framework that embeds
 Decepticon — e.g., a dashboard, a B2B API service, or a research
 toolkit. Library consumers compose agents, override middleware, and
@@ -211,4 +214,4 @@ layer suitable for B2B Enterprise integration:
 - Contributor architecture guide:
   [`docs/contributor-architecture.md`](contributor-architecture.md).
 - Spec:
-  [`docs/superpowers/specs/2026-05-23-core-framework-sdk-split-design.md`](superpowers/specs/2026-05-23-core-framework-sdk-split-design.md).
+  [current extension contract](design/extension-contract.md).
