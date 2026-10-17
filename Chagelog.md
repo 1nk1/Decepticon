@@ -6,5 +6,7 @@ merged changes, and its dated version sections for released changes. This entry
 point intentionally does not duplicate that history. OSS package versions are
 independent of production/SaaS image and release identifiers.
 
-Pending workflow and skill-graph consistency changes are recorded under Unreleased
-in [PR #999](https://github.com/BitterSecurity/Decepticon/pull/999).
+Unreleased distinguishes proposed work from merged changes. The status of each
+linked PR records integration; only dated release sections describe shipped work.
+The pending gateway addition is documented in
+[PR #995](https://github.com/BitterSecurity/Decepticon/pull/995).
