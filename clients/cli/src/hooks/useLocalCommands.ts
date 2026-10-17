@@ -24,6 +24,10 @@ export function useLocalCommands({ agent, blue, connection, onSessionSelected }:
       agent.addSystemEvent("Finish or cancel the current run before switching sessions. /resume continues a paused run.");
       return;
     }
+    if (agent.queuedMessages.length > 0) {
+      agent.addSystemEvent("Handle waiting messages with /queue before switching sessions.");
+      return;
+    }
     const saved = await listThreads({ scope });
     if (!saved.length) {
       agent.addSystemEvent("No sessions found in this view. Use /sessions all or /sessions legacy for older conversations.");
