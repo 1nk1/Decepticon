@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -142,3 +143,37 @@ def test_invalidates_stale_review_markers_before_restoring_roe(
     assert result.returncode == 0, result.stderr
     assert not (workspace / ".red-approved").exists()
     assert not (workspace / ".planning-draft-ready").exists()
+
+
+def test_explicit_direct_approval_requires_no_plan_bundle(workspace: Path, source: Path) -> None:
+    result = _invoke(workspace, source, "--confirm", "--approve-red")
+    assert result.returncode == 0, result.stderr
+    assert (workspace / ".red-approved").read_text().strip() == (
+        "roe:" + hashlib.sha256(source.read_bytes()).hexdigest()
+    )
+    assert not (workspace / "plan" / "threat-profile.json").exists()
+    assert not (workspace / ".planning-draft-ready").exists()
+
+
+def test_direct_approval_accepts_existing_reviewed_bytes(workspace: Path, source: Path) -> None:
+    (workspace / "plan" / "roe.json").write_bytes(source.read_bytes())
+    result = _invoke(workspace, source, "--confirm", "--approve-red")
+    assert result.returncode == 0, result.stderr
+    assert (workspace / ".red-approved").read_text().strip() == (
+        "roe:" + hashlib.sha256(source.read_bytes()).hexdigest()
+    )
+
+
+def test_direct_approval_rejects_unreviewed_existing_bytes(workspace: Path, source: Path) -> None:
+    destination = workspace / "plan" / "roe.json"
+    destination.write_bytes(source.read_bytes() + b"\n")
+    result = _invoke(workspace, source, "--confirm", "--approve-red")
+    assert result.returncode == 2
+    assert not (workspace / ".red-approved").exists()
+
+
+def test_direct_approval_requires_operator_confirmation(workspace: Path, source: Path) -> None:
+    result = _invoke(workspace, source, "--approve-red")
+    assert result.returncode == 2
+    assert not (workspace / "plan" / "roe.json").exists()
+    assert not (workspace / ".red-approved").exists()

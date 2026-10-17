@@ -1,5 +1,9 @@
 # Red Team Operations — 전체 가이드
 
+> Historical design/domain reference. Runtime ownership and launch behavior are
+> defined by the [current extension contract](../design/extension-contract.md). Old Soundwave RoE/OPPLAN
+> authoring or mandatory phase descriptions below are not operating instructions.
+
 > Decepticon 에이전트의 운영 프레임워크 문서.
 > 참조: MITRE ATT&CK, TIBER-EU, NIST SP 800-53 CA-8, DORA, PTES
 

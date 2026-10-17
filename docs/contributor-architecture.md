@@ -1,5 +1,8 @@
 # Contributor Architecture Guide
 
+For agents, skills, business workflows and client adapters, start with the
+[current extension contract](design/extension-contract.md).
+
 Audience: an OSS contributor adding features, fixing bugs, or
 refactoring internals within the Decepticon repo. The three-package
 split (`decepticon-core` / `decepticon` / `decepticon-sdk`) shapes
@@ -136,7 +139,7 @@ pyprojects via `sed` and publishes them atomically.
 ## See also
 
 - The redesign spec at
-  [`docs/superpowers/specs/2026-05-23-core-framework-sdk-split-design.md`](superpowers/specs/2026-05-23-core-framework-sdk-split-design.md)
+  [current extension contract](design/extension-contract.md)
   — full design rationale, gap analysis, and per-phase acceptance
   criteria.
 - Plugin author guide:

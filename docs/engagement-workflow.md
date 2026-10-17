@@ -1,203 +1,89 @@
-# Engagement Workflow
+# Engagement workflow
 
-CLI engagement creation asks only for a name and opens **Plan** with Soundwave. **Red** executes an approved scope; **Blue** investigates events from a connected local sensor. Select modes within the CLI session using `/mode plan`, `/mode red`, or `/mode blue`. The web dashboard has its own setup form and live-view selector.
-
----
+Red executes operator-approved scope. Optional Plan uses Soundwave for discussion
+and planning documents; Blue investigates a connected local sensor. A business
+workflow selects the execution process independently of mode and authorization.
+Contributors should read the [extension contract](design/extension-contract.md).
 
 ## Start an engagement
 
-### 1. Name the CLI engagement
+The CLI starts in Red for both new and saved workspaces. Creation asks for the
+engagement name. If scope is missing, import a reviewed RoE containing the target
+and authorization context with `/scope import <file> --confirm`, then explicitly
+approve it with `/mode red approve`. Already approved workspaces can run directly.
+Red execution requires a valid current approval; selecting the mode alone does
+not grant permission. Existing engagements with missing scope use
+[operator RoE provisioning](roe-provisioning.md).
 
-Choose **New engagement**, enter a lowercase name with optional internal
-hyphens, and submit. The launcher creates the workspace and its empty `plan/`
-directory. It does not ask for a mode, target, or authorization reference.
-Supply the target and scope during the planning conversation, then have an
-authorized operator [provision the reviewed RoE](roe-provisioning.md). Review the
-validated scope before Red execution. Saved engagements retain their scope.
+The web dashboard has its own creation form for the target and authorization
+reference. A direct approved RoE allows execution without Soundwave or the seven
+optional planning documents. Scope changes invalidate the old approval.
 
-### Web dashboard setup
+## Optional Plan
 
-The web dashboard's direct-scope form accepts a target and authorization reference:
-
-| Type | Example |
-|------|---------|
-| IP address or CIDR | `192.168.1.10`, `192.168.1.0/24` |
-| Root web URL | `https://app.example.com` |
-
-Red creates a direct RoE with machine-enforced scope and an approval marker tied
-to its content. You can work with Red immediately. Plan creates the scoped RoE
-without Red approval. Blue needs the local sensor and monitor; run `/blue up`
-from the host CLI before sending Blue messages.
-
-## Optional Plan mode
-
-### Soundwave interview
-
-Soundwave conducts a structured interview to understand the engagement:
-
-- **Threat actor profile** — Who are we emulating? Nation-state, financially motivated, insider threat?
-- **Authorized scope** — What systems, networks, and actions are in scope?
-- **Exclusions** — What must not be touched (production databases, critical services)?
-- **Testing window** — When is testing authorized?
-- **Acceptance criteria** — What does a successful engagement look like?
-- **OPSEC requirements** — Noise level, detection avoidance, logging preferences
-- **Contacts** — Operator, escalation chain, and who is paged on an emergency abort
-- **Data handling** — Whether PII, health, source-code, or business data is in play, and which compliance frameworks apply
-- **Abort triggers** — Conditions that force an emergency halt beyond the defaults
-
-The interview streams in real time — you respond to each question.
-
-### Document generation
-
-From the interview, Soundwave writes seven planning documents alongside the
-operator-provisioned RoE, forming an eight-document bundle in
-`<engagement>/plan/` as JSON:
+Select `/mode plan` explicitly to discuss assumptions, scope constraints,
+threat profiles, objectives, contacts, deconfliction, data handling, abort or
+cleanup. A focused discussion does not require regenerating every document.
+Soundwave cannot execute offensive work or rewrite `plan/roe.json`; an authorized
+operator provisions that file. Soundwave can prepare a separate RoE candidate
+for review and seven planning documents:
 
 | Document | Contents |
-|----------|----------|
-| **RoE** (Rules of Engagement) | Authorized scope, exclusions, testing window, escalation contacts, legal authorization |
-| **Threat Profile** | MITRE-mapped adversary persona — tier, group ID, key TTPs — that drives TTP selection |
-| **CONOPS** (Concept of Operations) | Threat model and kill-chain phases, scoped to the RoE |
-| **Deconfliction Plan** | Source IPs, user-agents, time windows, and a shared code for real-time deconfliction calls with the SOC |
-| **Contact Plan** | Operator, escalation chain, and the recipient paged on an emergency abort |
-| **Data Handling Plan** | Per-class evidence retention, encryption, and chain-of-custody |
-| **Abort Plan** | Halt triggers and AI-aware safety gates (hallucination threshold, destructive-action gate) |
-| **Cleanup Plan** | Expected artifact inventory with per-phase removal commands |
+|---|---|
+| `threat-profile.json` | Adversary model and relevant techniques |
+| `conops.json` | Operational concept within the reviewed scope |
+| `deconfliction.json` | Operator identifiers and coordination |
+| `contact.json` | Contacts and escalation |
+| `data-handling.json` | Evidence handling and retention |
+| `abort.json` | Stop conditions and response |
+| `cleanup.json` | Expected artifacts and cleanup approach |
 
-The **OPPLAN** (Operations Plan) is not written by Soundwave — the orchestrator
-(Decepticon) builds it from the bundle once planning completes.
+Publication validates these seven documents plus the operator-provisioned RoE
+and records a draft-ready digest. It leaves the operator in Plan. Publication
+neither approves Red nor starts execution. Review and approve the current scope,
+then explicitly select Red when ready. The execution orchestrator creates OPPLAN;
+it can do so directly from approved scope without this optional bundle.
+See [planning workflow](design/planning-workflow.md).
 
-### OPPLAN structure
+## Execution workflow and OPPLAN
 
-Each OPPLAN objective carries:
+The trusted launch adapter supplies a registered execution workflow: `red-team`,
+`bug-bounty`, `pentest` or `vulnerability-research`. For example, launch with
+`decepticon start --workflow pentest --workflow-version 1` (the `start` word is
+optional). The runtime pins its full
+source, version and hash. Resumes preserve that selection; a different workflow
+requires a new execution thread. Workflows do not broaden authorized scope.
 
-```
-OBJ-001
-  title: "Port scan and service enumeration"
-  phase: recon
-  opsec_level: standard
-  mitre: [T1595, T1046]
-  depends_on: []
-  acceptance_criteria: "All open ports identified with service versions"
-  status: pending
-```
+OPPLAN is the only execution task lifecycle. The orchestrator creates bounded
+objectives, selects eligible specialists, records dependencies and inspects real
+evidence before completion. Stages are not a mandatory kill-chain ladder:
+provided source, captures or access can satisfy discovery, while missing evidence
+creates a prerequisite. Proof, independent verification and reporting retain
+their dependencies for each finding. See [OPPLAN DAG](red-team/opplan-dag.md).
 
-OPSEC levels: `loud` → `standard` → `careful` → `quiet` → `silent`
+Specialists receive fresh task context and the same pinned workflow, write their
+assigned evidence, and return outcomes. A failed tool, missing artifact or blocked
+objective is not successful coverage. With no findings, report the tested surface,
+negative results, untested coverage and limitations.
 
-Phases: `recon` → `initial-access` → `post-exploit` → `c2` → `exfiltration`
+## Modes and outputs
 
-### Operator review
+Use `/mode plan`, `/mode red`, or `/mode blue` to select a conversation. Mode
+threads preserve their messages and checkpoints. Switching an active run waits
+for its pause acknowledgement; `/resume` continues a paused conversation.
+Authorization remains checked on Red submission/resume. Blue needs a connected
+local sensor; the broader automated attack/defend/verify loop remains planned.
+See [Blue Cell](features/blue-cell.md) and [Offensive Vaccine](offensive-vaccine.md).
 
-Review the generated documents before switching to Red. Plan validates the eight
-documents and records their digest. In the CLI, use `/mode red approve` to approve
-that exact bundle; the web selector has its own approval control. Edits after validation require a new validation. If scope is
-too broad or exclusions are missing, edit or regenerate the affected documents.
+| Workspace path | Owner |
+|---|---|
+| `plan/roe.json` | Operator-approved scope |
+| Other planning JSON documents | Optional Soundwave planning workflow |
+| `plan/opplan.json` | Execution orchestrator through OPPLAN tools |
+| `findings/` and evidence paths | Assigned specialist and independent verifier |
+| `report/` | Finding reports and aggregate coverage/reporting |
+| Specialist directories and `.sessions/` | Operational artifacts and session logs |
 
-### Switching modes during a session
-
-Use `/mode plan`, `/mode red`, or `/mode blue` at any time to select a conversation.
-Each mode keeps its own thread, messages, queued input, and pending question.
-Switching during generation first pauses the current run at a checkpoint and
-waits for the server to acknowledge. If the server cannot acknowledge within
-10 seconds, the current mode and run remain selected and an error is shown.
-Return to the previous mode and use `/resume` to continue its paused run.
-
-Mode selection does not grant execution permission. Red submissions and resumes
-require a currently approved scope; Blue investigation requires a connected
-local sensor. At a question picker, press Escape to enter commands without
-discarding the question, then `/resume` to reopen it.
-
----
-
-## Red mode: execution
-
-Once the direct RoE or optional Plan bundle is approved, the autonomous loop can
-begin. The orchestrator can build an OPPLAN from the approved scope during Red
-execution.
-
-### The orchestration loop
-
-```
-while objectives remain pending:
-    obj = next_pending_objective_with_dependencies_met()
-    agent = spawn_specialist_agent(obj.phase)
-    result = agent.execute(obj, roe, findings_so_far)
-    update_opplan_status(obj, result.status)
-    append_findings_to_disk(result.findings)
-    update_knowledge_graph(result.findings)
-```
-
-**Key properties:**
-- Each agent starts with a **fresh context window** — no accumulated noise
-- Agents read prior findings from disk, not from conversation history
-- The orchestrator enforces RoE every iteration before dispatching an agent
-- Dependencies are checked before an objective starts (e.g., exploitation waits for recon)
-
-### Agent dispatch by phase
-
-| Phase | Primary agents | Specialists (if applicable) |
-|-------|---------------|---------------------------|
-| `recon` | Recon, Scanner | — |
-| `initial-access` | Exploit, Verifier, Exploiter | AD Operator, Cloud Hunter |
-| `post-exploit` | Post-Exploit | AD Operator, Reverser |
-| `c2` | Post-Exploit | — |
-| `exfiltration` | Post-Exploit, Analyst | — |
-
-### Objective status transitions
-
-```
-pending → in-progress → completed
-                     ↘ blocked
-                     ↘ cancelled
-```
-
-`blocked` means the agent could not complete the objective (patch applied, service unavailable, out of scope). The orchestrator records the reason and moves on.
-
-### Findings format
-
-Each finding is written to `workspace/findings/FIND-NNN.md`:
-
-```markdown
-# FIND-001: vsftpd 2.3.4 Backdoor (CVE-2011-2523)
-
-**Severity**: CRITICAL (CVSS 10.0)
-**Host**: 192.168.1.100
-**Service**: FTP (port 21)
-**CWE**: CWE-78 (OS Command Injection)
-**MITRE**: T1190 (Exploit Public-Facing Application)
-
-## Description
-...
-
-## Evidence
-[command output, screenshots]
-
-## Remediation
-Upgrade vsftpd to 2.3.5 or later.
-```
-
----
-
-## Blue mode and Offensive Vaccine
-
-Blue Cell's local sensor and resident agent observe web requests and optional
-application logs, investigate incidents, and report findings. The broader
-automated attack → defend → verify loop remains planned. See [Blue Cell](features/blue-cell.md)
-and [Offensive Vaccine](offensive-vaccine.md).
-
----
-
-## Outputs
-
-Everything an engagement produces lands under its workspace directory:
-
-| Path | Contents |
-|------|----------|
-| `plan/roe.json` | Direct or planned machine-enforced scope |
-| `plan/*.json` | Optional Soundwave bundle — `threat-profile`, `conops`, `deconfliction`, `contact`, `data-handling`, `abort`, `cleanup`, plus the orchestrator's `opplan` |
-| `findings/FIND-NNN.md` | Individual vulnerability findings |
-| `recon/`, `exploit/`, `post-exploit/` | Per-phase artifacts, created lazily as agents write to them |
-| `report/` | Executive summary and technical report |
-| `.sessions/` | Per-session tmux logs |
-
-The knowledge graph retains the full attack graph for post-engagement analysis via Neo4j Browser (`http://localhost:7474`).
+[Artifact ownership](agent-file-mapping.md) and
+[file conventions](agent-file-conventions.md) describe the durable evidence
+contract. A mode label or output directory does not replace scope authorization.

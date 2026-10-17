@@ -28,6 +28,10 @@ vi.mock("../utils/threadStore.js", () => ({
   loadThreadByIndex: vi.fn(async () => null),
 }));
 
+vi.mock("../commands/rolePurpose.js", () => ({
+  rolePurpose: vi.fn(async (role: string) => role === "soundwave" ? "planning" : role === "blue_cell" ? "observation" : "execution"),
+}));
+
 vi.mock("../commands/planMode.js", () => ({
   assertRedApproved: vi.fn(async () => {}),
 }));
@@ -68,6 +72,114 @@ describe("useAgent — engagement handoff lifecycle", () => {
     vi.useRealTimers();
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
+  });
+
+  it("starts in Red when no assistant override is configured", async () => {
+    // Given a fresh CLI process with no selected assistant.
+    vi.stubEnv("DECEPTICON_ASSISTANT_ID", "");
+    vi.resetModules();
+    const { useAgent: useDefaultAgent } = await import("./useAgent.js");
+    // When the hook starts, then Red is selected without a Plan conversation.
+    const { result } = renderHook(() => useDefaultAgent());
+    expect(result.current.assistantId).toBe("decepticon");
+  });
+
+  it.each([["soundwave", "resume"], ["soundwave", "answerQuestion"], ["plugin-executor", "resume"], ["plugin-executor", "answerQuestion"], ["blue_cell", "resume"], ["blue_cell", "answerQuestion"]] as const)("isolates workflow namespaces for %s on submit and %s", async (assistant, method) => {
+    // Given trusted launch settings in both namespaces.
+    vi.stubEnv("DECEPTICON_WORKFLOW_ID", "red-custom");
+    vi.stubEnv("DECEPTICON_WORKFLOW_VERSION", "exec-v2");
+    vi.stubEnv("DECEPTICON_PLANNING_WORKFLOW_ID", "plan-custom");
+    vi.stubEnv("DECEPTICON_PLANNING_WORKFLOW_VERSION", "plan-v3");
+    const blue = await import("../commands/blue.js");
+    vi.spyOn(blue, "blueMonitorReady").mockResolvedValue(true);
+    const { setAssistantOverride } = await import("../commands/assistantOverride.js");
+    const { result } = renderHook(() => useAgent());
+    await act(async () => { await result.current.selectAssistant(assistant); });
+    setAssistantOverride(assistant);
+    const stream = mockState.client!.runs.stream as Mock;
+    stream.mockReturnValueOnce(createMockStream([{ event: "custom", data: { type: "ask_user_question", question: "Continue?" } }]));
+    // When the run submits and answers a question.
+    act(() => result.current.submit("start"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    act(() => result.current[method]("yes"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    // Then every request has only the assistant purpose's workflow namespace.
+    expect(stream.mock.calls).toHaveLength(2);
+    const { rolePurpose } = await import("../commands/rolePurpose.js");
+    expect(rolePurpose).toHaveBeenCalledTimes(2);
+    for (const call of stream.mock.calls) {
+      const config = call[2].config.configurable;
+      expect(config.workflow_id).toBe(assistant === "plugin-executor" ? "red-custom" : undefined);
+      expect(config.workflow_version).toBe(assistant === "plugin-executor" ? "exec-v2" : undefined);
+      expect(config.planning_workflow_id).toBe(assistant === "soundwave" ? "plan-custom" : undefined);
+      expect(config.planning_workflow_version).toBe(assistant === "soundwave" ? "plan-v3" : undefined);
+    }
+  });
+
+  it.each(["submit", "resume", "answerQuestion"] as const)("leaves a pinned planning selector unset on %s after launch settings are removed", async (method) => {
+    // Given a Plan thread launched with a nondefault immutable workflow pin.
+    vi.stubEnv("DECEPTICON_PLANNING_WORKFLOW_ID", "plan-custom");
+    vi.stubEnv("DECEPTICON_PLANNING_WORKFLOW_VERSION", "plan-v3");
+    const { result } = renderHook(() => useAgent());
+    const stream = vi.mocked(mockState.client?.runs.stream);
+    if (!stream) throw new Error("Missing test client");
+    stream.mockReturnValueOnce(createMockStream([{ event: "custom", data: { type: "ask_user_question", question: "Continue?" } }]));
+    act(() => result.current.submit("start"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    vi.stubEnv("DECEPTICON_PLANNING_WORKFLOW_ID", "");
+    vi.stubEnv("DECEPTICON_PLANNING_WORKFLOW_VERSION", "");
+    // When the operator continues without explicit workflow settings.
+    act(() => result.current[method]("continue"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    // Then the existing thread is reused and no selector overrides its checkpoint.
+    expect(stream.mock.calls).toHaveLength(2);
+    expect(stream.mock.calls[1]?.[0]).toBe(stream.mock.calls[0]?.[0]);
+    expect(stream.mock.calls[1]?.[2].config?.configurable).not.toHaveProperty("planning_workflow_id");
+    expect(stream.mock.calls[1]?.[2].config?.configurable).not.toHaveProperty("planning_workflow_version");
+  });
+
+  it.each([["plugin-executor", "DECEPTICON_WORKFLOW"], ["soundwave", "DECEPTICON_PLANNING_WORKFLOW"]] as const)("rejects a version without its workflow ID for %s before dispatch", async (assistant, namespace) => {
+    // Given a trusted launch version with no corresponding ID.
+    vi.stubEnv(`${namespace}_ID`, "");
+    vi.stubEnv(`${namespace}_VERSION`, "v2");
+    const { setAssistantOverride } = await import("../commands/assistantOverride.js");
+    setAssistantOverride(assistant);
+    const { result } = renderHook(() => useAgent());
+    // When submitted, then the malformed selector fails locally.
+    act(() => result.current.submit("start"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    expect(mockState.client!.runs.stream).not.toHaveBeenCalled();
+    expect(result.current.error).toContain(`requires ${namespace}_ID`);
+  });
+
+  it("requires scope approval for a plugin execution assistant", async () => {
+    // Given a plugin assistant and an unapproved workspace.
+    const { assertRedApproved } = await import("../commands/planMode.js");
+    vi.mocked(assertRedApproved).mockRejectedValueOnce(new Error("scope required"));
+    const { setAssistantOverride } = await import("../commands/assistantOverride.js");
+    setAssistantOverride("plugin-executor");
+    const { result } = renderHook(() => useAgent());
+    // When execution is submitted.
+    act(() => result.current.submit("start"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    // Then the run is blocked before streaming.
+    expect(mockState.client!.runs.stream).not.toHaveBeenCalled();
+    expect(result.current.error).toContain("scope required");
+  });
+
+  it("keeps assistant and thread when a paused transition commit fails", async () => {
+    // Given an existing Plan thread.
+    const { result } = renderHook(() => useAgent());
+    act(() => result.current.submit("start"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    const thread = (mockState.client!.runs.stream as Mock).mock.calls[0][0];
+    // When scope commit fails after pausing.
+    await act(async () => { expect(await result.current.selectAssistant("decepticon", async () => { throw new Error("scope changed"); })).toBe(false); });
+    // Then the previous assistant and thread remain selected.
+    expect(result.current.assistantId).toBe("soundwave");
+    act(() => result.current.submit("continue"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    expect((mockState.client!.runs.stream as Mock).mock.calls.at(-1)?.[0]).toBe(thread);
   });
 
   it("sends the selected model through graph input on set, repeat, change and clear", async () => {
@@ -510,14 +622,16 @@ describe("useAgent — engagement handoff lifecycle", () => {
     expect(result.current.queuedMessage).toBe("queued plan");
   });
 
-  it("keeps the active mode and stream when server interruption fails", async () => {
+  it.each(["blue_cell", "soundwave"])("keeps the active mode and never commits %s when server interruption fails", async (next) => {
     const stream = createControllableStream();
     (mockState.client!.runs.stream as Mock).mockReturnValueOnce(stream);
     (mockState.client!.runs.cancel as Mock).mockRejectedValueOnce(new Error("pause unavailable"));
     const { result } = renderHook(() => useAgent());
     act(() => result.current.submit("plan"));
     await act(async () => { await vi.runAllTimersAsync(); await stream.emit({ event: "metadata", data: { run_id: "plan-run" } }); });
-    await act(async () => { expect(await result.current.selectAssistant("blue_cell")).toBe(false); });
+    const commit = vi.fn(async () => {});
+    await act(async () => { expect(await result.current.selectAssistant(next, commit)).toBe(false); });
+    expect(commit).not.toHaveBeenCalled();
     expect(result.current.error).toContain("pause unavailable");
     expect(result.current.assistantId).toBe("soundwave");
     expect(result.current.runState).toBe("streaming");

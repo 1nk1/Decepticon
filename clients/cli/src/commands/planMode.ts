@@ -1,6 +1,7 @@
-import { createHash } from "node:crypto";
-import { readFile, unlink, writeFile } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
+import { lstat, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { validateRoe } from "./roeValidation.js";
 
 const PLAN_DOCUMENTS = [
   "roe.json",
@@ -29,42 +30,57 @@ export async function planningBundleDigest(root: string): Promise<string> {
   return hash.digest("hex");
 }
 
-export async function approveRedMode(): Promise<void> {
+export async function prepareRedApproval(): Promise<() => Promise<void>> {
   const root = workspaceRoot();
   if (!root) throw new Error("Red requires an engagement workspace with an authorized target.");
-  let roe: Buffer;
-  try {
-    roe = await readFile(path.join(root, "plan", "roe.json"));
-  } catch {
-    throw new Error("Red requires an authorized target. Use /mode plan to prepare and validate scope, review it, then use /mode red approve.");
-  }
-  const approved = (await readFile(path.join(root, ".red-approved"), "utf-8").catch(() => "")).trim();
-  const directDigest = `roe:${createHash("sha256").update(roe).digest("hex")}`;
-  if (approved === directDigest) return;
-  let current: string;
-  try {
-    current = await planningBundleDigest(root);
-  } catch {
-    throw new Error("Red authorization is missing or its RoE changed. Review and approve the current scope with /mode red approve before sending.");
-  }
-  if (approved === current) return;
+  const roePath = path.join(root, "plan", "roe.json");
+  const assertRegularScope = async () => {
+    const plan = await lstat(path.join(root, "plan"));
+    const document = await lstat(roePath);
+    if (!plan.isDirectory() || plan.isSymbolicLink() || !document.isFile() || document.isSymbolicLink()) {
+      throw new Error("Refusing a symlink or non-regular scope path.");
+    }
+  };
+  await assertRegularScope();
+  const roe = await readFile(roePath);
+  const digest = `roe:${await validateRoe(roe)}`;
+  const current = await planningBundleDigest(root).catch(() => null);
   const draft = (await readFile(path.join(root, ".planning-draft-ready"), "utf-8").catch(() => "")).trim();
-  if (draft !== current) {
-    throw new Error("Planning documents changed after validation. Finish Plan validation and approve the current scope.");
+  const approved = (await readFile(path.join(root, ".red-approved"), "utf-8").catch(() => "")).trim();
+  if (approved !== digest && ((draft && draft !== current) || (/^[a-f0-9]{64}$/.test(approved) && approved !== current && draft !== current))) {
+    throw new Error("Planning documents changed after validation. Revalidate the Plan before approval.");
   }
-  await writeFile(path.join(root, ".red-approved"), current, { mode: 0o600 });
+  const marker = approved === digest ? digest : current && (draft === current || approved === current) ? current : digest;
+  return async () => {
+    await assertRegularScope();
+    if (!(await readFile(roePath)).equals(roe) || (marker !== digest && await planningBundleDigest(root) !== current)) {
+      throw new Error("Scope changed during approval. Review it and retry /mode red approve.");
+    }
+    const temporary = path.join(root, `.red-approved-${randomUUID()}`);
+    await writeFile(temporary, marker, { mode: 0o600, flag: "wx" });
+    try {
+      await rename(temporary, path.join(root, ".red-approved"));
+    } catch (error) {
+      await unlink(temporary);
+      throw error;
+    }
+  };
+}
+
+export async function approveRedMode(): Promise<void> {
+  await (await prepareRedApproval())();
 }
 
 export async function assertRedApproved(): Promise<void> {
   const root = workspaceRoot();
   if (!root) throw new Error("Red requires an engagement workspace with an authorized target.");
   const roe = await readFile(path.join(root, "plan", "roe.json")).catch(() => null);
-  if (!roe) throw new Error("Red scope is unavailable. Use /mode plan to prepare and validate scope, review it, then use /mode red approve.");
+  if (!roe) throw new Error("Red scope is unavailable. Use /scope import <file> --confirm, review it, then /mode red approve. /mode plan is optional.");
   const approved = (await readFile(path.join(root, ".red-approved"), "utf-8").catch(() => "")).trim();
   if (approved === `roe:${createHash("sha256").update(roe).digest("hex")}`) return;
   const bundle = await planningBundleDigest(root).catch(() => null);
   if (bundle && approved === bundle) return;
-  throw new Error("Red scope changed or is not approved. Review the validated Plan and use /mode red approve.");
+  throw new Error("Red scope changed or is not approved. Review plan/roe.json and use /mode red approve. Import missing scope with /scope import <file> --confirm.");
 }
 
 export async function revokeRedMode(): Promise<void> {

@@ -29,6 +29,7 @@ from decepticon_core.registry import (
     RoleRegistry,
     RoleResolution,
 )
+from decepticon_core.registry.roles import default_role_purpose
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +61,7 @@ def _register_oss_roles() -> None:
             role,
             slots=slots,
             skill_sources=_oss_skill_sources_for(role),
+            purpose=default_role_purpose(role),
         )
 
 
@@ -80,6 +82,7 @@ def _register_plugin_roles() -> None:
                 slots=spec.slots,
                 skill_sources=getattr(spec, "skill_sources", ()),
                 llm_role_fallback=getattr(spec, "llm_role_fallback", None),
+                purpose=getattr(spec, "purpose", "execution"),
             )
         except ValueError:
             logger.exception(

@@ -15,8 +15,10 @@ red-team run never blocks the calling agent's tool call.
 from __future__ import annotations
 
 import json
+import os
+import re
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, assert_never
 
 from decepticon.mcp_server.config import ServerConfig
 from decepticon.mcp_server.models import (
@@ -28,11 +30,33 @@ from decepticon.mcp_server.models import (
     StreamEvent,
 )
 from decepticon.mcp_server.streaming import watch_run
+from decepticon.workflows.models import WorkflowError
+from decepticon_core.registry.roles import RoleRegistry, default_role_purpose
 from decepticon_core.utils.logging import get_logger
 
 log = get_logger("mcp_server.engagements")
 
 _ACTIVE_STATUSES = frozenset({"pending", "running"})
+
+
+def _workflow_config(
+    workflow_id: str | None,
+    workflow_version: str | None,
+    prefix: str = "",
+) -> dict[str, str]:
+    """Validate selector syntax; the target server owns catalog and purpose resolution."""
+    if workflow_version is not None and workflow_id is None:
+        raise WorkflowError(f"{prefix}workflow_version requires {prefix}workflow_id")
+    selected: dict[str, str] = {}
+    if workflow_id is not None:
+        if not re.fullmatch(r"[a-z][a-z0-9_-]{0,127}", workflow_id):
+            raise WorkflowError(f"invalid {prefix}workflow_id")
+        selected[f"{prefix}workflow_id"] = workflow_id
+    if workflow_version is not None:
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._+-]{0,127}", workflow_version):
+            raise WorkflowError(f"invalid {prefix}workflow_version")
+        selected[f"{prefix}workflow_version"] = workflow_version
+    return selected
 
 
 def _split_model_command(message: str) -> tuple[str | None, str]:
@@ -123,6 +147,8 @@ class EngagementClient:
         scan_mode: ScanMode,
         engagement_name: str,
         assistant: str,
+        workflow_id: str | None = None,
+        workflow_version: str | None = None,
     ) -> StartResult:
         """Dispatch a background engagement run and return its handle."""
         scope_payload: dict[str, Any] = {
@@ -139,6 +165,24 @@ class EngagementClient:
                 "scan_mode": scan_mode,
             },
         }
+
+        role = RoleRegistry.get(assistant)
+        purpose = role.purpose if role else default_role_purpose(assistant)
+        match purpose:
+            case "planning":
+                run_config["configurable"].update(
+                    _workflow_config(
+                        os.environ.get("DECEPTICON_PLANNING_WORKFLOW_ID") or None,
+                        os.environ.get("DECEPTICON_PLANNING_WORKFLOW_VERSION") or None,
+                        "planning_",
+                    )
+                )
+            case "execution":
+                run_config["configurable"].update(_workflow_config(workflow_id, workflow_version))
+            case "observation":
+                pass
+            case unreachable:
+                assert_never(unreachable)
 
         client = self._ensure_client()
         thread = await client.threads.create()

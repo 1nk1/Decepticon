@@ -1,5 +1,12 @@
 # OPPLANMiddleware Design Document (v2)
 
+> Historical migration design, retained for rationale only. Its old planner/RoE
+> authoring, mandatory planning phase, paths and proposed API examples are not
+> current operating instructions. Use the [extension contract](extension-contract.md),
+> [current OPPLAN DAG](../red-team/opplan-dag.md) and
+> [operator RoE provisioning](../roe-provisioning.md). Soundwave does not author
+> the protected RoE or OPPLAN; Plan is optional.
+
 ## Context
 
 **Claude Code : Coding = Decepticon : Red Team Testing**

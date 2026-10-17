@@ -1,6 +1,6 @@
 # Agents
 
-Decepticon ships a **multi-agent stack** organized by kill chain phase: three orchestrators (Decepticon, Vulnresearch, Soundwave), a roster of specialist sub-agents under Decepticon (recon → exploit → post-exploit → domain operators), the five-stage Vulnresearch pipeline (`scanner → detector → verifier → patcher → exploiter`), and the `blue_cell` defense agent for the Offensive Vaccine loop. Each agent starts with a **fresh context window** per objective — no accumulated noise, no context degradation. Findings persist to disk (`workspace/`) and the knowledge graph, not agent memory.
+Decepticon combines stable specialist capabilities with selected business workflows. Decepticon owns execution OPPLAN, Soundwave is an optional standalone planner, and the optional Vulnresearch plugin retains its separate legacy pipeline. Blue Cell investigates local sensor evidence; the broader Offensive Vaccine loop remains planned. See the [extension contract](design/extension-contract.md). Each agent starts with a **fresh context window** per objective — no accumulated noise, no context degradation. Findings persist to disk (`workspace/`) and the knowledge graph, not agent memory.
 
 ---
 
@@ -12,7 +12,7 @@ Decepticon ships a **multi-agent stack** organized by kill chain phase: three or
 |-------|------|
 | **Decepticon** | Main red-team orchestrator. Reads the OPPLAN, dispatches objectives to specialist sub-agents, and tracks status transitions. Sub-agents: `recon`, `exploit`, `postexploit`, `analyst`, `reverser`, `contract_auditor`, `cloud_hunter`, `ad_operator`, `phisher`, `mobile_operator`, `wireless_operator`, `osint_operator`, `iot_operator`, `ics_operator`, `forensicator`, `supply_chain_operator`. |
 | **Vulnresearch** | Vulnerability research orchestrator — runs the five-stage pipeline (`scanner → detector → verifier → patcher → exploiter`) with state passed between stages exclusively through the knowledge graph. |
-| **Soundwave** | Engagement planner. Standalone graph (not a sub-agent of Decepticon). Interviews the operator and writes the eight-document engagement bundle — RoE, Threat Profile, CONOPS, Deconfliction, Contact, Data Handling, Abort, Cleanup. The orchestrator builds the OPPLAN. |
+| **Soundwave** | Engagement planner. Standalone graph (not a sub-agent of Decepticon). Uses an optional planning workflow to discuss and prepare seven documents alongside the operator-provisioned, read-only RoE. Publication does not switch to Red. The execution orchestrator builds OPPLAN. |
 
 ### Reconnaissance
 

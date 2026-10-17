@@ -1,5 +1,8 @@
 # Plugin Author Guide
 
+For agents, skills, business workflows and client adapters, start with the
+[current extension contract](design/extension-contract.md).
+
 Audience: someone shipping a `pip install`-able Decepticon plugin —
 custom tools, middleware, agents, callbacks, skills, or prompt
 fragments.
@@ -259,7 +262,7 @@ user installs the wheel. No registration call needed.
 ## See also
 
 - The redesign spec at
-  [`docs/superpowers/specs/2026-05-23-core-framework-sdk-split-design.md`](superpowers/specs/2026-05-23-core-framework-sdk-split-design.md)
+  [current extension contract](design/extension-contract.md)
   — full design rationale.
 - Example plugins per kind at
   [`packages/decepticon-sdk/examples/`](../packages/decepticon-sdk/examples/).

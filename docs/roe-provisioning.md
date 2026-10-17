@@ -3,17 +3,43 @@
 An authorized operator provisions `plan/roe.json`. Soundwave can draft a
 candidate such as `plan/roe-authorized.json`, but its filesystem tools cannot
 create or modify the operator-confirmed `plan/roe.json`. The CLI launcher
-creates an empty planning workspace; the web creation form provisions a direct
+opens Red by default; missing scope must still be provisioned and approved.
+The web creation form provisions a direct
 RoE only for new engagements. Neither recreating the engagement nor restarting
 its services is required to import a missing RoE.
 
-The importer requires source or a LangGraph image containing PR #1000. It is
-not present in older released images; merging the PR does not update an installed
-container. Before the next release, use the source-checkout command below.
+The original importer was introduced in PR #1000. The explicit direct-approval
+option and portable CLI commands below belong to this proposed source revision;
+older installed images may not include them. Merging a change does not update an
+installed container.
+
+## Portable terminal procedure
+
+Pause active work, review the candidate against the signed authorization, then
+use the operator commands inside the engagement's CLI session:
+
+```text
+/scope import plan/roe-authorized.json --confirm
+/mode red approve
+```
+
+The source path can be relative to the engagement workspace or an absolute path
+readable by the CLI process. Import canonically validates the candidate, creates
+only a missing `plan/roe.json` with mode `0600`, clears stale approval markers and
+does not grant Red approval. `/mode red approve` separately validates and approves
+the current RoE bytes. It requires none of the seven optional Plan documents; if
+a complete validated Plan bundle exists, its bundle digest is preserved.
+`/mode red` selects execution after approval. `/mode plan` remains optional.
+
+The CLI uses `POST /_decepticon/roe/validate` for canonical validation only. That
+endpoint receives the selected file bytes at `DECEPTICON_API_URL` (default
+`http://localhost:2024`). Redirects are refused; configure the final server URL
+directly. It does not write files or grant authority; the operator CLI owns import
+and approval writes. It is not an agent capability.
 
 ## Operator procedure
 
-1. Pause active work and select Plan. Review the candidate against the signed
+1. Pause active work. Review the candidate against the signed
    authorization: targets, exclusions, dates, permitted actions, contacts, and
    machine enforcement. The command's confirmation is your attestation; it
    cannot establish legal authorization from an arbitrary reference string.
@@ -46,19 +72,31 @@ container. Before the next release, use the source-checkout command below.
      --file /absolute/path/to/reviewed-roe.json --confirm
    ```
 
-4. Continue the same Plan conversation (or `/resume` if paused). Ask Soundwave
-   to read the newly provisioned RoE and validate the existing planning bundle.
-   The other seven documents and conversation are preserved. Their
-   `engagement_name` must agree with the RoE. Review the validated bundle and
-   use `/mode red approve` separately when ready for execution.
+4. For direct execution, approve the current scope with `/mode red approve`.
+   If you chose optional Plan, continue that conversation and ask Soundwave to
+   read the provisioned RoE. The seven planning documents and conversation are
+   preserved; their `engagement_name` must agree with the RoE. Publishing them
+   leaves the operator in Plan and does not approve execution.
 
-The importer validates before writing, installs the reviewed bytes atomically
-with mode `0600`, and refuses an existing RoE or a symlinked `plan` directory.
-It clears stale `.planning-draft-ready` and `.red-approved` markers before
-publishing a restored document, so old approval cannot silently become active.
-Invalid input exits with status 2. Successful provisioning exits with status 0.
-It does not expose an agent tool or an HTTP endpoint. Existing RoE revisions
-remain an operator task outside Plan; this command is deliberately create-only.
+To explicitly approve direct Red scope in the Python operator command, add
+`--approve-red` together with `--confirm`:
+
+```bash
+DECEPTICON_SKIP_BOOT=1 uv run python -m decepticon.provision_roe \
+  --workspace /absolute/path/to/existing/itps \
+  --file /absolute/path/to/reviewed-roe.json --confirm --approve-red
+```
+
+Without `--approve-red`, import never grants Red approval. The explicit option
+can approve an existing canonical RoE only if the reviewed source bytes match
+exactly; it does not overwrite existing scope. A different existing RoE is
+rejected. Existing scope revisions remain a separate operator task.
+
+The importer validates before writing, preserves reviewed bytes and refuses
+symlinked planning paths. Before publishing a restored document it clears stale
+`.planning-draft-ready` and `.red-approved` markers. Invalid input exits with
+status 2; successful provisioning exits with status 0. The command is not an
+agent tool and exposes no HTTP mutation endpoint.
 
 ## Required JSON and validation boundary
 

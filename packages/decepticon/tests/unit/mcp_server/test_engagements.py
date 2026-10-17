@@ -24,8 +24,10 @@ class _Part:
 class _FakeThreads:
     def __init__(self, threads: list[dict[str, Any]] | None) -> None:
         self._threads = threads or []
+        self.created = 0
 
     async def create(self) -> dict[str, Any]:
+        self.created += 1
         return {"thread_id": "t-123"}
 
     async def search(

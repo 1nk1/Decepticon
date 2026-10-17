@@ -22,8 +22,10 @@ import (
 
 const AssistantSoundwave = "soundwave"
 
-const AssistantDecepticon = "decepticon"
-const AssistantBlueCell = "blue_cell"
+const (
+	AssistantDecepticon = "decepticon"
+	AssistantBlueCell   = "blue_cell"
+)
 
 var planningDocuments = []string{
 	"roe.json", "threat-profile.json", "conops.json", "deconfliction.json",
@@ -200,7 +202,7 @@ func (i pickerItem) Description() string {
 		return "Create a new engagement workspace"
 	}
 	if i.inProgress {
-		return "Continue planning with Soundwave"
+		return "Scope approval needed before Red execution"
 	}
 	return "Authorized Red scope available"
 }
@@ -429,39 +431,22 @@ func Select(home string) (Choice, error) {
 		if err := os.MkdirAll(filepath.Join(dir, "plan"), 0o755); err != nil {
 			return Choice{}, fmt.Errorf("create engagement dir: %w", err)
 		}
-		return Choice{
-			AssistantID:   AssistantSoundwave,
-			Engagement:    slug,
-			WorkspacePath: dir,
-			Mode:          "plan",
-		}, nil
+		return choiceForEngagement(home, slug), nil
 	}
 
-	slug := final.chosen.slug
-	workspace := filepath.Join(root, slug)
-	target, authorized := readScopeTarget(workspace)
-	mode := "plan"
-	if isRedApproved(home, slug) {
-		mode = "red"
-	}
-	return Choice{
-		AssistantID:            assistantForMode(mode),
-		Engagement:             slug,
-		WorkspacePath:          workspace,
-		Mode:                   mode,
-		Target:                 target,
-		AuthorizationConfirmed: authorized,
-	}, nil
+	return choiceForEngagement(home, final.chosen.slug), nil
 }
 
-func assistantForMode(mode string) string {
-	switch mode {
-	case "red":
-		return AssistantDecepticon
-	case "blue":
-		return AssistantBlueCell
-	default:
-		return AssistantSoundwave
+func choiceForEngagement(home, slug string) Choice {
+	workspace := filepath.Join(home, "workspace", slug)
+	target, authorized := readScopeTarget(workspace)
+	return Choice{
+		AssistantID:            AssistantDecepticon,
+		Engagement:             slug,
+		WorkspacePath:          workspace,
+		Mode:                   "red",
+		Target:                 target,
+		AuthorizationConfirmed: authorized,
 	}
 }
 

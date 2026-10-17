@@ -27,7 +27,16 @@ import {
 import { getModelOverride } from "../commands/modelOverride.js";
 import { getAssistantOverride } from "../commands/assistantOverride.js";
 import { blueMonitorReady } from "../commands/blue.js";
+import { rolePurpose, type RolePurpose } from "../commands/rolePurpose.js";
 import { assertRedApproved } from "../commands/planMode.js";
+
+function workflowSetting(name: string, version = false): string | undefined {
+  const value = process.env[name];
+  if (!value) return undefined;
+  const pattern = version ? /^[A-Za-z0-9][A-Za-z0-9._+-]{0,127}$/ : /^[a-z][a-z0-9_-]{0,127}$/;
+  if (!pattern.test(value)) throw new Error(`Invalid trusted workflow setting: ${name}.`);
+  return value;
+}
 
 // Engagement/workspace/target configuration, read fresh on every submit,
 // structured-answer and resume request so all three agree on the same
@@ -35,8 +44,17 @@ import { assertRedApproved } from "../commands/planMode.js";
 // planning interview against the wrong workspace (#973). Model selection
 // goes through the declared `model_override` graph input channel instead,
 // since it must survive checkpointing rather than reset per request.
-function buildConfigurable(): Record<string, unknown> | undefined {
+function buildConfigurable(purpose: RolePurpose): Record<string, unknown> | undefined {
   const configurable: Record<string, unknown> = {};
+  if (purpose === "planning") {
+    if (process.env.DECEPTICON_PLANNING_WORKFLOW_VERSION && !process.env.DECEPTICON_PLANNING_WORKFLOW_ID) throw new Error("DECEPTICON_PLANNING_WORKFLOW_VERSION requires DECEPTICON_PLANNING_WORKFLOW_ID.");
+    if (process.env.DECEPTICON_PLANNING_WORKFLOW_ID) configurable.planning_workflow_id = workflowSetting("DECEPTICON_PLANNING_WORKFLOW_ID");
+    if (process.env.DECEPTICON_PLANNING_WORKFLOW_VERSION) configurable.planning_workflow_version = workflowSetting("DECEPTICON_PLANNING_WORKFLOW_VERSION", true);
+  } else if (purpose === "execution") {
+    if (process.env.DECEPTICON_WORKFLOW_VERSION && !process.env.DECEPTICON_WORKFLOW_ID) throw new Error("DECEPTICON_WORKFLOW_VERSION requires DECEPTICON_WORKFLOW_ID.");
+    if (process.env.DECEPTICON_WORKFLOW_ID) configurable.workflow_id = workflowSetting("DECEPTICON_WORKFLOW_ID");
+    if (process.env.DECEPTICON_WORKFLOW_VERSION) configurable.workflow_version = workflowSetting("DECEPTICON_WORKFLOW_VERSION", true);
+  }
   const slug = process.env.DECEPTICON_ENGAGEMENT;
   if (slug) {
     configurable.engagement_name = slug;
@@ -129,7 +147,8 @@ interface UseAgentReturn {
   error: string | null;
   clearEvents: () => void;
   addSystemEvent: (content: string) => void;
-  selectAssistant: (assistantId: string) => Promise<boolean>;
+  selectAssistant: (assistantId: string, commit?: () => Promise<void>) => Promise<boolean>;
+  mutateWorkspace: (commit: () => Promise<void>) => Promise<boolean>;
 }
 
 const INITIAL_ASSISTANT_ID =
@@ -137,11 +156,13 @@ const INITIAL_ASSISTANT_ID =
 let _nextEventId = 0;
 
 
-async function assertAssistantReady(assistant: string): Promise<void> {
+async function assertAssistantReady(assistant: string, apiUrl: string): Promise<RolePurpose> {
+  const purpose = await rolePurpose(assistant, apiUrl);
   if (assistant === "blue_cell" && !(await blueMonitorReady())) {
     throw new DOMException("Blue sensor is unavailable. Use /blue up 127.0.0.1:3000 before sending in Blue mode.", "NotAllowedError");
   }
-  if (assistant === "decepticon" && process.env.DECEPTICON_ENGAGEMENT) await assertRedApproved();
+  if (purpose === "execution") await assertRedApproved();
+  return purpose;
 }
 
 export function useAgent({
@@ -777,16 +798,28 @@ export function useAgent({
     setRunState("idle");
   }, []);
 
-  const selectAssistant = useCallback(async (next: string): Promise<boolean> => {
+  const selectAssistant = useCallback(async (next: string, commit?: () => Promise<void>): Promise<boolean> => {
     if (switchingRef.current) {
       addSystemEvent("A mode switch is already in progress. Retry after it finishes.");
       return false;
     }
     const current = assistantIdRef.current;
-    if (next === current) return true;
+    if (next === current && !commit) return true;
     switchingRef.current = true;
     try {
       const pausedState = await pauseRun();
+      if (commit) {
+        resetStreamState();
+        runStateRef.current = pausedState;
+        setRunState(pausedState);
+        await commit();
+      }
+      if (next === current) {
+        resetStreamState();
+        runStateRef.current = pausedState;
+        setRunState(pausedState);
+        return true;
+      }
       modeSessionsRef.current.set(current, {
         threadId: threadIdRef.current,
         events: [...eventsRef.current],
@@ -874,8 +907,9 @@ export function useAgent({
         const client = clientRef.current;
         setError(null);
 
+        let configurable: Record<string, unknown> | undefined;
         try {
-          await assertAssistantReady(selectedAssistant);
+          configurable = buildConfigurable(await assertAssistantReady(selectedAssistant, apiUrl));
         } catch (error) {
           if (abortController.signal.aborted) return;
           const denied = error instanceof Error ? error.message : "Mode prerequisite failed.";
@@ -930,7 +964,6 @@ export function useAgent({
           model_override: getModelOverride(),
         };
 
-        const configurable = buildConfigurable();
         const streamConfig = configurable ? { configurable } : undefined;
 
         try {
@@ -966,26 +999,26 @@ export function useAgent({
         resetStreamState();
       });
     },
-    [addEvent, processStream, handleStreamComplete, resetStreamState],
+    [addEvent, processStream, handleStreamComplete, resetStreamState, apiUrl],
   );
 
   // Ref to submit for use in deferred auto-submit (avoids stale closure)
   const submitRef = useRef(submit);
   submitRef.current = submit;
 
-  const prepareResume = useCallback(async (controller: AbortController): Promise<boolean> => {
+  const prepareResume = useCallback(async (controller: AbortController): Promise<{ readonly configurable: Record<string, unknown> | undefined } | null> => {
     try {
-      await assertAssistantReady(threadAssistantRef.current);
-      return !controller.signal.aborted;
+      const configurable = buildConfigurable(await assertAssistantReady(threadAssistantRef.current, apiUrl));
+      return controller.signal.aborted ? null : { configurable };
     } catch (error) {
-      if (controller.signal.aborted) return false;
+      if (controller.signal.aborted) return null;
       const denied = error instanceof Error ? error.message : "Mode prerequisite failed.";
       setError(denied);
       addSystemEvent(denied);
       abortRef.current = null;
-      return false;
+      return null;
     }
-  }, [addSystemEvent]);
+  }, [addSystemEvent, apiUrl]);
 
   // ── Answer a structured ask_user_question prompt ───────────────
 
@@ -1008,7 +1041,8 @@ export function useAgent({
       const runResume = async () => {
         const client = clientRef.current;
         setError(null);
-        if (!(await prepareResume(abortController))) return;
+        const prepared = await prepareResume(abortController);
+        if (!prepared) return;
 
         try {
           const state = await client.threads.getState(threadIdRef.current!);
@@ -1038,7 +1072,7 @@ export function useAgent({
         });
 
         try {
-          const configurable = buildConfigurable();
+          const configurable = prepared.configurable;
           const stream = client.runs.stream(
             threadIdRef.current!,
             threadAssistantRef.current,
@@ -1086,7 +1120,8 @@ export function useAgent({
         const runResume = async () => {
           const client = clientRef.current;
           setError(null);
-          if (!(await prepareResume(abortController))) return;
+          const prepared = await prepareResume(abortController);
+          if (!prepared) return;
           if (value) addEvent({ type: "user", content: value });
           addEvent({ type: "system", content: "Resuming from checkpoint..." });
 
@@ -1104,7 +1139,7 @@ export function useAgent({
           setStreamStats({ startTime: Date.now(), totalTokens: 0, promptTokens: 0, completionTokens: 0 });
 
           try {
-            const configurable = buildConfigurable();
+            const configurable = prepared.configurable;
             const stream = client.runs.stream(
               threadIdRef.current!,
               threadAssistantRef.current,
@@ -1195,5 +1230,6 @@ export function useAgent({
     clearEvents,
     addSystemEvent,
     selectAssistant,
+    mutateWorkspace: (commit) => selectAssistant(assistantIdRef.current, commit),
   };
 }
