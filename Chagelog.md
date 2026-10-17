@@ -15,5 +15,5 @@ Related PRs: [#995](https://github.com/BitterSecurity/Decepticon/pull/995),
 
 The optional Soundwave planning and OSS client workflow follow-up is proposed
 under Unreleased in the canonical history; it is not part of merged PR #999.
-See the [proposed change comparison](https://github.com/BitterSecurity/Decepticon/compare/main...fix/oss-workflow-client-contracts-20261017)
+See [PR #1001](https://github.com/BitterSecurity/Decepticon/pull/1001)
 for Red-first launch, operator approval, adapter contracts and documentation cleanup.

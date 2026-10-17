@@ -37,7 +37,7 @@ Keep proposed and unmerged changes out of released sections.
   routes together. Existing approved direct RoE and validated bundle digests remain
   supported; changing business workflow requires a new execution thread. This is
   a follow-up to merged #999 and #1000, with no release or version bump assigned.
-  [Proposed change comparison](https://github.com/BitterSecurity/Decepticon/compare/main...fix/oss-workflow-client-contracts-20261017).
+  [PR #1001](https://github.com/BitterSecurity/Decepticon/pull/1001).
 
 ### Added
 
