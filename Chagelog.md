@@ -28,3 +28,7 @@ launcher/Korean onboarding instructions; see canonical Unreleased.
 
 PR #1002 review corrections retain recoverable pause state, prevent queued-input
 transfer to another conversation and correct Delete; see canonical Unreleased.
+
+PR #1001 review corrections (proposed, unreleased) preserve resumed planning pins,
+defer workflow catalog resolution to the target server, and reject scope-validation
+redirects. See the linked canonical Unreleased entry for compatibility details.

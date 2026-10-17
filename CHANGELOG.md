@@ -21,6 +21,14 @@ Keep proposed and unmerged changes out of released sections.
 
 ### Proposed — not merged or released
 
+- [PR #1001 review corrections](https://github.com/BitterSecurity/Decepticon/pull/1001):
+  leave planning workflow selectors unset when launch overrides are removed so
+  resumed threads retain their immutable pins. MCP forwards validated selectors
+  without resolving the bridge-local catalog or inventing a version; the target
+  runtime owns resolution and purpose checks. Scope validation rejects redirects
+  rather than sending operator-provided files to another endpoint. Configure the
+  final API URL directly; planning versions require an explicit planning ID.
+
 - Complete Red-first OSS client launch and keep Soundwave exclusively in optional
   Plan mode. Separate its stable capability prompt from planning/WORKFLOW.md and
   review its 17 reusable knowledge/template skills. Operator scope import and

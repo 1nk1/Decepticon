@@ -48,7 +48,8 @@ function workflowSetting(name: string, version = false): string | undefined {
 function buildConfigurable(purpose: RolePurpose): Record<string, unknown> | undefined {
   const configurable: Record<string, unknown> = {};
   if (purpose === "planning") {
-    configurable.planning_workflow_id = workflowSetting("DECEPTICON_PLANNING_WORKFLOW_ID") || "planning";
+    if (process.env.DECEPTICON_PLANNING_WORKFLOW_VERSION && !process.env.DECEPTICON_PLANNING_WORKFLOW_ID) throw new Error("DECEPTICON_PLANNING_WORKFLOW_VERSION requires DECEPTICON_PLANNING_WORKFLOW_ID.");
+    if (process.env.DECEPTICON_PLANNING_WORKFLOW_ID) configurable.planning_workflow_id = workflowSetting("DECEPTICON_PLANNING_WORKFLOW_ID");
     if (process.env.DECEPTICON_PLANNING_WORKFLOW_VERSION) configurable.planning_workflow_version = workflowSetting("DECEPTICON_PLANNING_WORKFLOW_VERSION", true);
   } else if (purpose === "execution") {
     if (process.env.DECEPTICON_WORKFLOW_VERSION && !process.env.DECEPTICON_WORKFLOW_ID) throw new Error("DECEPTICON_WORKFLOW_VERSION requires DECEPTICON_WORKFLOW_ID.");
