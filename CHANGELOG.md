@@ -17,7 +17,10 @@ Keep proposed and unmerged changes out of released sections.
 
 - Release-history documentation follow-up: record the published v1.5.0
   version/date and preserve the canonical history. No runtime or upgrade behavior
-  changes. [PR #1003](https://github.com/BitterSecurity/Decepticon/pull/1003).
+  changes. Define OSS Major/Minor/Patch selection, required actual WSL and candidate
+  artifact gates, immutable releases, final/stable channel rules, and failure/hotfix
+  procedures in RELEASE.md. Align contributor and agent instructions; this policy
+  is a documentation change and does not create a new product version. [PR #1003](https://github.com/BitterSecurity/Decepticon/pull/1003).
 
 ## [1.5.0] — 2026-10-17
 

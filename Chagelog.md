@@ -16,6 +16,8 @@ features, fixes and upgrade notes, including merged PRs
 
 The [canonical Unreleased section](CHANGELOG.md#unreleased) records the
 release-history documentation follow-up. It records the actual publication and
-changes no runtime behavior. [PR #1003](https://github.com/BitterSecurity/Decepticon/pull/1003).
+changes no runtime behavior. The same follow-up establishes the
+[OSS release policy](RELEASE.md), including version criteria, actual WSL/artifact
+verification, immutable tags, channel promotion and recovery. [PR #1003](https://github.com/BitterSecurity/Decepticon/pull/1003).
 An open PR means proposed work; a merged PR means integrated work. Only dated
 version sections describe released product changes.

@@ -1,5 +1,8 @@
 # Update channels
 
+Maintainer versioning, publication gates and incident handling are defined in
+[RELEASE.md](../RELEASE.md). This page describes channel resolution behavior.
+
 Decepticon publishes two update channels, modeled on
 [Claude Code's release channels](https://code.claude.com/docs/en/setup#configure-release-channel).
 **Both channels deliver only _final_ releases** (never pre-releases /

@@ -17,3 +17,11 @@ Before extending agents, skills, workflows or client adapters, read
 cores, reusable SKILL.md knowledge, per-process WORKFLOW.md contracts and trusted
 client launch/authorization adapters separate. Preserve immutable workflow pins,
 OPPLAN ownership and optional explicit Plan mode.
+
+# OSS release policy
+
+Before selecting a version, tagging, publishing or recovering an OSS release,
+follow [RELEASE.md](RELEASE.md): classify by compatibility/user impact, verify
+actual WSL product and candidate artifacts, preserve immutable versions and user
+data, and record the actual publication date. A merged PR does not authorize a
+release or require a version bump. SaaS identifiers remain independent.
