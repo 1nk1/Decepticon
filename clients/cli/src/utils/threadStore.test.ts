@@ -22,8 +22,8 @@ it("reports session-list authentication failure instead of an empty history", as
     await expect(listThreads()).rejects.toThrow("Session access denied");
   } finally {
     vi.unstubAllEnvs();
-    server.close();
-    await once(server, "close");
+    server.closeAllConnections();
+    await new Promise<void>(resolve => server.close(() => resolve()));
   }
 });
 
