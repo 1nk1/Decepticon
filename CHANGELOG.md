@@ -17,6 +17,22 @@ Keep proposed and unmerged changes out of released sections.
 
 ### Added
 
+- Proposed CLI experience improvements: searchable mode/model/session pickers,
+  multiline editing, private persistent drafts/history and external-editor input,
+  a lossless waiting-message queue, compact Blue summaries with incident details,
+  and independent monitor/collector/AI status. Add `/status`, `/sessions`, `/queue`,
+  `/alerts`, private Markdown/JSON `/export`, host `doctor --json`, and explicit
+  startup resume/continue controls. See [compatibility notes](docs/cli-experience.md).
+  [Proposed branch](https://github.com/PurpleAILAB/Decepticon/compare/main...feat/oss-cli-ux-20261017).
+
+- Fix CLI command completion changing `/mode` into `/model`; preserve exact matches
+  and make arrow/Tab/Enter selection consistent. Open engagements in Red while
+  retaining scope approval checks. Scope and paginate saved sessions, restore
+  pending questions, and offer confirmed migration of older conversation metadata.
+  Mount the selected CLI workspace and persist local UI state across container
+  recreation. No database reset or version bump is required. Updated images and
+  Compose configuration are required; this change has not been released.
+
 - Add a persistent light/dark dashboard toggle, retaining dark as the default.
   Honor system preferences when toggling and keep status/severity labels readable
   in light mode. Fixed dark terminal and graph surfaces retain their palette.

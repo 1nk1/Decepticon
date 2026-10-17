@@ -48,11 +48,15 @@
 ## What the OSS agent does
 
 - **Name an engagement, then choose a mode:** CLI creation asks only for the
-  engagement name and opens Soundwave planning. Use `/mode plan`, `/mode red`,
+  engagement name and opens Red / Decepticon. Use `/mode plan`, `/mode red`,
   or `/mode blue` within the session. Plan prepares the scope for Red execution;
   Blue investigates connected local sensor events. The web dashboard has its
   own setup form and mode selector.
   [Engagement workflow](docs/engagement-workflow.md).
+- **Terminal controls:** searchable mode/model/session pickers, multiline prompts,
+  private draft/history persistence, queued messages, independent Blue monitoring
+  status, incident details, conversation export and read-only `decepticon doctor`.
+  [CLI reference](docs/cli-reference.md) · [Upgrade notes](docs/cli-experience.md).
 - **Runs specialist operations:** agents cover reconnaissance, vulnerability
   research, exploitation, Active Directory, cloud, and other domains. They
   execute in an isolated sandbox; BloodHound CE, Sliver C2, and other specialist

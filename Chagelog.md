@@ -12,3 +12,7 @@ Related PRs: [#995](https://github.com/BitterSecurity/Decepticon/pull/995),
 [#997](https://github.com/BitterSecurity/Decepticon/pull/997),
 [#999](https://github.com/BitterSecurity/Decepticon/pull/999),
 [#1000](https://github.com/BitterSecurity/Decepticon/pull/1000).
+
+Proposed CLI experience work is recorded under canonical Unreleased:
+[branch comparison](https://github.com/PurpleAILAB/Decepticon/compare/main...feat/oss-cli-ux-20261017).
+It is not released; see [CLI compatibility notes](docs/cli-experience.md).

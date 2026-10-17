@@ -1,6 +1,6 @@
 # Engagement Workflow
 
-CLI engagement creation asks only for a name and opens **Plan** with Soundwave. **Red** executes an approved scope; **Blue** investigates events from a connected local sensor. Select modes within the CLI session using `/mode plan`, `/mode red`, or `/mode blue`. The web dashboard has its own setup form and live-view selector.
+CLI engagement creation asks only for a name and opens **Red / Decepticon**. Actual Red execution requires an approved scope; **Blue** investigates events from a connected local sensor. `/mode` opens a searchable selector; `/mode plan`, `/mode red`, and `/mode blue` also work. Blue monitoring continues independently of the selected conversation. The web dashboard has its own setup form and live-view selector.
 
 ---
 
@@ -11,7 +11,7 @@ CLI engagement creation asks only for a name and opens **Plan** with Soundwave. 
 Choose **New engagement**, enter a lowercase name with optional internal
 hyphens, and submit. The launcher creates the workspace and its empty `plan/`
 directory. It does not ask for a mode, target, or authorization reference.
-Supply the target and scope during the planning conversation, then have an
+Use `/mode plan` to prepare a target and scope when needed, then have an
 authorized operator [provision the reviewed RoE](roe-provisioning.md). Review the
 validated scope before Red execution. Saved engagements retain their scope.
 
