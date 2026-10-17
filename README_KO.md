@@ -42,10 +42,15 @@
 
 ## OSS 에이전트의 핵심 기능
 
-- **Plan·Red·Blue 선택:** Red는 승인한 단일 대상과 승인 참조로 바로 시작할
+- **이름만 입력하고 Red 진입:** CLI는 인게이지먼트 이름만 받고 Red / Decepticon으로 시작합니다.
+  실제 작업에는 기존 대상 범위와 승인이 필요합니다. Red는 승인한 단일 대상과 승인 참조로 바로 시작할
   수 있습니다. 선택형 Plan에서는 Soundwave가 인터뷰와 계획 문서 8종을
   준비·검토하고, Blue에서는 로컬 센서 이벤트를 조사합니다. CLI `/mode`
   명령과 웹 모드 선택기로 전환합니다. [인게이지먼트 흐름](docs/engagement-workflow.md).
+- **터미널 사용 흐름:** 검색 가능한 모드·모델·세션 선택기, 여러 줄 입력, 초안·입력 이력 보존,
+  대기 메시지 관리, 독립적인 Blue 감시 상태와 사건 상세, 대화 내보내기,
+  읽기 전용 `decepticon doctor`를 제공합니다.
+  [CLI 레퍼런스](docs/cli-reference.md) · [업그레이드 안내](docs/cli-experience.md).
 - **전문 에이전트 운영:** 정찰, 취약점 연구, 익스플로잇, Active Directory,
   클라우드 등 도메인별 에이전트가 격리된 샌드박스에서 작업합니다.
   BloodHound CE와 Sliver C2 같은 전문 워크로드는 필요할 때 시작합니다.

@@ -53,6 +53,10 @@
   explicitly for optional planning, or `/mode blue` for connected local sensor
   investigation. The web dashboard has its own setup form and mode selector.
   [Engagement workflow](docs/engagement-workflow.md).
+- **Terminal controls:** searchable mode/model/session pickers, multiline prompts,
+  private draft/history persistence, queued messages, independent Blue monitoring
+  status, incident details, conversation export and read-only `decepticon doctor`.
+  [CLI reference](docs/cli-reference.md) · [Upgrade notes](docs/cli-experience.md).
 - **Runs specialist operations:** agents cover reconnaissance, vulnerability
   research, exploitation, Active Directory, cloud, and other domains. They
   execute in an isolated sandbox; BloodHound CE, Sliver C2, and other specialist

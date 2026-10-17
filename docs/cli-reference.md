@@ -9,6 +9,7 @@
 | `decepticon onboard --reset` | Reconfigure even if `.env` already exists |
 | `decepticon stop` | Stop all services |
 | `decepticon status` | Show service status |
+| `decepticon doctor [--json]` | Read-only installation and connection diagnostics |
 | `decepticon logs [service]` | Follow service logs (default: `langgraph`) |
 | `decepticon kg-health` | Diagnose the Neo4j knowledge graph |
 | `decepticon update` | Explicitly refresh config files, Docker images, and the launcher binary when a release is available |
@@ -64,59 +65,103 @@ decepticon logs web         # Web dashboard
 
 The interactive CLI is built with React 19 + [Ink](https://github.com/vadimdemedes/ink). It streams events from LangGraph in real time.
 
-### Keyboard Shortcuts
+### Keyboard shortcuts
 
 | Key | Action |
 |-----|--------|
-| `Ctrl+O` | Toggle Prompt ↔ Transcript mode |
-| `Ctrl+G` | Cycle graph sidebar: Overview → Nodes → Flows |
-| `Ctrl+B` | Toggle graph sidebar visibility |
-| `Ctrl+C` | Cancel active stream / exit transcript / exit app |
-| `Esc` | Exit transcript mode |
+| Enter | Send the prompt or confirm the selected command/menu item |
+| Tab | Complete the selected command or argument |
+| Ctrl+J / Alt+Enter | Insert a newline |
+| Up / Down | Move through suggestions, multiline input, or prompt history |
+| Ctrl+R | Search prompt history; Enter restores a match, Esc returns |
+| Ctrl+G | Edit the prompt in `$VISUAL` or `$EDITOR` |
+| Ctrl+O | Toggle compact output and transcript detail |
+| Ctrl+C | Pause a run; press again within 500 ms to cancel. When idle, clear the draft before exiting |
+| Esc | Close the current picker/search, return from transcript, or clear waiting messages |
 
-### View Modes
+Drafts and the latest 200 distinct prompts persist per API endpoint and engagement.
+They are private local files beneath `DECEPTICON_STATE_DIR`, `DECEPTICON_HOME`, or
+`~/.decepticon` (in that order). Large pasted prompts keep their full content while
+the editor displays a small window around the cursor. Terminal IME composition
+remains dependent on the user's terminal; use Ctrl+G for longer input if needed.
 
-**Prompt Mode** (default)
-- Compact view suitable for monitoring
-- Sub-agent sessions collapsed
-- Consecutive tool calls from the same agent are grouped
-- Shows current objective and streaming agent output
+### Modes and monitoring
 
-**Transcript Mode** (`Ctrl+O`)
-- Full event history
-- Complete tool inputs and outputs
-- All sub-agent details expanded
-- Useful for debugging and reviewing what the agent actually did
+New and existing engagements open in **Red / Decepticon**. Creating an engagement
+asks only for its name. Selecting Red does not authorize operations: existing
+scope validation and approval still apply. `/mode` opens a searchable Plan/Red/Blue
+picker. `/mode plan`, `/mode red`, `/mode blue`, and `/mode red approve` remain
+available. The footer distinguishes mode, agent and connection state.
 
-### Graph Sidebar
+Blue monitoring is independent of the selected conversation. While you talk to Red,
+Blue notices still arrive. Compact notices link to `/alerts`; full analysis appears
+only when requested. The footer distinguishes monitor connectivity, collector
+coverage, AI analysis state, and unread notices. Unknown coverage is not healthy
+coverage. Up to 500 recent structured notices are held in memory; older incidents
+remain available through `/blue incidents` and the monitor's APIs.
 
-The right-side panel visualizes the live Neo4j attack graph:
+### Sessions and waiting messages
 
-| View | Content |
-|------|---------|
-| **Overview** | High-level graph summary (node/edge counts, top hosts) |
-| **Nodes** | Individual node list with type and properties |
-| **Flows** | Attack chain paths discovered so far |
+- `/resume` returns to a paused checkpoint or opens the session picker when idle.
+- `/sessions` searches the current engagement, including conversations beyond the
+  previous 20-entry limit. `/sessions all` lists all engagements; select a session
+  from the corresponding engagement to resume it.
+- `/sessions legacy` lists conversations created without scope metadata. Linking
+  one requires an explicit confirmation and rejects a checkpoint with a different
+  engagement/workspace. Conversations are retained; they are not deleted.
+- `decepticon --resume` opens the picker; `decepticon --resume <thread-id>` restores
+  a specific session; `decepticon --continue` restores the latest scoped session.
+  Startup restoration preserves the assistant and pending operator question.
+- Messages sent while the agent works form a FIFO queue. `/queue` removes a
+  selected message, `/queue edit N <message>` edits it, and `/queue clear` clears
+  waiting messages. A paused run retains its waiting messages.
 
-Cycle with `Ctrl+G`, hide/show with `Ctrl+B`. A Web Canvas auto-starts for pan/zoom interaction.
+### Slash commands
 
-### Slash Commands
+| Command | Description |
+|---------|-------------|
+| `/help` | List registered commands and shortcuts |
+| `/clear` | Start a fresh conversation; saved server-side conversations remain |
+| `/file <path>` | Read a prompt from a file |
+| `/resume [message]` | Continue a paused run, or choose an existing conversation |
+| `/sessions [all \| legacy]` | Browse saved conversations |
+| `/mode [plan \| red [approve] \| blue]` | Select the conversation mode |
+| `/model [model-id \| clear]` | Search the model catalog and select an override |
+| `/agent` | Inspect or select an orchestrator |
+| `/plugins` | List or toggle agent bundles |
+| `/status` | Inspect the session, routing override and connections |
+| `/queue [clear]` | Manage waiting messages; `/queue edit N <message>` edits one |
+| `/alerts [incident-id]` | Inspect retained Blue incidents and full investigation details |
+| `/export [markdown \| json] [path]` | Write the current conversation to a new private file |
+| `/web [up \| down \| url]` | Manage the optional web dashboard |
+| `/blue up 127.0.0.1:3000` | Connect the local sensor to a running service |
+| `/blue status \| verify \| sources \| events \| incidents \| metrics \| analyze \| stop` | Inspect or manage Blue collection |
+| `/quit` | Exit the chat; services stay running |
 
-Available inside the interactive terminal UI:
+`/model` displays a catalog, not a claim that all providers are authenticated.
+The footer shows a session override when present; automatic routing is labeled as
+such, rather than guessing which model will serve the next request.
 
-| Command | Aliases | Description |
-|---------|---------|-------------|
-| `/help` | `/?` | Show available commands and shortcuts |
-| `/clear` | | Clear conversation history |
-| `/file <path>` | `/f` | Load a prompt from a file and send it |
-| `/resume [message]` | `/r`, `/continue` | Resume a paused run or continue previous session |
-| `/model` | | Show or change the LLM model for this session |
-| `/agent` | | Show or switch the active orchestrator for this session |
-| `/plugins` | `/plugin` | List or toggle agent plugin bundles |
-| `/web [up\|down\|url]` | `/dashboard` | Start, stop, or print the URL of the web dashboard |
-| `/blue up 127.0.0.1:3000` | | Start the local web sensor for an already running service (Linux Docker) |
-| `/blue status\|events\|incidents\|metrics\|analyze\|stop` | | Inspect live events and automatic incidents, run deeper Blue Cell analysis, or stop monitoring |
-| `/quit` | `/exit` | Exit the CLI |
+### Read-only diagnosis and export
+
+Run `decepticon doctor` or `decepticon doctor --json` on the host. Required checks
+cover configuration, authentication presence, Docker, Compose and LangGraph.
+Opscontrol and Blue are reported separately as optional capabilities. Checks have
+bounded timeouts and print recovery commands; they never start, stop or reset a
+service, rotate credentials, or print secret values. Authentication presence does
+not establish that a remote provider login remains valid. A failed required check
+returns a nonzero exit status; optional unavailable components do not.
+
+`/export json` and `/export markdown` export the current conversation only. Default
+exports go to the selected workspace's `exports/` directory. Explicit paths are
+relative to the CLI process, which runs inside the container for installed users.
+Files use owner-only permissions and existing files are never overwritten. Exports
+can contain the complete local evidence supplied in the conversation. MCP remains
+the structured agent execution interface; `doctor --json` is diagnostics, not a
+headless agent runner.
+
+See [CLI experience and compatibility](cli-experience.md) for upgrade details and
+reference designs.
 
 ---
 

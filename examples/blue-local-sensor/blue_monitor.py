@@ -514,6 +514,12 @@ class MonitorStore:
                 "WHERE seq>? ORDER BY seq LIMIT ?",
                 (after, limit + 1),
             ).fetchall()
+            # Keep the high-water mark after retention removes all rows. An
+            # actual replacement store starts at zero and invalidates cursors.
+            sequence = self.db.execute(
+                "SELECT seq FROM sqlite_sequence WHERE name='notifications'"
+            ).fetchone()
+            latest_seq = sequence[0] if sequence else 0
         page = [
             {
                 "seq": row[0],
@@ -527,6 +533,7 @@ class MonitorStore:
         return {
             "notifications": page,
             "next_after": page[-1]["seq"] if page else after,
+            "latest_seq": latest_seq,
             "has_more": len(rows) > limit,
         }
 

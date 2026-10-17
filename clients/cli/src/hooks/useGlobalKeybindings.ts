@@ -33,6 +33,8 @@ interface Props {
   /** Whether a message is queued. */
   hasQueuedMessage?: boolean;
   modalActive?: boolean;
+  draftHasText?: boolean;
+  onClearDraft?: () => void;
 }
 
 const DOUBLE_PRESS_MS = 500;
@@ -46,6 +48,8 @@ export function useGlobalKeybindings({
   runState,
   hasQueuedMessage = false,
   modalActive = false,
+  draftHasText = false,
+  onClearDraft,
 }: Props): void {
   const screen = useAppState((s) => s.screen);
   const setAppState = useSetAppState();
@@ -63,6 +67,7 @@ export function useGlobalKeybindings({
   }, [setAppState]);
 
   useInput((input, key) => {
+    if (modalActive) return;
     // ctrl+o: toggle transcript (expand/collapse all)
     if (key.ctrl && input === "o") {
       toggleScreen();
@@ -110,7 +115,9 @@ export function useGlobalKeybindings({
         }
       } else {
         // Idle state
-        if (hasQueuedMessage) {
+        if (draftHasText) {
+          onClearDraft?.();
+        } else if (hasQueuedMessage) {
           // Clear queued message first, don't exit
           onClearQueue?.();
         } else if (screen === "transcript") {

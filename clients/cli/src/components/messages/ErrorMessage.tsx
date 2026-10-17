@@ -8,6 +8,7 @@
 import React from "react";
 import { Box, Text } from "ink";
 import { CtrlOToExpand } from "../shell/CtrlOToExpand.js";
+import { useScreen } from "../shell/ScreenContext.js";
 
 const MAX_ERROR_CHARS = 1000;
 
@@ -18,7 +19,7 @@ interface Props {
 export const ErrorMessage = React.memo(function ErrorMessage({
   content,
 }: Props) {
-  const isTruncated = content.length > MAX_ERROR_CHARS;
+  const isTruncated = useScreen() !== "transcript" && content.length > MAX_ERROR_CHARS;
   const headLen = Math.floor(MAX_ERROR_CHARS * 0.6);
   const tailLen = MAX_ERROR_CHARS - headLen;
 

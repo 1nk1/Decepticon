@@ -1,90 +1,90 @@
-/**
- * Thread persistence — query/update LangGraph threads via the SDK.
- *
- * Replaces the previous file-based storage (~/.decepticon/threads.json)
- * with server-side thread metadata, so all clients (CLI, Web) share
- * the same thread list.
- */
-
 import { Client } from "@langchain/langgraph-sdk";
 
 export interface ThreadEntry {
-  /** LangGraph thread ID. */
-  threadId: string;
-  /** Assistant ID used with this thread. */
-  assistantId: string;
-  /** ISO timestamp when the thread was last used. */
-  lastUsed: string;
-  /** First user message — serves as session title. */
-  title: string;
+  readonly threadId: string;
+  readonly assistantId: string;
+  readonly lastUsed: string;
+  readonly title: string;
+  readonly engagementName?: string;
+  readonly workspacePath?: string;
+  readonly legacyMetadata: boolean;
 }
-
-const MAX_ENTRIES = 20;
-
-let _client: Client | null = null;
-
+export interface ThreadListOptions {
+  readonly scope?: "current" | "all" | "legacy";
+  readonly limit?: number;
+  readonly offset?: number;
+  readonly assistantId?: string;
+}
+let client: Client | undefined;
 function getClient(): Client {
-  if (!_client) {
-    const apiUrl = process.env.DECEPTICON_API_URL || "http://localhost:2024";
-    _client = new Client({ apiUrl });
-  }
-  return _client;
+  return client ??= new Client({ apiUrl: process.env.DECEPTICON_API_URL || "http://localhost:2024" });
 }
-
-/** Save or update a thread's metadata on the server. */
-export async function saveThread(
-  threadId: string,
-  assistantId: string,
-  title: string,
-): Promise<void> {
-  try {
-    const client = getClient();
-    await client.threads.update(threadId, {
-      metadata: {
-        assistantId,
-        title: title.slice(0, 100),
-        lastUsed: new Date().toISOString(),
-      },
-    });
-  } catch {
-    // Non-critical — don't crash if metadata update fails
-  }
+function entry(thread: { thread_id: string; updated_at: string; metadata?: Record<string, unknown> | null }): ThreadEntry {
+  const metadata = thread.metadata ?? {};
+  const engagementName = typeof metadata.engagement_name === "string" ? metadata.engagement_name : undefined;
+  return {
+    threadId: thread.thread_id,
+    assistantId: typeof metadata.assistantId === "string" ? metadata.assistantId : typeof metadata.decepticon_assistant === "string" ? metadata.decepticon_assistant : "",
+    title: typeof metadata.title === "string" ? metadata.title : `Session ${thread.thread_id.slice(0, 8)}`,
+    lastUsed: thread.updated_at,
+    engagementName,
+    workspacePath: typeof metadata.workspace_path === "string" ? metadata.workspace_path : undefined,
+    legacyMetadata: engagementName === undefined,
+  };
 }
-
-/** Update the lastUsed timestamp for an existing thread. */
+export async function saveThread(threadId: string, assistantId: string, title: string): Promise<void> {
+  await getClient().threads.update(threadId, { metadata: {
+    assistantId, title: title.slice(0, 100), lastUsed: new Date().toISOString(),
+    engagement_name: process.env.DECEPTICON_ENGAGEMENT ?? "",
+    workspace_path: process.env.DECEPTICON_WORKSPACE_PATH ?? "/workspace",
+  } });
+}
 export async function touchThread(threadId: string): Promise<void> {
-  try {
-    const client = getClient();
-    await client.threads.update(threadId, {
-      metadata: {
-        lastUsed: new Date().toISOString(),
-      },
-    });
-  } catch {
-    // Non-critical
+  await getClient().threads.update(threadId, { metadata: { lastUsed: new Date().toISOString() } });
+}
+export async function listThreads(options: ThreadListOptions = {}): Promise<ThreadEntry[]> {
+  const scope = options.scope ?? "current";
+  const metadata: Record<string, unknown> = {};
+  if (scope === "current") metadata.engagement_name = process.env.DECEPTICON_ENGAGEMENT ?? "";
+  if (options.assistantId) metadata.assistantId = options.assistantId;
+  const result: ThreadEntry[] = [];
+  let offset = options.offset ?? 0;
+  const limit = options.limit ?? 100;
+  for (;;) {
+    const page = await getClient().threads.search({ metadata, sortBy: "updated_at", sortOrder: "desc", limit, offset });
+    result.push(...page.map(entry).filter((thread) => scope !== "legacy" || thread.legacyMetadata));
+    if (options.limit !== undefined || page.length < limit) return result;
+    offset += page.length;
   }
 }
-
-/** Load all saved thread entries from the server, most recent first. */
-export async function listThreads(): Promise<ThreadEntry[]> {
-  const client = getClient();
-  const threads = await client.threads.search({
-    sortBy: "updated_at",
-    sortOrder: "desc",
-    limit: MAX_ENTRIES,
-  });
-  return threads.map((t) => ({
-    threadId: t.thread_id,
-    assistantId: (t.metadata?.assistantId as string) ?? "",
-    lastUsed: t.updated_at,
-    title: (t.metadata?.title as string) || `Session ${t.thread_id.slice(0, 8)}`,
-  }));
+export async function loadThreadByIndex(index: number): Promise<ThreadEntry | null> {
+  return (await listThreads({ limit: 1, offset: index }))[0] ?? null;
+}
+export class SessionScopeError extends Error {
+  constructor(readonly threadId: string, message: string) { super(message); this.name = "SessionScopeError"; }
+}
+export async function validateThread(threadId: string): Promise<ThreadEntry> {
+  const saved = entry(await getClient().threads.get(threadId));
+  if (saved.legacyMetadata) throw new SessionScopeError(threadId, "Legacy session has no engagement metadata. Review and migrate its metadata before resuming.");
+  if (saved.engagementName !== (process.env.DECEPTICON_ENGAGEMENT ?? "") ||
+      (saved.workspacePath && saved.workspacePath !== (process.env.DECEPTICON_WORKSPACE_PATH ?? "/workspace"))) {
+    throw new SessionScopeError(threadId, "Session belongs to a different engagement or workspace. Open that engagement to resume.");
+  }
+  if (!["soundwave", "decepticon", "blue_cell"].includes(saved.assistantId)) throw new SessionScopeError(threadId, "Session assistant metadata is missing or unsupported.");
+  return saved;
 }
 
-/** Load a single thread by index (0-based) from the server list. */
-export async function loadThreadByIndex(
-  index: number,
-): Promise<ThreadEntry | null> {
-  const entries = await listThreads();
-  return entries[index] ?? null;
+/** Explicit user-confirmed adoption; callers must show the target engagement first. */
+export async function claimLegacyThread(threadId: string): Promise<ThreadEntry> {
+  const saved = entry(await getClient().threads.get(threadId));
+  if (!saved.legacyMetadata) return validateThread(threadId);
+  if (!["soundwave", "decepticon", "blue_cell"].includes(saved.assistantId)) throw new SessionScopeError(threadId, "Legacy session has no supported assistant; metadata must be repaired before adoption.");
+  const state = await getClient().threads.getState(threadId);
+  const values = state.values;
+  if (values && typeof values === "object") {
+    if ("engagement_name" in values && values.engagement_name && values.engagement_name !== process.env.DECEPTICON_ENGAGEMENT) throw new SessionScopeError(threadId, "Legacy checkpoint belongs to a different engagement.");
+    if ("workspace_path" in values && values.workspace_path && values.workspace_path !== (process.env.DECEPTICON_WORKSPACE_PATH ?? "/workspace")) throw new SessionScopeError(threadId, "Legacy checkpoint belongs to a different workspace.");
+  }
+  await saveThread(threadId, saved.assistantId, saved.title);
+  return validateThread(threadId);
 }

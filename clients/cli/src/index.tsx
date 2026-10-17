@@ -4,7 +4,15 @@ import { render } from "ink";
 import { App } from "./app.js";
 
 const args = process.argv.slice(2);
-const resumeThread = args.includes("--resume") || args.includes("-r");
+const resumeThread = args.includes("--continue") || process.env.DECEPTICON_RESUME_LATEST === "true";
+const resumeIndex = args.findIndex((arg) => arg === "--resume" || arg === "-r" || arg.startsWith("--resume="));
+if (resumeIndex >= 0) {
+  const flag = args[resumeIndex] ?? "";
+  const next = args[resumeIndex + 1];
+  const threadId = flag.startsWith("--resume=") ? flag.slice("--resume=".length) : next && !next.startsWith("-") ? next : undefined;
+  if (threadId) process.env.DECEPTICON_THREAD_ID = threadId;
+  else process.env.DECEPTICON_RESUME_PICKER = "true";
+}
 const initialMessage = process.env.DECEPTICON_INITIAL_MESSAGE || undefined;
 
 const instance = render(<App initialMessage={initialMessage} resumeThread={resumeThread} />, {

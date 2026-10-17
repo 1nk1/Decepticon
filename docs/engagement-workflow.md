@@ -5,6 +5,8 @@ and planning documents; Blue investigates a connected local sensor. A business
 workflow selects the execution process independently of mode and authorization.
 Contributors should read the [extension contract](design/extension-contract.md).
 
+Use `/mode` for a searchable selector. Blue monitoring continues independently of the selected conversation.
+
 ## Start an engagement
 
 The CLI starts in Red for both new and saved workspaces. Creation asks for the
