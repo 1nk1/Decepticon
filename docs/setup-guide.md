@@ -855,7 +855,10 @@ Once running, you have:
 
 ```bash
 # Decepticon shows the engagement picker after launch
-# Select "New engagement" and enter only its name
+# Select "New engagement" and enter its name
+# The session defaults to Red; import reviewed scope and approve before execution
+# /scope import plan/roe-authorized.json --confirm
+# /mode red approve
 # Inside the session, use /mode plan, /mode red, or /mode blue
 ```
 
@@ -868,41 +871,20 @@ Once running, you have:
 
 ### Step 6: Optional Soundwave Plan
 
-The CLI opens a new engagement in Plan mode, where Soundwave gathers target
-and scope through conversation. The web dashboard can also create a direct
-authorized RoE from its setup form. Soundwave's planning interview generates
-the engagement package:
+Enter `/mode plan` explicitly for Soundwave discussion or planning documents.
+Soundwave reads the operator-provisioned RoE and can prepare seven additional
+JSON documents: Threat Profile, CONOPS, Deconfliction, Contact, Data Handling,
+Abort and Cleanup. It cannot modify the protected RoE or write OPPLAN.
 
-```
-Questions you'll answer:
-├── Target scope (IPs, URLs, domains)
-├── Threat actor profile (nation-state, criminal, insider)
-├── Authorized actions (scanning, exploitation, lateral movement)
-├── Exclusions (production DBs, critical infra)
-├── Testing window (hours, days, timezone)
-├── OPSEC requirements (noise level, detection avoidance)
-└── Acceptance criteria (what does "done" look like)
-```
-
-Soundwave generates an eight-document engagement bundle from your answers:
-
-| Document | Purpose |
-|----------|---------|
-| **RoE** | Legal authorization, scope, exclusions, escalation contacts |
-| **Threat Profile** | MITRE-mapped adversary persona and key TTPs |
-| **CONOPS** | Threat model and kill-chain phases, scoped to the RoE |
-| **Deconfliction Plan** | Source IPs, time windows, SOC coordination codes |
-| **Contact Plan** | Operator and escalation roster, plus the abort-signal recipient |
-| **Data Handling Plan** | Evidence retention, encryption, and chain-of-custody |
-| **Abort Plan** | Halt triggers and AI-aware safety gates |
-| **Cleanup Plan** | Expected artifacts and per-phase removal commands |
-
-The orchestrator builds the **OPPLAN** (objectives, phases, MITRE ATT&CK
-mapping) from the bundle — Soundwave does not write it.
+Publication validates the eight-document bundle and leaves the user in Plan;
+it does not grant Red approval or switch modes. Direct approved Red execution
+requires none of these seven optional documents. See the
+[engagement workflow](engagement-workflow.md) and
+[operator RoE provisioning](roe-provisioning.md).
 
 ### Step 7: Autonomous Execution
 
-After direct Red authorization or approval of the optional Plan bundle,
+After operator approval of the current RoE and explicit Red selection,
 Decepticon can build the OPPLAN and begin execution:
 
 ```

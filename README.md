@@ -47,11 +47,11 @@
 
 ## What the OSS agent does
 
-- **Name an engagement, then choose a mode:** CLI creation asks only for the
-  engagement name and opens Soundwave planning. Use `/mode plan`, `/mode red`,
-  or `/mode blue` within the session. Plan prepares the scope for Red execution;
-  Blue investigates connected local sensor events. The web dashboard has its
-  own setup form and mode selector.
+- **Start with approved scope:** CLI creation asks for an engagement name and
+  defaults to Red. Import reviewed scope with `/scope import <file> --confirm`,
+  then approve it with `/mode red approve` before execution. Use `/mode plan`
+  explicitly for optional planning, or `/mode blue` for connected local sensor
+  investigation. The web dashboard has its own setup form and mode selector.
   [Engagement workflow](docs/engagement-workflow.md).
 - **Runs specialist operations:** agents cover reconnaissance, vulnerability
   research, exploitation, Active Directory, cloud, and other domains. They
@@ -180,7 +180,7 @@ The "AI + hacking" space is full of demos that run nmap and print a report. That
 
 **Decepticon is a professional autonomous Red Team agent.** It executes realistic attack chains — reconnaissance, exploitation, privilege escalation, lateral movement, C2 — the way a real adversary would, not the way a scanner does.
 
-Every Red engagement starts with an approved target and machine-enforced RoE. Optional Plan mode adds Soundwave's interview and the full **RoE**, **ConOps**, **Deconfliction Plan**, and **OPPLAN** package with MITRE ATT&CK mapping before Red execution.
+Every Red engagement starts with an operator-approved target and RoE. Optional Plan mode adds Soundwave's discussion and seven planning documents alongside the read-only RoE. The execution orchestrator owns OPPLAN; Plan is not required for Red.
 
 → **[Engagement workflow deep dive](docs/engagement-workflow.md)**
 
@@ -251,6 +251,7 @@ Configure via `decepticon onboard`. → **[Full model reference & fallback examp
 | Model profiles and fallback chain | [Models](docs/models.md) |
 | Skill system and format spec | [Skills](docs/skills.md) |
 | Web dashboard features and setup | [Web Dashboard](docs/web-dashboard.md) |
+| Extending capabilities, skills, workflows and clients | [Extension contract](docs/design/extension-contract.md) |
 | System architecture and network isolation | [Architecture](docs/architecture.md) |
 | Neo4j knowledge graph | [Knowledge Graph](docs/knowledge-graph.md) |
 | End-to-end engagement workflow | [Engagement Workflow](docs/engagement-workflow.md) |

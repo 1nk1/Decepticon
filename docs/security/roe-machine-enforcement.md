@@ -6,7 +6,9 @@
 ## TL;DR
 
 The human-readable RoE (`in_scope`, `out_of_scope`, `prohibited_actions`)
-that Soundwave authors during planning is for the operator's review. A
+that an authorized operator provisions defines the reviewed scope. Soundwave
+can draft a separate candidate but cannot write the protected RoE; see
+[operator provisioning](../roe-provisioning.md). A
 separate, OPTIONAL `machine_enforcement` block inside the same
 `roe.json` drives the **RoE-enforcement middleware**, which evaluates
 every gated tool call against allowlist + denylist + forbidden-command

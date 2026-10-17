@@ -1,9 +1,9 @@
 # Agent File & Reporting Conventions
 
 > How Decepticon's agents write to disk, hand work off to each other, and
-> report back to the orchestrator. This is the authoritative reference for
-> the workspace file contract that the 16 specialist agents, the skill
-> catalogs, and the client UIs all depend on.
+> report back to the orchestrator. For process and authorization ownership,
+> use the [extension contract](design/extension-contract.md). Live objective
+> schemas and pinned workflow artifacts govern each execution.
 
 Decepticon's multi-agent loop is **file-mediated, not memory-mediated**.
 Each specialist agent is spawned with a fresh context window (no parent
@@ -79,14 +79,15 @@ middleware, not agents:
 
 ```
 /workspace/                              ← virtual root (real: /workspace/<slug>)
-├── plan/                                ← planning bundle (Soundwave-authored, JSON)
+├── plan/                                ← scope, optional planning bundle and execution OPPLAN (JSON)
 │   ├── roe.json                         ← Rules of Engagement (read before every dispatch)
 │   ├── conops.json                      ← Concept of Operations
 │   ├── deconfliction.json
 │   ├── threat-profile.json
 │   ├── data-handling.json
 │   ├── cleanup.json
-│   ├── abort.json                       ← optional
+│   ├── contact.json
+│   ├── abort.json                       ← required only for full Plan publication
 │   └── opplan.json                      ← Operational Plan (objectives + status)
 │
 ├── recon/                              ← reconnaissance artifacts (lazy)
@@ -179,139 +180,34 @@ URL or domain is forbidden; remote recon goes through `task("recon", ...)`.
 
 ## 4. Per-phase artifact contracts
 
-Each phase agent observes its own output discipline (a cap on how many files
-it may produce) and writes a specific set of artifacts.
-
-### Recon (`recon.md`)
-
-- **Output cap:** max 2 files per objective — `recon/report_<target>.md`
-  (detailed markdown report) plus optionally one raw scan-data file.
-- **Mandatory handoff:** the LAST action before returning **must** be
-  `write_file("recon/SUMMARY.md", ...)` with a terminal-state token on its
-  own line (see §5). Returning without `SUMMARY.md` is treated as a
-  sub-agent crash by the orchestrator.
-- **Dedup log:** `recon/probed.txt` — every iterating HTTP probe appends its
-  URL here and checks before re-probing; the file survives summarization, so
-  the agent resumes from the last line rather than rescanning.
-- **Observation-only:** recon records what it *saw* (banners, status codes,
-  reflected payloads, exposed paths, captured sessions), never a
-  vulnerability class and never a recommended skill path. Classification is
-  the orchestrator's job.
-- **Findings:** for each verified discovery, `load_skill(
-  "/skills/shared/finding-protocol/SKILL.md")` then write
-  `findings/FIND-{NNN}.md`; raw evidence to `findings/evidence/`.
-
-### Exploit (`exploit.md`)
-
-- **Output cap:** max 3 files per objective — `exploit/shells.json`,
-  `exploit/creds/initial.json`, plus optionally one notes file.
-- **Reads first:** always `read_file("recon/SUMMARY.md")` before the first
-  probe — for *evidence context* (payload selection), not for routing
-  (recon doesn't classify; the orchestrator's `task()` prompt already cites
-  the skill to load first).
-- **Credential preservation (Rule 15):** the moment any high-value secret is
-  captured, `write_file("exploit/creds/credentials.md", "<verbatim secret>")`
-  **before doing anything else**, so it survives summarization. `creds/` is
-  the canonical credentials location across the kill chain; post-exploit
-  reads and extends it at `post-exploit/creds/`.
-- **Vector lock:** while a confirmed vector is being worked but access isn't
-  yet achieved, `exploit/ACTIVE.md` holds the working state; switching vuln
-  class without writing `exploit/PIVOT.md` is forbidden.
-- **Mandatory handoff:** exactly one terminal artifact — `findings/FIND-NNN.md`
-  (success), `exploit/CONVERGED.md`, `exploit/PIVOT.md` + negative
-  `findings/FIND-NNN.md`, or `exploit/EXIT_REPORT.md` (see §5).
-
-### Post-exploit (`postexploit.md`)
-
-- Extends the credentials tree at `post-exploit/creds/`.
-- Writes `findings/FIND-NNN.md` for privilege escalation, credential access,
-  lateral movement, and discovery, following the same finding protocol.
-
-### Analyst (`analyst.md`)
-
-- Primary output is the **knowledge graph**, not flat files: every
-  meaningful observation is written via `kg_record(...)` (atomic batch of
-  nodes/edges) or `kg_ingest(scanner_kind, path)` (bulk scanner parse).
-  Free-text notes are forgotten next iteration; the graph survives.
-- Promotes to a `Finding` node only with a validated PoC (success +
-  negative-control evidence) and full CVSS vector, and writes the
-  corresponding `findings/FIND-NNN.md`.
-
----
+Specialists write the artifacts required by their assigned objective and pinned
+workflow. Common locations include `recon/`, `exploit/`, `post-exploit/`,
+`findings/` and `report/`, but these names do not require executing every phase.
+Read the active capability's technical templates for its local evidence format.
+A universal file cap or an old prompt-line inventory must not override the live
+acceptance contract.
 
 ## 5. Terminal-state handoff artifacts
 
-Every phase dispatch ends in exactly one terminal state, each with a
-required exit artifact. The orchestrator greps for the token to detect
-which one. **Returning without an exit artifact is a crash signal** — the
-orchestrator has nothing to dispatch on. A documented failure beats an
-undocumented success attempt.
-
-### Recon terminal states (token inside `recon/SUMMARY.md`)
-
-| State | Token (on its own line) | SUMMARY.md contains |
-|-------|-------------------------|---------------------|
-| Success | `RECON_OBSERVATIONS: <one-line evidence summary>` | Service/stack inventory, endpoints (status/size/behavior), captured sessions, source/backup exposure |
-| Surface exhausted | `RECON_BUDGET_EXHAUSTED` | What was probed, what was negative, what surface remains untried |
-| Blocked | `RECON_BLOCKED: <reason>` | Specific blocker, what was tried, recommended next step |
-
-### Exploit terminal states
-
-| State | Exit artifact | Contents |
-|-------|---------------|----------|
-| Success | `findings/FIND-NNN.md` (+ `exploit/creds/credentials.md` if a secret was captured) | Verified evidence: commands, output, access level |
-| Convergence | `exploit/CONVERGED.md` | Vector class, timestamp, working evidence curl/script, next concrete step, known risks. Telemetry tag: `<!-- converged:<ts>:<vector_class> -->` |
-| Pivot | `exploit/PIVOT.md` + negative `findings/FIND-NNN.md` | Most-promising remaining vector + the recorded negative result. Driven by the **3-class pivot rule** (3 same-class payload fails → next class; 3 classes fail on an endpoint → endpoint hardened) |
-| Exit report | `exploit/EXIT_REPORT.md` | What was tried, what was ruled out (tied to recon SUMMARY's "ruled out" list), most-promising remaining angle, why the dispatch is closing |
-
----
+A specialist returns a bounded outcome and the paths of actual evidence. Preserve
+blockers, negative results and untested coverage. Historical terminal tokens such
+as `RECON_BLOCKED` are method-specific conventions, not a second OPPLAN status
+machine. The orchestrator must inspect the artifacts and live task schema rather
+than infer completion from a token or filename alone.
 
 ## 6. The orchestrator read protocol
 
-After **every** recon `task()` returns, the orchestrator (decepticon)
-executes a fixed decision tree (in `decepticon.md`):
+Inspect the current objective, dependencies, scope and relevant evidence before
+dispatch or mutation. Preserve the pinned workflow across child execution and
+resume. Read returned evidence before accepting the result; do not equate a tool
+failure or empty return with a negative security finding.
 
-1. `read_file("recon/SUMMARY.md")`. If missing/empty → treat as crash.
-2. Grep for the terminal token.
-3. If `RECON_OBSERVATIONS:` (or any noteworthy observation — captured
-   session, default-cred login, source-exposure hit): the **next turn must
-   be `task("exploit", ...)`**. Not more recon, not bash, not more planning.
-   `OPPLANMiddleware` rejects `update_objective(status="blocked")` in this
-   state — there is observable surface; exploit just hasn't tried it yet.
-4. The orchestrator does the classification recon refused to do: it loads
-   the domain router skill (`/skills/standard/exploit/<domain>/SKILL.md`),
-   maps observations → sub-skill, and **cites that skill in the exploit
-   `task()` prompt** ("Load this skill BEFORE the first probe: `load_skill(
-   '/skills/standard/exploit/<domain>/<X>.md')`").
-5. The exploit dispatch context must include: workspace path, the
-   `RECON_OBSERVATIONS:` line verbatim, relevant SUMMARY.md excerpts, target
-   URL + observed parameters, captured tokens, prior findings, lessons
-   learned. Sub-agents start with zero parent context.
-
-**Anti-poisoning safeguard:** if exploit returns BLOCKED because the cited
-vector failed validation, the orchestrator must NOT re-dispatch the same
-classification. It re-reads SUMMARY.md and either picks a different sub-skill
-or dispatches a focused secondary recon. Confidence inflation on the first
-classification is the cycle's #1 failure mode.
-
-### Sub-agent failure modes
-
-The orchestrator distinguishes three fault classes (`decepticon.md`):
-
-| Fault | Signal | Response |
-|-------|--------|----------|
-| INFRA | `task()` error contains `TimeoutExpired`, `tmux capture-pane`, `docker exec`, `connection reset`, `broken pipe`, `sandbox unavailable` | Retry same sub-agent ONCE, same prompt. Second failure → `update_objective(blocked, "sandbox infra fault: …")` |
-| CRASH | `task()` returns `{}` / empty, no error | Retry ONCE. Second empty → `update_objective(blocked, "sub-agent crash: empty return on 2 attempts")` |
-| WANDERING | summary names same-shape repeated calls with zero results ("tried many URLs all 404") | Re-read SUMMARY.md, re-dispatch a NARROWED prompt naming a different vector, or switch sub-agent. After two consecutive wandering dispatches → `update_objective(blocked, "wandering: no convergence")` |
-
-### Objective state discipline
-
-- Always `get_objective(id)` **before** `update_objective` (never in
-  parallel).
-- Never mark `passed` without a finding file and evidence in the notes.
-- Never mark `blocked` without documenting what was attempted.
-- All OPPLAN objectives must reach a terminal status
-  (passed/blocked/cancelled/failed) before the engagement closes.
+OPPLAN status and typed outcome are separate. Completed work may establish a
+finding, no finding or an objective met; each requires real evidence. Blocked
+work records its reason. Use the live OPPLAN tools and revision checks described
+in [the DAG contract](red-team/opplan-dag.md), not historical `passed`/`failed`
+status examples. Engagement closure follows the selected workflow and retains
+limitations for unfinished coverage.
 
 ---
 
@@ -357,44 +253,39 @@ identical text, enabling prompt caching for the child run.
 
 ## 8. Planning documents (Soundwave)
 
-Before any offensive dispatch, the **Soundwave** planning agent (and its
-`/skills/standard/soundwave/*` templates) author the JSON planning bundle in
-`plan/`. Each validates against a Pydantic v2 schema in
-`decepticon_core.types`:
+Plan is optional. An operator provisions `plan/roe.json`; Soundwave reads that
+scope and can publish the seven additional planning documents. Publication uses
+the canonical Pydantic schemas and leaves the operator in Plan. It does not grant
+execution approval or generate OPPLAN.
 
-| File | Skill | Schema |
-|------|-------|--------|
-| `plan/roe.json` | `roe-template` | `RoE` |
-| `plan/conops.json` + `plan/deconfliction.json` | `conops-template` | `CONOPS`, `DeconflictionPlan` |
-| `plan/threat-profile.json` | `threat-profile` | `ThreatProfile` |
-| `plan/data-handling.json` | `data-handling-template` | `DataHandlingPlan` |
-| `plan/opplan.json` | `opplan-converter` | `OPPLAN` |
-| `plan/cleanup.json` | `cleanup-template` | `CleanupPlan` |
-| `plan/abort.json` (optional) | `abort-template` | — |
+| File | Owner |
+|------|-------|
+| `plan/roe.json` | Authorized operator; read-only to Soundwave |
+| `plan/threat-profile.json`, `plan/conops.json`, `plan/deconfliction.json` | Optional Soundwave planning workflow |
+| `plan/contact.json`, `plan/data-handling.json`, `plan/abort.json`, `plan/cleanup.json` | Optional Soundwave planning workflow |
+| `plan/opplan.json` | Execution orchestrator through OPPLAN tools |
 
-OPPLAN objectives use `OBJ-{NNN}` IDs and each carries acceptance criteria
-that must include a scope check, an OPSEC check, and an output-persistence
-criterion naming the artifact path the work will produce. `roe.json` is the
-contract the orchestrator re-reads before **every** `task()` dispatch.
+See [artifact ownership](agent-file-mapping.md), [optional Plan](design/planning-workflow.md)
+and [OPPLAN DAG](red-team/opplan-dag.md). The live objective schema and selected
+workflow determine acceptance artifacts and dependencies; phases do not impose a
+mandatory sequence.
 
 ---
 
 ## 9. Final report generation
 
-At engagement close, the orchestrator runs the final-report sequence
-(`decepticon.md` → `/skills/standard/decepticon/final-report/SKILL.md`):
+The selected workflow defines reporting dependencies and required deliverables.
+Independent verification precedes a per-finding report. Preserve the operational
+`FIND-NNN` identity in deliverable frontmatter; current reporting templates use
+human-readable severity/slug filenames rather than the retired
+`report/finding-NNN.md` scheme.
 
-1. `load_skill("/skills/standard/decepticon/final-report/SKILL.md")`.
-2. Generate `report/executive-summary.md` (C-level, no tool names/jargon).
-3. Generate `report/technical-report.md` (findings detail, attack-path
-   narratives, detection-gap analysis, activity timeline, remediation
-   roadmap, MITRE ATT&CK coverage).
-4. Promote each operational `findings/FIND-NNN.md` to a deliverable-tier
-   `report/finding-NNN.md` (heavyweight CVSS 4.0 vector, CWE, MITRE
-   mapping, remediation), cross-referenced against the CONOPS success
-   criteria.
-5. Call `ops_cleanup_engagement()` to stop any sidecar workloads (BHCE,
-   Sliver) tagged to the engagement.
+The orchestrator synthesizes coverage, verification summaries and engagement
+reports from inspected evidence. Reusable final-report skills supply technical
+models and formatting, not an unconditional mission sequence. With no candidates,
+report explicit no-findings coverage and limitations. Cleanup is governed by the
+approved scope and selected workflow; an optional CONOPS is not a prerequisite
+for every report.
 
 ---
 

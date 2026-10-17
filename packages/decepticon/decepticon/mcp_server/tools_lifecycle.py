@@ -66,6 +66,8 @@ def register_lifecycle_tools(
         scan_mode: ScanMode = "standard",
         engagement_name: str | None = None,
         assistant: str | None = None,
+        workflow_id: str | None = None,
+        workflow_version: str | None = None,
     ) -> StartResult:
         """Start an AUTHORIZED Decepticon engagement against one or more targets.
 
@@ -91,6 +93,8 @@ def register_lifecycle_tools(
             scan_mode=scan_mode,
             engagement_name=name,
             assistant=assistant or config.default_assistant,
+            workflow_id=workflow_id,
+            workflow_version=workflow_version,
         )
 
     @mcp.tool()

@@ -52,6 +52,7 @@ from fastapi import FastAPI, HTTPException, Path
 from pydantic import BaseModel
 
 from decepticon.graph_registry import _BUNDLE_TO_GRAPHS  # private, but stable: bundle->graphs map
+from decepticon.server.operator_contracts import router as operator_contract_router
 
 logger = logging.getLogger(__name__)
 
@@ -135,6 +136,7 @@ app = FastAPI(
     title="Decepticon plugin bundle API",
     summary="Runtime activation/deactivation of agent bundles on the LangGraph platform.",
 )
+app.include_router(operator_contract_router)
 
 
 @app.get("/_decepticon/bundles", response_model=BundlesResponse)

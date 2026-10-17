@@ -17,12 +17,35 @@
 
 > **Web dashboard** is *dynamic-spawn* — it does **not** come up with the default stack. Start it from inside the CLI with the `/web` slash command (which runs `docker compose --profile web up -d web`), then open `http://localhost:3000` (configurable via `WEB_PORT` in `.env`). See [Web Dashboard](web-dashboard.md).
 
-### Provision a missing RoE
+### Scope and workflow selection
 
-Authorized operators can run `python -m decepticon.provision_roe` inside the
-running LangGraph container to import a reviewed RoE without restarting an
-engagement. See [RoE provisioning](roe-provisioning.md) for the installed Compose
-command, required schema, confirmation, and separate Red approval.
+New and saved workspaces open in Red. A mode label alone does not authorize
+execution. For a new name-only workspace, use:
+
+```text
+/scope import plan/roe-authorized.json --confirm
+/mode red approve
+```
+
+Import validates the reviewed JSON and creates missing scope without granting
+approval. The second command approves the canonical current RoE; no optional
+Plan documents are required. `/mode plan` explicitly opens Soundwave; publishing
+its seven documents leaves you in Plan. See [RoE provisioning](roe-provisioning.md)
+for path handling, the canonical schema and the Python/container alternative.
+
+Select a business workflow at launch:
+
+```bash
+decepticon start --workflow pentest --workflow-version 1
+```
+
+`start` is optional. Execution also accepts `DECEPTICON_WORKFLOW_ID` and
+`DECEPTICON_WORKFLOW_VERSION`. Optional Plan uses separate
+`DECEPTICON_PLANNING_WORKFLOW_ID` (default `planning`) and
+`DECEPTICON_PLANNING_WORKFLOW_VERSION`. The workflow is pinned to the execution
+thread; changing the launch selection does not rewrite a resume pin. Use a new
+execution/thread to change business process. See the
+[extension contract](design/extension-contract.md).
 
 ### `decepticon logs` — Service names
 

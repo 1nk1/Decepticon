@@ -68,8 +68,11 @@ Nineteen standard prompts changed: `decepticon`, `recon`, `exploit`, `postexploi
 `mobile_operator`, `osint_operator`, `phisher`, `supply_chain_operator`,
 `wireless_operator`. Each retained its domain identity, actual environment/tool
 contracts and authorization boundaries. The detailed role-by-role rationale is in
-core-prompt-workflow-audit.md. Soundwave, Autohunt and Blue Cell remain unchanged
-because their selected planning/defensive adapters have distinct contracts.
+[core prompt audit](core-prompt-workflow-audit.md). This inventory records the
+initial extraction. Soundwave was subsequently separated into a stable planning
+core and optional planning WORKFLOW.md; see the
+[extension contract](extension-contract.md). Autohunt and Blue Cell retain their
+distinct bootstrap/defensive adapters.
 
 ## Existing orchestration skill review
 

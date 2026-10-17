@@ -74,6 +74,8 @@ func init() {
 	// `decepticon start --no-update` accept the flag.
 	rootCmd.PersistentFlags().BoolVar(&skipUpdate, "no-update", false,
 		"Skip the self-update check for this launch (does not change AUTO_UPDATE in .env)")
+	rootCmd.PersistentFlags().String("workflow", "", "Execution workflow ID (defaults to DECEPTICON_WORKFLOW_ID in environment or .env)")
+	rootCmd.PersistentFlags().String("workflow-version", "", "Execution workflow version (requires a workflow ID)")
 
 	rootCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		return runStart(cmd, args)
@@ -81,6 +83,10 @@ func init() {
 }
 
 func runStart(cmd *cobra.Command, args []string) error {
+	workflowEnv, err := workflowEnvironment(cmd)
+	if err != nil {
+		return err
+	}
 	// 1. Check .env exists
 	if !config.EnvExists() {
 		ui.Warning("No configuration found. Running setup wizard...")
@@ -276,6 +282,9 @@ func runStart(cmd *cobra.Command, args []string) error {
 		"DECEPTICON_ASSISTANT_ID": choice.AssistantID,
 		"DECEPTICON_RUN_MODE":     choice.Mode,
 		"DECEPTICON_ENGAGEMENT":   choice.Engagement,
+	}
+	for key, value := range workflowEnv {
+		cliEnv[key] = value
 	}
 	if choice.Target != "" {
 		cliEnv["DECEPTICON_TARGET"] = choice.Target

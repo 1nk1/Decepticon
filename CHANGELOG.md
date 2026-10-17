@@ -15,6 +15,30 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+### Proposed — not merged or released
+
+- Complete Red-first OSS client launch and keep Soundwave exclusively in optional
+  Plan mode. Separate its stable capability prompt from planning/WORKFLOW.md and
+  review its 17 reusable knowledge/template skills. Operator scope import and
+  explicit direct Red approval do not require the seven additional Plan files.
+- Share canonical RoE validation between the operator importer and a bounded,
+  validation-only HTTP route. Preserve original document bytes, exclusive import,
+  scope-change invalidation and validated Plan bundle approval semantics. Failed
+  approval or run interruption keeps the existing mode and conversation.
+- Forward trusted workflow IDs/versions through launcher, CLI and MCP adapters;
+  preserve separate planning pins and use registered role-purpose metadata for
+  execution approval checks, including plugin roles. Unknown roles require
+  execution approval. Existing workflow checkpoints retain their pinned source.
+- Add the contributor extension contract and reference it from repository
+  instructions; replace obsolete RoE-authoring, fixed-phase, skill-format and
+  artifact-path guidance. Replace misleading prompt-prose checks with execution,
+  checkpoint, schema and client-boundary regression coverage.
+- Compatibility: clients and runtime must include the new validation/purpose
+  routes together. Existing approved direct RoE and validated bundle digests remain
+  supported; changing business workflow requires a new execution thread. This is
+  a follow-up to merged #999 and #1000, with no release or version bump assigned.
+  [PR #1001](https://github.com/BitterSecurity/Decepticon/pull/1001).
+
 ### Added
 
 - Add a persistent light/dark dashboard toggle, retaining dark as the default.
@@ -44,13 +68,12 @@ Keep proposed and unmerged changes out of released sections.
 - Compatibility/upgrade for PR #999: add optional `Objective.workflow_stage`;
   preserve existing unbound plans through a policy-only compatibility snapshot.
   Workflow updates affect new executions; existing checkpoint pins remain stable.
-  Optional legacy VR, benchmark and Soundwave planning contracts retain their
+  Optional legacy VR and benchmark contracts retain their
   separately documented integration boundaries. Add root change-tracking
   instructions and the `Chagelog.md` entry point while preserving this canonical
   history and release automation. No new package version is assigned by this PR.
 - Regenerate the checked-in Skillogy graph from the changed skill corpus so
   retrieval metadata and the deterministic CI build gate match the source (#999).
-
 ### Fixed
 
 - Add an operator-confirmed, create-only RoE import for existing engagements,

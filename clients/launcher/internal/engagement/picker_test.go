@@ -285,3 +285,41 @@ func TestPromptNewEngagement_RejectsEndOfInputBeforeName(t *testing.T) {
 		t.Fatal("accepted EOF without an engagement name")
 	}
 }
+
+func TestChoiceForEngagement_OpensRedWithoutGrantingApproval(t *testing.T) {
+	for _, state := range []string{"empty", "unapproved", "approved", "changed"} {
+		t.Run(state, func(t *testing.T) {
+			// Given a workspace with independent scope and approval state.
+			home := t.TempDir()
+			mkBareDir(t, home, state)
+			if state != "empty" {
+				mkApprovedScope(t, home, state)
+				if state == "unapproved" {
+					if err := os.Remove(filepath.Join(home, "workspace", state, ".red-approved")); err != nil {
+						t.Fatal(err)
+					}
+				}
+				if state == "changed" {
+					if err := os.WriteFile(filepath.Join(home, "workspace", state, "plan", "roe.json"), []byte(`{"in_scope":[{"target":"https://new.example.com"}],"authorization_reference":"new contract"}`), 0o600); err != nil {
+						t.Fatal(err)
+					}
+				}
+			}
+			// When the picker translates that engagement into launch context.
+			choice := choiceForEngagement(home, state)
+			// Then Red is selected independently from authorization.
+			if choice.AssistantID != AssistantDecepticon || choice.Mode != "red" {
+				t.Fatalf("expected Red, got %+v", choice)
+			}
+			if choice.AuthorizationConfirmed != (state != "empty") {
+				t.Fatalf("unexpected authorization declaration: %+v", choice)
+			}
+			if isRedApproved(home, state) != (state == "approved") {
+				t.Fatalf("unexpected Red approval for %s", state)
+			}
+			if choice.WorkspacePath != filepath.Join(home, "workspace", state) {
+				t.Fatalf("wrong workspace: %+v", choice)
+			}
+		})
+	}
+}

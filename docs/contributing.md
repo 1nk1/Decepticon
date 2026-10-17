@@ -1,5 +1,8 @@
 # Contributing
 
+For agents, skills, business workflows and client adapters, start with the
+[current extension contract](design/extension-contract.md).
+
 Contributions are welcome — whether you're a security researcher, AI engineer, or someone who cares about making defense better through offense.
 
 ---
@@ -30,14 +33,14 @@ make dogfood
 ## Project Structure
 
 ```
-decepticon/          # Core Python package (LangGraph agents, middleware, tools)
+packages/decepticon/decepticon/  # Framework Python package (LangGraph agents, middleware, tools)
 ├── agents/          # Agent factory functions (create_*_agent)
 ├── core/            # Config, engagement document schemas, logging, streaming helpers
 ├── llm/             # Model profiles, LiteLLM configuration
 ├── middleware/       # Skills, filesystem, OPPLAN, safe command, fallback, etc.
 └── tools/           # Bash, research (KG, CVE, chain planning), reporting
 
-skills/              # Skill library (SKILL.md files organized by kill chain phase)
+packages/decepticon/decepticon/skills/  # Reusable capability knowledge
 
 clients/
 ├── cli/             # TypeScript/Ink terminal UI
@@ -73,18 +76,18 @@ Minimum Python version: **3.13**
 ## Adding an Agent
 
 1. Create the agent module. Pick a bundle:
-   - `decepticon/agents/standard/{name}.py` for OSS-blessed agents shipped by default
-   - `decepticon/agents/plugins/{name}.py` to demonstrate the community-plugin shape
+   - `packages/decepticon/decepticon/agents/standard/{name}.py` for OSS-blessed agents shipped by default
+   - `packages/decepticon/decepticon/agents/plugins/{name}.py` to demonstrate the community-plugin shape
    The file exposes a `create_{name}_agent()` factory.
 2. Follow the middleware stack pattern from an existing agent (e.g., `standard/recon.py`)
 3. Define the agent's skill sources in the `SkillsMiddleware` configuration
 4. **Subagents only**: add a module-level `SUBAGENT_SPEC = SubAgentSpec(...)`
    declaring `parent_agents=(...)`, `bundle=...`, and `priority=...`. Register
-   it under `[project.entry-points."decepticon.subagents"]` in `pyproject.toml`.
+   it under `[project.entry-points."decepticon.subagents"]` in `packages/decepticon/pyproject.toml`.
    The relevant main agent picks it up automatically via
-   `load_subagents_for_parent(...)`. See `decepticon/plugin_loader.py` for the
+   `load_subagents_for_parent(...)`. See `packages/decepticon-core/decepticon_core/plugin_loader.py` for the
    contract.
-5. Create a skills directory at `skills/{bundle}/{name}/` mirroring the agent
+5. Create a skills directory at `packages/decepticon/decepticon/skills/{bundle}/{name}/` mirroring the agent
    bundle (`standard/` or `plugins/`).
 
 ### Activating plugin bundles
@@ -131,19 +134,20 @@ external `decepticon.agents` entry-points.
 
 ## Adding a Skill
 
-1. Create a directory: `skills/{category}/{skill-name}/`
+1. Create a directory: `packages/decepticon/decepticon/skills/{category}/{skill-name}/`
 2. Write `SKILL.md` following the [skill format](skills.md#skill-format)
 3. Add `references/` for content over 100 lines
 4. Add `scripts/` for automation the agent should execute
-5. Restart — `SkillsMiddleware` discovers skills at agent boot
+5. Verify role routing, rebuild/publish any shipped graph catalog, and check actual retrieval.
 
-No registration required. Skills are discovered automatically from the agent's configured source paths.
+Source discovery uses the agent's configured paths; graph-backed deployments also
+need catalog synchronization. See [Skills](skills.md).
 
 ---
 
 ## Testing
 
-Python tests live in `decepticon/tests/`. Run inside Docker for a clean environment:
+Python tests live in `packages/decepticon/tests/`. Run inside Docker for a clean environment:
 
 ```bash
 make test            # pytest in container
@@ -156,7 +160,7 @@ CLI tests run via `make quality-cli` (typecheck + build + vitest), or directly:
 npm run test --workspace=@decepticon/cli
 ```
 
-When adding a new agent or tool, add corresponding tests in `decepticon/tests/`.
+When adding a new agent or tool, add corresponding tests in `packages/decepticon/tests/`.
 
 ---
 

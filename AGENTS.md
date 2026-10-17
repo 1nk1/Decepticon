@@ -9,3 +9,11 @@ merged and released changes. On release, move entries into a dated section using
 the actual version or immutable release identifier. Do not invent dates, bump
 unrelated versions or edit another dirty worktree. SaaS releases and OSS package
 versions are independent.
+
+# Extension architecture
+
+Before extending agents, skills, workflows or client adapters, read
+[the extension contract](docs/design/extension-contract.md). Keep stable capability
+cores, reusable SKILL.md knowledge, per-process WORKFLOW.md contracts and trusted
+client launch/authorization adapters separate. Preserve immutable workflow pins,
+OPPLAN ownership and optional explicit Plan mode.

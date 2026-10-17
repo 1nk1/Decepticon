@@ -15,8 +15,9 @@ red-team run never blocks the calling agent's tool call.
 from __future__ import annotations
 
 import json
+import os
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, assert_never
 
 from decepticon.mcp_server.config import ServerConfig
 from decepticon.mcp_server.models import (
@@ -28,6 +29,9 @@ from decepticon.mcp_server.models import (
     StreamEvent,
 )
 from decepticon.mcp_server.streaming import watch_run
+from decepticon.workflows.catalog import WorkflowCatalog
+from decepticon.workflows.models import WorkflowError
+from decepticon_core.registry.roles import RoleRegistry, default_role_purpose
 from decepticon_core.utils.logging import get_logger
 
 log = get_logger("mcp_server.engagements")
@@ -123,6 +127,8 @@ class EngagementClient:
         scan_mode: ScanMode,
         engagement_name: str,
         assistant: str,
+        workflow_id: str | None = None,
+        workflow_version: str | None = None,
     ) -> StartResult:
         """Dispatch a background engagement run and return its handle."""
         scope_payload: dict[str, Any] = {
@@ -139,6 +145,30 @@ class EngagementClient:
                 "scan_mode": scan_mode,
             },
         }
+
+        role = RoleRegistry.get(assistant)
+        purpose = role.purpose if role else default_role_purpose(assistant)
+        match purpose:
+            case "planning":
+                prefix, expected_purpose = "planning_", "planning"
+                selected_id = os.environ.get("DECEPTICON_PLANNING_WORKFLOW_ID", "planning")
+                selected_version = os.environ.get("DECEPTICON_PLANNING_WORKFLOW_VERSION")
+            case "execution":
+                if workflow_version is not None and workflow_id is None:
+                    raise WorkflowError("workflow_version requires workflow_id")
+                prefix, expected_purpose = "", "execution"
+                selected_id, selected_version = workflow_id, workflow_version
+            case "observation":
+                prefix, expected_purpose = "", "execution"
+                selected_id, selected_version = None, None
+            case unreachable:
+                assert_never(unreachable)
+        if selected_id is not None:
+            snapshot = WorkflowCatalog.default().resolve(selected_id, selected_version)
+            if snapshot.document.metadata.purpose != expected_purpose:
+                raise WorkflowError(f"workflow {selected_id!r} requires {expected_purpose} purpose")
+            run_config["configurable"][f"{prefix}workflow_id"] = snapshot.id
+            run_config["configurable"][f"{prefix}workflow_version"] = snapshot.version
 
         client = self._ensure_client()
         thread = await client.threads.create()

@@ -1,5 +1,9 @@
 # Skillogy — Knowledge-Graph-Backed Skill System
 
+> Historical design/domain reference. Runtime ownership and launch behavior are
+> defined by the [current extension contract](extension-contract.md). Old Soundwave RoE/OPPLAN
+> authoring or mandatory phase descriptions below are not operating instructions.
+
 > **⚠ Superseded (2026-06-03)**
 >
 > This document is the **v0.1 draft** (2026-05-28). It has been superseded by
@@ -594,7 +598,7 @@ WHERE child.category = parent.name
 MERGE (parent)-[:HAS_SUBTYPE]->(child);
 ```
 
-Roughly 39 nodes. Categories were chosen to cover every `subdomain` in the current skill corpus plus the AI-adversary mapping discussion. The seed is intentionally small — extending it is an explicit decision tracked in [docs/skillogy-roadmap.md](../skillogy-roadmap.md) (TBD).
+Roughly 39 nodes. Categories were chosen to cover every `subdomain` in the current skill corpus plus the AI-adversary mapping discussion. The seed is intentionally small — extending it is an explicit decision tracked in the proposed roadmap (not published).
 
 ---
 
