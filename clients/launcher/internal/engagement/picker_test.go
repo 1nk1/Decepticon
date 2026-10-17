@@ -285,3 +285,23 @@ func TestPromptNewEngagement_RejectsEndOfInputBeforeName(t *testing.T) {
 		t.Fatal("accepted EOF without an engagement name")
 	}
 }
+
+func TestChoiceDefaultsToRedWithoutGrantingAuthorization(t *testing.T) {
+	for _, approved := range []bool{false, true} {
+		t.Run(fmt.Sprintf("approved=%v", approved), func(t *testing.T) {
+			// Given an engagement with or without an approved scope.
+			home := t.TempDir()
+			if approved {
+				mkApprovedScope(t, home, "example")
+			} else {
+				mkBareDir(t, home, "example")
+			}
+			// When the selected workspace becomes a launcher choice.
+			choice := choiceForWorkspace(home, "example")
+			// Then mode is independent of authorization and the scope stays intact.
+			if choice.Mode != "red" || choice.AssistantID != AssistantDecepticon || choice.AuthorizationConfirmed != approved {
+				t.Fatalf("unexpected choice: %+v", choice)
+			}
+		})
+	}
+}

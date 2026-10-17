@@ -1,11 +1,11 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/ui"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/updater"
 	"github.com/spf13/cobra"
 )
 
@@ -13,6 +13,7 @@ var version = "dev"
 
 var rootCmd = &cobra.Command{
 	Use:   "decepticon",
+	Args:  cobra.ArbitraryArgs,
 	Short: "Decepticon — Autonomous Hacking Agent for Red Team",
 	Long:  ui.RenderBanner() + "\n" + ui.Dim.Render("Autonomous Hacking Agent for Red Team"),
 	CompletionOptions: cobra.CompletionOptions{
@@ -23,9 +24,11 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
-	updater.CleanupOldBinary()
 	command, err := rootCmd.ExecuteC()
 	if err != nil {
+		if errors.Is(err, errDoctorFailed) {
+			os.Exit(1)
+		}
 		if command == mcpServeCmd {
 			fmt.Fprintln(os.Stderr, err)
 		} else {

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -58,7 +59,11 @@ func checkStartupUpdate(env map[string]string, version string, skip bool) {
 	}
 }
 
-var skipUpdate bool
+var (
+	skipUpdate     bool
+	resumeThread   string
+	continueThread bool
+)
 
 var startCmd = &cobra.Command{
 	Use:   "start",
@@ -75,12 +80,27 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&skipUpdate, "no-update", false,
 		"Skip the self-update check for this launch (does not change AUTO_UPDATE in .env)")
 
+	rootCmd.PersistentFlags().StringVar(&resumeThread, "resume", "", "Resume a thread by ID, or open the session picker (use --resume=ID)")
+	rootCmd.PersistentFlags().Lookup("resume").NoOptDefVal = "picker"
+	rootCmd.PersistentFlags().BoolVar(&continueThread, "continue", false, "Continue the latest session in the selected engagement")
+	rootCmd.MarkFlagsMutuallyExclusive("resume", "continue")
+	startCmd.MarkFlagsMutuallyExclusive("resume", "continue")
+
 	rootCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		return runStart(cmd, args)
 	}
 }
 
 func runStart(cmd *cobra.Command, args []string) error {
+	thread := resumeThread
+	if len(args) > 0 {
+		if len(args) != 1 || thread != "picker" {
+			return fmt.Errorf("unexpected arguments; use --resume=THREAD_ID or --continue")
+		}
+		thread = args[0]
+	}
+	updater.CleanupOldBinary()
+	ui.Info("[1/5] Configuration · checking credentials and settings")
 	// 1. Check .env exists
 	if !config.EnvExists() {
 		ui.Warning("No configuration found. Running setup wizard...")
@@ -122,12 +142,15 @@ func runStart(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	ui.Info("[2/5] Check · verifying Docker and Compose")
 	// Verify Docker is available
 	if _, err := exec.LookPath("docker"); err != nil {
 		return fmt.Errorf("Docker is not installed or not in PATH. Install from https://docs.docker.com/get-docker/")
 	}
 	// Verify Docker Compose V2
-	out, err := exec.Command("docker", "compose", "version").CombinedOutput()
+	probeCtx, cancelProbe := context.WithTimeout(cmd.Context(), 3*time.Second)
+	defer cancelProbe()
+	out, err := exec.CommandContext(probeCtx, "docker", "compose", "version").CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("Docker Compose V2 is required. Got: %s. Upgrade Docker Desktop or install the compose plugin.", strings.TrimSpace(string(out)))
 	}
@@ -220,9 +243,16 @@ func runStart(cmd *cobra.Command, args []string) error {
 	// directory. Without this, the operator would briefly see the whole
 	// workspace through the sandbox before any picking happens.
 	fmt.Println()
+	ui.Info("[3/5] Engagement · select a workspace")
 	choice, err := engagement.Select(home)
 	if err != nil {
 		return err
+	}
+	ui.Info("Mode: Red · Decepticon")
+	if !choice.AuthorizationConfirmed {
+		ui.Info("Scope not ready: use /mode plan to prepare scope, then import the reviewed RoE and approve it before Red execution.")
+	} else {
+		ui.Info("Saved scope loaded. Execution checks RoE and approval before running tools.")
 	}
 	// Export the bind path. composeEnv() forwards os.Environ(), so docker
 	// compose interpolates ${DECEPTICON_ENGAGEMENT_WORKSPACE} from this var.
@@ -257,26 +287,28 @@ func runStart(cmd *cobra.Command, args []string) error {
 	// 5. Start services
 	c := compose.New()
 
-	ui.Info("Starting Decepticon services...")
+	ui.Info("[4/5] Services · starting and waiting for readiness")
 	if err := c.Up(compose.Profiles.CLI); err != nil {
-		return fmt.Errorf("start services: %w", err)
+		return fmt.Errorf("start services: %w; inspect with `decepticon doctor` and `decepticon logs` (services kept)", err)
 	}
 
 	// 5. Health checks
 	if err := health.WaitForServices(env); err != nil {
-		return err
+		return fmt.Errorf("service readiness: %w; inspect `decepticon doctor` and `decepticon logs` (services kept)", err)
 	}
 
 	// 6. Launch CLI
 	fmt.Println()
-	ui.Info("Launching Decepticon CLI...")
+	ui.Info("[5/5] Connect · launching the conversation")
 
 	cliEnv := map[string]string{
-		"DECEPTICON_VERSION":      version,
-		"DECEPTICON_ASSISTANT_ID": choice.AssistantID,
-		"DECEPTICON_RUN_MODE":     choice.Mode,
-		"DECEPTICON_ENGAGEMENT":   choice.Engagement,
+		"DECEPTICON_VERSION":        version,
+		"DECEPTICON_ASSISTANT_ID":   choice.AssistantID,
+		"DECEPTICON_RUN_MODE":       choice.Mode,
+		"DECEPTICON_ENGAGEMENT":     choice.Engagement,
+		"DECEPTICON_WORKSPACE_PATH": "/workspace",
 	}
+	applyResumeEnv(cliEnv, thread, continueThread)
 	if choice.Target != "" {
 		cliEnv["DECEPTICON_TARGET"] = choice.Target
 		cliEnv["DECEPTICON_TARGET_TYPE"] = "direct_scope"

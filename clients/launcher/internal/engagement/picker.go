@@ -22,8 +22,10 @@ import (
 
 const AssistantSoundwave = "soundwave"
 
-const AssistantDecepticon = "decepticon"
-const AssistantBlueCell = "blue_cell"
+const (
+	AssistantDecepticon = "decepticon"
+	AssistantBlueCell   = "blue_cell"
+)
 
 var planningDocuments = []string{
 	"roe.json", "threat-profile.json", "conops.json", "deconfliction.json",
@@ -200,7 +202,7 @@ func (i pickerItem) Description() string {
 		return "Create a new engagement workspace"
 	}
 	if i.inProgress {
-		return "Continue planning with Soundwave"
+		return "Red conversation · scope approval still required"
 	}
 	return "Authorized Red scope available"
 }
@@ -429,21 +431,17 @@ func Select(home string) (Choice, error) {
 		if err := os.MkdirAll(filepath.Join(dir, "plan"), 0o755); err != nil {
 			return Choice{}, fmt.Errorf("create engagement dir: %w", err)
 		}
-		return Choice{
-			AssistantID:   AssistantSoundwave,
-			Engagement:    slug,
-			WorkspacePath: dir,
-			Mode:          "plan",
-		}, nil
+		return choiceForWorkspace(home, slug), nil
 	}
 
-	slug := final.chosen.slug
+	return choiceForWorkspace(home, final.chosen.slug), nil
+}
+
+func choiceForWorkspace(home, slug string) Choice {
+	root := filepath.Join(home, "workspace")
 	workspace := filepath.Join(root, slug)
 	target, authorized := readScopeTarget(workspace)
-	mode := "plan"
-	if isRedApproved(home, slug) {
-		mode = "red"
-	}
+	mode := "red"
 	return Choice{
 		AssistantID:            assistantForMode(mode),
 		Engagement:             slug,
@@ -451,7 +449,7 @@ func Select(home string) (Choice, error) {
 		Mode:                   mode,
 		Target:                 target,
 		AuthorizationConfirmed: authorized,
-	}, nil
+	}
 }
 
 func assistantForMode(mode string) string {
