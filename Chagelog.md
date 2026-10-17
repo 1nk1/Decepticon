@@ -8,5 +8,6 @@ independent of production/SaaS image and release identifiers.
 
 Unreleased distinguishes proposed work from merged changes. The status of each
 linked PR records integration; only dated release sections describe shipped work.
-The pending gateway addition is documented in
-[PR #995](https://github.com/BitterSecurity/Decepticon/pull/995).
+Related PRs: [#995](https://github.com/BitterSecurity/Decepticon/pull/995),
+[#999](https://github.com/BitterSecurity/Decepticon/pull/999),
+[#1000](https://github.com/BitterSecurity/Decepticon/pull/1000).

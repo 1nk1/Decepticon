@@ -16,6 +16,16 @@ Keep proposed and unmerged changes out of released sections.
 
 ### Proposed — not merged or released
 
+- Add an operator-confirmed, create-only RoE import for existing engagements,
+  preserving planning artifacts and requiring fresh planning/Red approval.
+  Includes canonical schema export and installed/source usage instructions.
+  ([#1000](https://github.com/BitterSecurity/Decepticon/pull/1000), fixes
+  [#998](https://github.com/BitterSecurity/Decepticon/issues/998))
+  Requires source or an image containing this change; existing released images
+  do not gain the command until rebuilt or upgraded to a future release.
+
+### Added — merged, unreleased
+
 - Optional vendor-neutral OpenAI-compatible gateway (`compat/…`) driven by
   `OPENAI_COMPAT_GATEWAY_API_BASE`, `OPENAI_COMPAT_GATEWAY_API_KEY`, and
   `OPENAI_COMPAT_GATEWAY_MODEL` (or per-tier `*_MODEL_{HIGH,MID,LOW}`).
@@ -26,8 +36,6 @@ Keep proposed and unmerged changes out of released sections.
   placeholder keys and empty model slugs stay disabled consistently in credential
   detection and proxy route generation; sentinel tier models use the shared model.
   Requires code/images containing this change; no release version is assigned.
-
-### Added — merged, unreleased
 
 - [PR #999](https://github.com/BitterSecurity/Decepticon/pull/999): separate stable
   capability specialists and reusable `SKILL.md` knowledge from individual
