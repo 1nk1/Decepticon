@@ -3,6 +3,11 @@
 For agents, skills, business workflows and client adapters, start with the
 [current extension contract](design/extension-contract.md).
 
+For version selection, local product gates, publication, update channels and
+recovery, follow the [OSS release policy](../RELEASE.md). Every PR, including
+docs/maintenance, updates [Chagelog.md](../Chagelog.md) and canonical
+[CHANGELOG.md](../CHANGELOG.md) before opening or updating the PR.
+
 Contributions are welcome — whether you're a security researcher, AI engineer, or someone who cares about making defense better through offense.
 
 ---

@@ -15,13 +15,22 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed WSL startup correction in [#1002](https://github.com/BitterSecurity/Decepticon/pull/1002): use LiteLLM’s supported offline migration mode and its bundled native Prisma CLI. Resolve the CLI at image build time and fail the build if missing. Avoid repeated generated Python-client imports exhausting migration deadlines; retain normal schema migrations and existing database volumes.
+- Release-history documentation follow-up: record the published v1.5.0
+  version/date and preserve the canonical history. No runtime or upgrade behavior
+  changes. Define OSS Major/Minor/Patch selection, required actual WSL and candidate
+  artifact gates, immutable releases, final/stable channel rules, and failure/hotfix
+  procedures in RELEASE.md. Align contributor and agent instructions; this policy
+  is a documentation change and does not create a new product version. [PR #1003](https://github.com/BitterSecurity/Decepticon/pull/1003).
 
-- Proposed PR review corrections for [#1002](https://github.com/BitterSecurity/Decepticon/pull/1002): keep a paused conversation recoverable when destination mode lookup fails; refuse cross-session restoration while undelivered queued messages remain; give Delete forward-delete semantics.
+## [1.5.0] — 2026-10-17
 
-- Proposed integration review for [#1002](https://github.com/BitterSecurity/Decepticon/pull/1002): preserve #1001 workflow/scope contracts alongside session restoration and CLI UX; align launcher and Korean documentation with optional Plan and explicit scope approval.
+- WSL startup correction in [#1002](https://github.com/BitterSecurity/Decepticon/pull/1002): use LiteLLM’s supported offline migration mode and its bundled native Prisma CLI. Resolve the CLI at image build time and fail the build if missing. Avoid repeated generated Python-client imports exhausting migration deadlines; retain normal schema migrations and existing database volumes.
 
-### Proposed — not merged or released
+- PR review corrections for [#1002](https://github.com/BitterSecurity/Decepticon/pull/1002): keep a paused conversation recoverable when destination mode lookup fails; refuse cross-session restoration while undelivered queued messages remain; give Delete forward-delete semantics.
+
+- Integration review for [#1002](https://github.com/BitterSecurity/Decepticon/pull/1002): preserve #1001 workflow/scope contracts alongside session restoration and CLI UX; align launcher and Korean documentation with optional Plan and explicit scope approval.
+
+### Client and workflow contracts
 
 - [PR #1001 review corrections](https://github.com/BitterSecurity/Decepticon/pull/1001):
   leave planning workflow selectors unset when launch overrides are removed so
@@ -50,12 +59,12 @@ Keep proposed and unmerged changes out of released sections.
 - Compatibility: clients and runtime must include the new validation/purpose
   routes together. Existing approved direct RoE and validated bundle digests remain
   supported; changing business workflow requires a new execution thread. This is
-  a follow-up to merged #999 and #1000, with no release or version bump assigned.
+  a follow-up to merged #999 and #1000, included in v1.5.0.
   [PR #1001](https://github.com/BitterSecurity/Decepticon/pull/1001).
 
 ### Added
 
-- Proposed CLI experience improvements: searchable mode/model/session pickers,
+- CLI experience improvements: searchable mode/model/session pickers,
   multiline editing, private persistent drafts/history and external-editor input,
   a lossless waiting-message queue, compact Blue summaries with incident details,
   and independent monitor/collector/AI status. Add `/status`, `/sessions`, `/queue`,
@@ -69,8 +78,8 @@ Keep proposed and unmerged changes out of released sections.
   pending questions, and offer confirmed migration of older conversation metadata.
   Mount the selected CLI workspace and persist local UI state across container
   recreation. Retain waiting messages when session creation or streaming fails,
-  and clear stale Blue connection errors after recovery. No database reset or version bump is required. Updated images and
-  Compose configuration are required; this change has not been released.
+  and clear stale Blue connection errors after recovery. No database reset is required. Updated images and
+  Compose configuration are required; these changes ship in v1.5.0.
 
 - Add a persistent light/dark dashboard toggle, retaining dark as the default.
   Honor system preferences when toggling and keep status/severity labels readable
@@ -88,7 +97,7 @@ Keep proposed and unmerged changes out of released sections.
   Existing provider ordering and `CUSTOM_OPENAI_*` remain supported. Invalid URLs,
   placeholder keys and empty model slugs stay disabled consistently in credential
   detection and proxy route generation; sentinel tier models use the shared model.
-  Requires code/images containing this change; no release version is assigned.
+  Requires the v1.5.0 code/images; existing provider settings remain supported.
 
 - [PR #999](https://github.com/BitterSecurity/Decepticon/pull/999): separate stable
   capability specialists and reusable `SKILL.md` knowledge from individual
@@ -102,7 +111,7 @@ Keep proposed and unmerged changes out of released sections.
   Optional legacy VR and benchmark contracts retain their
   separately documented integration boundaries. Add root change-tracking
   instructions and the `Chagelog.md` entry point while preserving this canonical
-  history and release automation. No new package version is assigned by this PR.
+  history and release automation. Included in v1.5.0.
 - Regenerate the checked-in Skillogy graph from the changed skill corpus so
   retrieval metadata and the deterministic CI build gate match the source (#999).
 ### Fixed
@@ -112,12 +121,49 @@ Keep proposed and unmerged changes out of released sections.
   Includes canonical schema export and installed/source usage instructions.
   ([#1000](https://github.com/BitterSecurity/Decepticon/pull/1000), fixes
   [#998](https://github.com/BitterSecurity/Decepticon/issues/998))
-  Requires source or an image containing this change; existing released images
-  do not gain the command until rebuilt or upgraded to a future release.
+  Upgrade the launcher, configuration and Docker images together to v1.5.0 to
+  use the new command; existing database credentials and volumes are preserved.
 - Expect the unauthorized call to revert in generated Foundry access-control tests.
   ([#991](https://github.com/BitterSecurity/Decepticon/pull/991))
 - Retain file-backed approval decisions until their matching request consumes them.
   ([#993](https://github.com/BitterSecurity/Decepticon/pull/993))
+
+### Additional fixes and maintenance
+
+- Retain engagement configuration on resume and question-answer requests
+  ([#981](https://github.com/BitterSecurity/Decepticon/pull/981)); preserve
+  canonical finding title, summary and lifecycle metadata in the dashboard
+  ([#979](https://github.com/BitterSecurity/Decepticon/pull/979)) and export all
+  planning documents ([#975](https://github.com/BitterSecurity/Decepticon/pull/975)).
+- Reject premature engagement completion when coverage follow-ups remain
+  ([#977](https://github.com/BitterSecurity/Decepticon/pull/977)); improve finding
+  YAML/rationale handling ([#986](https://github.com/BitterSecurity/Decepticon/pull/986))
+  and document finding-quality relative paths
+  ([#980](https://github.com/BitterSecurity/Decepticon/pull/980)).
+- Support Cheaper Inference gateway configuration and credential handling
+  ([#956](https://github.com/BitterSecurity/Decepticon/pull/956),
+  [#985](https://github.com/BitterSecurity/Decepticon/pull/985)); fail closed on
+  unpriced routes or unavailable model inventory under budget constraints
+  ([#994](https://github.com/BitterSecurity/Decepticon/pull/994)).
+- Make Skillogy English term rejection actionable and support key-only embedding
+  installations ([#982](https://github.com/BitterSecurity/Decepticon/pull/982),
+  [#988](https://github.com/BitterSecurity/Decepticon/pull/988)).
+- Use the compatible opscontrol bind-mount form
+  ([#978](https://github.com/BitterSecurity/Decepticon/pull/978)); reorganize the
+  terminal benchmark and remove unsafe host swap-file deletion
+  ([#987](https://github.com/BitterSecurity/Decepticon/pull/987),
+  [#984](https://github.com/BitterSecurity/Decepticon/pull/984)).
+- Document coordinated security disclosure and require local product testing
+  before releases ([#996](https://github.com/BitterSecurity/Decepticon/pull/996),
+  [#970](https://github.com/BitterSecurity/Decepticon/pull/970)).
+
+### Upgrade notes
+
+- Run `decepticon update --channel latest`. Update matching Docker images and
+  configuration together. No credential reset or volume deletion is required.
+- Existing workflow checkpoints keep their immutable workflow pins. Scope approval
+  remains explicit; Plan is optional. Blue observation remains local and does not
+  imply complete host telemetry or autonomous response.
 
 ## [1.4.4] — 2026-10-14
 
@@ -1243,7 +1289,8 @@ The following legacy import paths keep working but emit a
   atomic release.
 - Downstream plugin package lockstep migration.
 
-[Unreleased]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.4...HEAD
+[Unreleased]: https://github.com/BitterSecurity/Decepticon/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.4...v1.5.0
 [1.4.4]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.3...v1.4.4
 [1.4.3]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.2...v1.4.3
 [1.4.2]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.1...v1.4.2
