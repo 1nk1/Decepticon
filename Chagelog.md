@@ -14,6 +14,6 @@ Related PRs: [#995](https://github.com/BitterSecurity/Decepticon/pull/995),
 [#1000](https://github.com/BitterSecurity/Decepticon/pull/1000).
 
 Proposed CLI experience work is recorded under canonical Unreleased:
-[branch comparison](https://github.com/PurpleAILAB/Decepticon/compare/main...feat/oss-cli-ux-20261017).
+[PR #1002](https://github.com/BitterSecurity/Decepticon/pull/1002).
 Includes queue preservation during connection failures and accurate Blue reconnection state.
 It is not released; see [CLI compatibility notes](docs/cli-experience.md).

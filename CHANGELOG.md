@@ -23,7 +23,7 @@ Keep proposed and unmerged changes out of released sections.
   and independent monitor/collector/AI status. Add `/status`, `/sessions`, `/queue`,
   `/alerts`, private Markdown/JSON `/export`, host `doctor --json`, and explicit
   startup resume/continue controls. See [compatibility notes](docs/cli-experience.md).
-  [Proposed branch](https://github.com/PurpleAILAB/Decepticon/compare/main...feat/oss-cli-ux-20261017).
+  [PR #1002](https://github.com/BitterSecurity/Decepticon/pull/1002).
 
 - Fix CLI command completion changing `/mode` into `/model`; preserve exact matches
   and make arrow/Tab/Enter selection consistent. Open engagements in Red while
