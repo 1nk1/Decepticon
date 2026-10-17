@@ -15,6 +15,8 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed WSL startup correction in [#1002](https://github.com/BitterSecurity/Decepticon/pull/1002): use LiteLLM’s supported offline migration mode and its bundled native Prisma CLI. Resolve the CLI at image build time and fail the build if missing. Avoid repeated generated Python-client imports exhausting migration deadlines; retain normal schema migrations and existing database volumes.
+
 - Proposed PR review corrections for [#1002](https://github.com/BitterSecurity/Decepticon/pull/1002): keep a paused conversation recoverable when destination mode lookup fails; refuse cross-session restoration while undelivered queued messages remain; give Delete forward-delete semantics.
 
 - Proposed integration review for [#1002](https://github.com/BitterSecurity/Decepticon/pull/1002): preserve #1001 workflow/scope contracts alongside session restoration and CLI UX; align launcher and Korean documentation with optional Plan and explicit scope approval.

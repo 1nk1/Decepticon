@@ -32,3 +32,6 @@ transfer to another conversation and correct Delete; see canonical Unreleased.
 PR #1001 review corrections (proposed, unreleased) preserve resumed planning pins,
 defer workflow catalog resolution to the target server, and reject scope-validation
 redirects. See the linked canonical Unreleased entry for compatibility details.
+
+PR #1002 also fixes WSL cold startup using the bundled native Prisma migration
+CLI; normal migrations and database preservation remain in place.
