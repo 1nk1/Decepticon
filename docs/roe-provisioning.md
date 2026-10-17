@@ -32,7 +32,9 @@ a complete validated Plan bundle exists, its bundle digest is preserved.
 `/mode red` selects execution after approval. `/mode plan` remains optional.
 
 The CLI uses `POST /_decepticon/roe/validate` for canonical validation only. That
-endpoint does not write files or grant authority; the operator CLI owns import
+endpoint receives the selected file bytes at `DECEPTICON_API_URL` (default
+`http://localhost:2024`). Redirects are refused; configure the final server URL
+directly. It does not write files or grant authority; the operator CLI owns import
 and approval writes. It is not an agent capability.
 
 ## Operator procedure

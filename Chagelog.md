@@ -17,3 +17,7 @@ The optional Soundwave planning and OSS client workflow follow-up is proposed
 under Unreleased in the canonical history; it is not part of merged PR #999.
 See [PR #1001](https://github.com/BitterSecurity/Decepticon/pull/1001)
 for Red-first launch, operator approval, adapter contracts and documentation cleanup.
+
+PR #1001 review corrections (proposed, unreleased) preserve resumed planning pins,
+defer workflow catalog resolution to the target server, and reject scope-validation
+redirects. See the linked canonical Unreleased entry for compatibility details.

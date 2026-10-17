@@ -43,9 +43,9 @@ async def test_execution_selection_reaches_run_through_mcp(workflow_id: str) -> 
     ("workflow_id", "workflow_version"),
     [
         (None, "1"),
-        ("unknown", None),
-        ("pentest", "missing"),
-        ("planning", "1"),
+        ("../remote", None),
+        ("pentest", "bad version"),
+        ("UPPERCASE", "1"),
         ("", None),
     ],
 )
@@ -72,7 +72,7 @@ async def test_invalid_execution_selection_creates_no_thread(
     assert fake.runs.create_calls == []
 
 
-async def test_planning_uses_independent_default_despite_execution_selection(
+async def test_planning_leaves_default_to_target_despite_execution_selection(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     # Given execution selectors and no explicit planning configuration.
@@ -93,11 +93,11 @@ async def test_planning_uses_independent_default_despite_execution_selection(
                 "workflow_version": "1",
             },
         )
-    # Then only the independent planning namespace is forwarded.
+    # Then the target chooses its planning default without an execution selector.
     assert not result.isError
     configurable = fake.runs.create_calls[0]["config"]["configurable"]
-    assert configurable["planning_workflow_id"] == "planning"
-    assert configurable["planning_workflow_version"] == "1"
+    assert "planning_workflow_id" not in configurable
+    assert "planning_workflow_version" not in configurable
     assert "workflow_id" not in configurable
     assert "workflow_version" not in configurable
 
@@ -143,24 +143,25 @@ async def test_registered_custom_role_and_catalog_select_by_purpose(
     assert configurable[f"{prefix}workflow_version"] == "2"
 
 
-async def test_planning_rejects_execution_catalog_before_thread_creation(
+async def test_planning_defers_catalog_purpose_validation_to_target(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    # Given an execution workflow misconfigured in the planning namespace.
+    # Given a selector whose meaning belongs to the target server's catalog.
     monkeypatch.setenv("DECEPTICON_PLANNING_WORKFLOW_ID", "pentest")
+    monkeypatch.delenv("DECEPTICON_PLANNING_WORKFLOW_VERSION", raising=False)
     fake = _FakeClient()
-    # When a planning run starts.
-    with pytest.raises(WorkflowError):
-        await EngagementClient(_config(), client=fake).start(
-            targets=[],
-            instruction="",
-            scan_mode="standard",
-            engagement_name="test",
-            assistant="soundwave",
-        )
-    # Then the incompatible purpose is rejected without provisioning anything.
-    assert fake.threads.created == 0
-    assert fake.runs.create_calls == []
+    # When a planning run starts, the adapter validates syntax only.
+    await EngagementClient(_config(), client=fake).start(
+        targets=[],
+        instruction="",
+        scan_mode="standard",
+        engagement_name="test",
+        assistant="soundwave",
+    )
+    # Then the target runtime receives the selection in its purpose-specific namespace.
+    configurable = fake.runs.create_calls[0]["config"]["configurable"]
+    assert configurable["planning_workflow_id"] == "pentest"
+    assert "planning_workflow_version" not in configurable
 
 
 async def test_continuation_does_not_reselect_workflow(monkeypatch: pytest.MonkeyPatch) -> None:

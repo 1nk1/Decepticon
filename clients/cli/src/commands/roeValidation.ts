@@ -6,6 +6,7 @@ export async function validateRoe(raw: Buffer): Promise<string> {
   if (raw.byteLength > MAX_ROE_BYTES) throw new Error("RoE exceeds the 1 MiB limit.");
   const response = await fetch(`${process.env.DECEPTICON_API_URL || "http://localhost:2024"}/_decepticon/roe/validate`, {
     method: "POST",
+    redirect: "manual",
     headers: { "Content-Type": "application/json" },
     body: new Uint8Array(raw),
     signal: AbortSignal.timeout(10_000),

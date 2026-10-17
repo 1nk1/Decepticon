@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from collections.abc import Sequence
 from typing import Any, assert_never
 
@@ -29,7 +30,6 @@ from decepticon.mcp_server.models import (
     StreamEvent,
 )
 from decepticon.mcp_server.streaming import watch_run
-from decepticon.workflows.catalog import WorkflowCatalog
 from decepticon.workflows.models import WorkflowError
 from decepticon_core.registry.roles import RoleRegistry, default_role_purpose
 from decepticon_core.utils.logging import get_logger
@@ -37,6 +37,26 @@ from decepticon_core.utils.logging import get_logger
 log = get_logger("mcp_server.engagements")
 
 _ACTIVE_STATUSES = frozenset({"pending", "running"})
+
+
+def _workflow_config(
+    workflow_id: str | None,
+    workflow_version: str | None,
+    prefix: str = "",
+) -> dict[str, str]:
+    """Validate selector syntax; the target server owns catalog and purpose resolution."""
+    if workflow_version is not None and workflow_id is None:
+        raise WorkflowError(f"{prefix}workflow_version requires {prefix}workflow_id")
+    selected: dict[str, str] = {}
+    if workflow_id is not None:
+        if not re.fullmatch(r"[a-z][a-z0-9_-]{0,127}", workflow_id):
+            raise WorkflowError(f"invalid {prefix}workflow_id")
+        selected[f"{prefix}workflow_id"] = workflow_id
+    if workflow_version is not None:
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._+-]{0,127}", workflow_version):
+            raise WorkflowError(f"invalid {prefix}workflow_version")
+        selected[f"{prefix}workflow_version"] = workflow_version
+    return selected
 
 
 def _split_model_command(message: str) -> tuple[str | None, str]:
@@ -150,25 +170,19 @@ class EngagementClient:
         purpose = role.purpose if role else default_role_purpose(assistant)
         match purpose:
             case "planning":
-                prefix, expected_purpose = "planning_", "planning"
-                selected_id = os.environ.get("DECEPTICON_PLANNING_WORKFLOW_ID", "planning")
-                selected_version = os.environ.get("DECEPTICON_PLANNING_WORKFLOW_VERSION")
+                run_config["configurable"].update(
+                    _workflow_config(
+                        os.environ.get("DECEPTICON_PLANNING_WORKFLOW_ID") or None,
+                        os.environ.get("DECEPTICON_PLANNING_WORKFLOW_VERSION") or None,
+                        "planning_",
+                    )
+                )
             case "execution":
-                if workflow_version is not None and workflow_id is None:
-                    raise WorkflowError("workflow_version requires workflow_id")
-                prefix, expected_purpose = "", "execution"
-                selected_id, selected_version = workflow_id, workflow_version
+                run_config["configurable"].update(_workflow_config(workflow_id, workflow_version))
             case "observation":
-                prefix, expected_purpose = "", "execution"
-                selected_id, selected_version = None, None
+                pass
             case unreachable:
                 assert_never(unreachable)
-        if selected_id is not None:
-            snapshot = WorkflowCatalog.default().resolve(selected_id, selected_version)
-            if snapshot.document.metadata.purpose != expected_purpose:
-                raise WorkflowError(f"workflow {selected_id!r} requires {expected_purpose} purpose")
-            run_config["configurable"][f"{prefix}workflow_id"] = snapshot.id
-            run_config["configurable"][f"{prefix}workflow_version"] = snapshot.version
 
         client = self._ensure_client()
         thread = await client.threads.create()
