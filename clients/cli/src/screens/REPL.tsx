@@ -35,12 +35,12 @@ import { groupConsecutiveTools } from "../utils/groupEvents.js";
 import { formatDuration } from "../utils/format.js";
 import { GLYPH_DOT, GLYPH_HOOK, GLYPH_SEP, AGENT_COLORS } from "../utils/theme.js";
 import { ToolGroupSummary } from "../components/messages/ToolGroupSummary.js";
-import type { CommandContext, CommandResult } from "../commands/types.js";
+import type { CommandContext } from "../commands/types.js";
 import type { AgentEvent, ScreenMode, SubAgentSession } from "../types.js";
 import { ErrorMessage } from "../components/messages/ErrorMessage.js";
-import { SessionPicker } from "../components/SessionPicker.js";
-import { listThreads } from "../utils/threadStore.js";
-import type { ThreadEntry } from "../utils/threadStore.js";
+import { CommandPicker } from "../components/CommandPicker.js";
+import { useLocalCommands } from "../hooks/useLocalCommands.js";
+import { useServiceStatus } from "../hooks/useServiceStatus.js";
 import type { ToolGroup } from "../utils/groupEvents.js";
 
 export type Screen = ScreenMode;
@@ -53,16 +53,32 @@ interface REPLProps {
 export function REPL({ initialMessage, resumeThread }: REPLProps) {
   const { exit } = useApp();
   const agent = useAgent({ resumeThread });
-  useBlueNotifications(agent.addSystemEvent);
+  const blue = useBlueNotifications(agent.addSystemEvent);
+  const connection = useServiceStatus();
   const opplan = useOpplan(agent.events);
   const sessions = useSubAgentSessions(agent.events);
   const screen = useAppState((s) => s.screen);
   const [questionCommands, setQuestionCommands] = useState(false);
   useEffect(() => setQuestionCommands(false), [agent.assistantId, agent.activeQuestion?.sourceId]);
-  const [showSessionPicker, setShowSessionPicker] = useState(false);
-  const [pickerSessions, setPickerSessions] = useState<ThreadEntry[]>([]);
+  const [hasDraft, setHasDraft] = useState(false);
+  const [composerModal, setComposerModal] = useState(false);
+  const [clearDraftToken, setClearDraftToken] = useState(0);
   // Increment to force <Static> re-mount on session switch (resets its internal render history)
   const [sessionKey, setSessionKey] = useState(0);
+  const onSessionSelected = useCallback(() => {
+    process.stdout.write("\x1B[2J\x1B[H");
+    setSessionKey((value) => value + 1);
+  }, []);
+  const local = useLocalCommands({ agent, blue, connection, onSessionSelected });
+  const initialPickerOpened = useRef(false);
+  useEffect(() => {
+    if (process.env.DECEPTICON_RESUME_PICKER !== "true" || initialPickerOpened.current) return;
+    initialPickerOpened.current = true;
+    void local.openSessions().catch((error: unknown) => agent.addSystemEvent(
+      error instanceof Error ? error.message : "Unable to load sessions."));
+  }, [local.openSessions, agent.addSystemEvent]);
+  const clearDraft = useCallback(() => { setHasDraft(false); setClearDraftToken((value) => value + 1); }, []);
+  const draftChanged = useCallback((value: string) => setHasDraft(value.length > 0), []);
 
   // Auto-submit initial message when DECEPTICON_INITIAL_MESSAGE env is set
   const autoStarted = useRef(false);
@@ -83,7 +99,9 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
     addSystemEvent: agent.addSystemEvent,
     runState: agent.runState,
     hasQueuedMessage: agent.queuedMessage != null,
-    modalActive: showSessionPicker || agent.activeQuestion != null,
+    modalActive: local.picker != null || composerModal || (agent.activeQuestion != null && !questionCommands),
+    draftHasText: hasDraft,
+    onClearDraft: clearDraft,
   });
 
   // ── Command handling ────────────────────────────────────────────
@@ -95,8 +113,10 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
       selectAssistant: agent.selectAssistant,
       resume: agent.resume,
       exit,
+      openPicker: local.setPicker,
+      runLocalCommand: local.runLocalCommand,
     }),
-    [agent.addSystemEvent, agent.clearEvents, agent.submit, agent.selectAssistant, agent.resume, exit],
+    [agent.addSystemEvent, agent.clearEvents, agent.submit, agent.selectAssistant, agent.resume, exit, local.setPicker, local.runLocalCommand],
   );
 
   const handleSubmit = useCallback(
@@ -108,7 +128,7 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
       const parsed = parseSlashCommand(trimmed);
       if (parsed) {
         // /resume with no args → open interactive session picker
-        if ((parsed.name === "resume" || parsed.name === "r") && !parsed.args) {
+        if ((parsed.name === "resume" || parsed.name === "r" || parsed.name === "continue") && !parsed.args) {
           // If paused, resume from checkpoint directly
           if (agent.activeQuestion) {
             setQuestionCommands(false);
@@ -118,30 +138,19 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
             agent.resume();
             return;
           }
-          // Otherwise show session picker (async)
-          listThreads().then((savedSessions) => {
-            if (savedSessions.length === 0) {
-              agent.addSystemEvent("No previous sessions found.");
-              return;
-            }
-            setPickerSessions(savedSessions);
-            setShowSessionPicker(true);
-          }).catch(() => {
-            agent.addSystemEvent("Failed to load sessions.");
+          void local.openSessions().catch((error: unknown) => {
+            agent.addSystemEvent(error instanceof Error ? error.message : "Unable to load sessions.");
           });
           return;
         }
 
         const cmd = findCommand(parsed.name);
         if (cmd) {
-          const result = cmd.execute(parsed.args, commandContext);
-          if (result && typeof (result as Promise<unknown>).then === "function") {
-            (result as Promise<CommandResult | void>).then((r) => {
-              if (r?.shouldSubmit) agent.submit(parsed.args);
-            });
-          } else if ((result as CommandResult | void)?.shouldSubmit) {
-            agent.submit(parsed.args);
-          }
+          Promise.resolve().then(() => cmd.execute(parsed.args, commandContext)).then((result) => {
+            if (result?.shouldSubmit) agent.submit(parsed.args);
+          }).catch((error: unknown) => {
+            agent.addSystemEvent(error instanceof Error ? error.message : "Unable to execute command.");
+          });
           return;
         }
         // Unknown command — show error
@@ -156,7 +165,7 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
         agent.submit(trimmed);
       }
     },
-    [agent, commandContext],
+    [agent, commandContext, local.openSessions],
   );
 
   // ── Derive prompt-mode items ────────────────────────────────────
@@ -218,6 +227,7 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
   }, [mainEvents]);
 
   // ── TRANSCRIPT MODE ─────────────────────────────────────────────
+  if (agent.isRestoring) return <Text dimColor>Restoring conversation…</Text>;
   if (screen === "transcript") {
     return (
       <ScreenProvider value="transcript">
@@ -227,6 +237,7 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
               events={agent.events}
               sessions={sessions}
             />
+            {agent.error && <ErrorMessage content={agent.error} />}
           </Box>
         </Box>
       </ScreenProvider>
@@ -275,6 +286,7 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
           <ActivityIndicator
             runState={agent.runState}
             streamStats={agent.streamStats}
+            assistantId={agent.assistantId}
           />
 
           {/* Persistent OPPLAN display */}
@@ -291,19 +303,8 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
               region duplicated whichever hint the last item already showed,
               producing two identical "(ctrl+o to expand)" lines. */}
 
-          {showSessionPicker ? (
-            <SessionPicker
-              sessions={pickerSessions}
-              onSelect={(session: ThreadEntry) => {
-                setShowSessionPicker(false);
-                // Clear terminal + force <Static> re-mount so previous session
-                // output is fully removed (Static is append-only internally).
-                process.stdout.write("\x1B[2J\x1B[H");
-                setSessionKey((k) => k + 1);
-                agent.resume(session.threadId);
-              }}
-              onCancel={() => setShowSessionPicker(false)}
-            />
+          {local.picker ? (
+            <CommandPicker request={local.picker} onClose={() => local.setPicker(null)} onError={agent.addSystemEvent} />
           ) : agent.activeQuestion && !questionCommands ? (
             <Box flexDirection="column">
               <QuestionPicker
@@ -321,8 +322,16 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
               assistantId={agent.assistantId}
               queuedMessage={agent.queuedMessage}
               onEditQueue={agent.enqueue}
+              clearDraftToken={clearDraftToken}
+              onDraftChange={draftChanged}
+              connectionStatus={connection}
+              onModalChange={setComposerModal}
             />
           )}
+          <Box flexDirection="column" marginTop={1}>
+            <Text dimColor wrap="truncate-end">Blue {blue.status} · collector {blue.collectorStatus} · AI {blue.aiStatus} · unread {blue.unreadCount} · /alerts</Text>
+            {agent.queuedMessages.length > 0 && <Text dimColor>{agent.queuedMessages.length} waiting · /queue to edit or remove</Text>}
+          </Box>
         </Box>
 
       </Box>

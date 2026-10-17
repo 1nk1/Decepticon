@@ -36,6 +36,36 @@ def event(seq: int, uri: str = "/normal") -> dict:
     }
 
 
+def test_notification_high_water_mark_survives_retention(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monitor = load_monitor(monkeypatch, tmp_path)
+    store = monitor.MonitorStore(tmp_path / "retention.sqlite3")
+    with store.db:
+        store.db.execute(
+            "INSERT INTO notifications(incident_id,kind,created_at,payload_json) "
+            "VALUES ('incident','detected','2026-10-17','{}')"
+        )
+    first = store.notifications(0, 100)
+    with store.db:
+        store.db.execute("DELETE FROM notifications")
+    retained = store.notifications(first["next_after"], 100)
+    assert retained["notifications"] == []
+    assert retained["latest_seq"] == first["latest_seq"] == 1
+    store.db.close()
+
+
+def test_replacement_notification_store_reports_reset_to_old_client_cursor(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monitor = load_monitor(monkeypatch, tmp_path)
+    store = monitor.MonitorStore(tmp_path / "replacement.sqlite3")
+    page = store.notifications(42, 100)
+    assert page["next_after"] == 42
+    assert page["latest_seq"] == 0
+    store.db.close()
+
+
 def agent_result(decision: dict, after: int, limit: int = 1) -> dict:
     return {
         "messages": [

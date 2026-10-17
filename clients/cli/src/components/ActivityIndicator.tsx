@@ -7,6 +7,7 @@ import { GLYPH_DOT, GLYPH_SEP } from "../utils/theme.js";
 
 interface ActivityIndicatorProps {
   runState: RunState;
+  assistantId?: string;
   streamStats: StreamStats | null;
 }
 
@@ -80,6 +81,7 @@ const PULSE_COLORS = [
 export const ActivityIndicator = React.memo(function ActivityIndicator({
   runState,
   streamStats,
+  assistantId = "decepticon",
 }: ActivityIndicatorProps) {
   const isActive = runState === "streaming" || runState === "connecting";
   const { tick } = useSpinnerFrame(isActive);
@@ -128,7 +130,7 @@ export const ActivityIndicator = React.memo(function ActivityIndicator({
       <Text>
         <Text color={PULSE_COLORS[pulseIdx]}>{GLYPH_DOT}</Text>
         <Text>{" "}</Text>
-        <ShimmerText text="Hacking..." tick={tick} />
+        <ShimmerText text={assistantId === "soundwave" ? "Planning..." : assistantId === "blue_cell" ? "Investigating..." : "Working..."} tick={tick} />
         <Text dimColor>{metaStr}</Text>
       </Text>
     </Box>

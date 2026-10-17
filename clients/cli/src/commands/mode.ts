@@ -21,6 +21,7 @@ const mode: Command = {
   name: "mode",
   description: "Switch Plan, Red, or Blue conversation",
   argumentHint: "[plan | red [approve] | blue]",
+  complete: (args) => ["plan", "red", "red approve", "blue"].filter((value) => value.startsWith(args)),
   async execute(args, ctx) {
     if (process.env.DECEPTICON_WEB_TERMINAL === "true") {
       ctx.addSystemEvent("Use the Plan, Red, or Blue controls above the web terminal to switch modes.");
@@ -29,14 +30,26 @@ const mode: Command = {
     const input = args.trim().toLowerCase();
     const selected = input === "red approve" ? "red" : input;
     if (!selected) {
+      if (ctx.openPicker) {
+        ctx.openPicker({
+          title: `Mode (current: ${currentMode()})`,
+          options: [
+            { label: "Plan", value: "plan", description: "Draft scope with Soundwave" },
+            { label: "Red", value: "red", description: "Decepticon; scope approval remains required" },
+            { label: "Blue", value: "blue", description: "Blue Cell; connect a local sensor for telemetry" },
+          ],
+          onSelect: async (value) => { await mode.execute(value, ctx); },
+        });
+        return;
+      }
       ctx.addSystemEvent(`Current mode: ${currentMode()}. Use /mode plan, /mode red, or /mode blue. Plan drafts do not start Red; Blue requires a connected local sensor.`);
       return;
     }
-    if (!(selected in ASSISTANTS)) {
+    if (selected !== "plan" && selected !== "red" && selected !== "blue") {
       ctx.addSystemEvent("Usage: /mode plan | red | blue");
       return;
     }
-    const next = selected as RunMode;
+    const next = selected;
     try {
       const assistant = ASSISTANTS[next];
       if (ctx.selectAssistant && !(await ctx.selectAssistant(assistant))) {

@@ -193,12 +193,24 @@ const model: Command = {
   name: "model",
   description: "Show or change the LLM model for this session",
   argumentHint: "[<model-id> | clear]",
+  complete: (args) => ["clear", ...flatten().filter((id) => !id.includes("<"))].filter((id) => id.startsWith(args)),
   execute(args, ctx) {
     const arg = args.trim();
 
     // No arg → list
     if (arg === "") {
       const current = getModelOverride();
+      if (ctx.openPicker) {
+        ctx.openPicker({
+          title: `Model (current: ${current || "default"})`,
+          options: [
+            { label: "Default credential chain", value: "clear" },
+            ...flatten().filter((id) => !id.includes("<")).map((id) => ({ label: id, value: id })),
+          ],
+          onSelect: async (value) => { await model.execute(value, ctx); },
+        });
+        return;
+      }
       const lines: string[] = [];
       lines.push(
         current

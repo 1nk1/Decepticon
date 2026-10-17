@@ -508,6 +508,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${DECEPTICON_HOME:-~/.decepticon}:/decepticon-home
+      - ${DECEPTICON_ENGAGEMENT_WORKSPACE:-${DECEPTICON_HOME:-~/.decepticon}/workspace}:/workspace
     # Do NOT override WORKDIR — the cli image's entrypoint is
     # `node dist/index.js` resolved relative to /app (set by
     # containers/cli.Dockerfile). The slash command resolves the

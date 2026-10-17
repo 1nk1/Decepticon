@@ -26,6 +26,8 @@ vi.mock("../utils/threadStore.js", () => ({
   saveThread: vi.fn(async () => {}),
   touchThread: vi.fn(async () => {}),
   loadThreadByIndex: vi.fn(async () => null),
+  listThreads: vi.fn(async () => []),
+  validateThread: vi.fn(async (threadId: string) => ({ threadId, assistantId: "soundwave", engagementName: "eng-abc", workspacePath: "/tmp/ws", legacyMetadata: false })),
 }));
 
 vi.mock("../commands/planMode.js", () => ({
@@ -68,6 +70,42 @@ describe("useAgent — engagement handoff lifecycle", () => {
     vi.useRealTimers();
     vi.unstubAllEnvs();
     vi.restoreAllMocks();
+  });
+
+  it("restores the validated latest session transcript before allowing input", async () => {
+    // Given explicit continue and a persisted assistant-specific conversation.
+    vi.stubEnv("DECEPTICON_RESUME_LATEST", "true");
+    const store = await import("../utils/threadStore.js");
+    vi.mocked(store.loadThreadByIndex).mockResolvedValueOnce({ threadId: "saved", assistantId: "soundwave", lastUsed: "today", title: "saved", legacyMetadata: false });
+    const client = mockState.client;
+    if (!client) throw new TypeError("Missing fixture");
+    client.threads.getState.mockResolvedValueOnce({ values: { messages: [{ type: "human", content: "previous request" }, { type: "ai", content: "previous answer" }] }, tasks: [{ interrupts: [{ value: { type: "ask_user_question", id: "restore-q", question: "Continue?" } }] }] });
+    // When the hook initializes.
+    const { result } = renderHook(() => useAgent());
+    await act(async () => { await vi.runAllTimersAsync(); });
+    // Then the original transcript and validated thread are available for export and continued input.
+    expect(result.current.threadId).toBe("saved");
+    expect(result.current.activeQuestion?.sourceId).toBe("restore-q");
+    expect(result.current.runState).toBe("paused");
+    expect(result.current.events.map(event => event.content)).toEqual(["previous request", "previous answer"]);
+  });
+
+  it("delivers multiple queued messages in FIFO order after editing and removal", async () => {
+    // Given a running stream and three queued messages.
+    const stream = createControllableStream();
+    const client = mockState.client;
+    if (!client) throw new TypeError("Missing fixture");
+    client.runs.stream.mockReturnValueOnce(stream).mockImplementation(() => createMockStream([noopValuesEvent]));
+    const { result } = renderHook(() => useAgent());
+    act(() => result.current.submit("initial"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    act(() => { result.current.enqueue("first"); result.current.enqueue("remove"); result.current.enqueue("third"); result.current.removeQueuedMessage(1); result.current.editQueuedMessage(1, "edited"); });
+    expect(result.current.queuedMessages).toEqual(["first", "edited"]);
+    // When the active run completes.
+    await act(async () => { stream.end(); await vi.runAllTimersAsync(); });
+    // Then each remaining item is delivered once in order.
+    expect(client.runs.stream.mock.calls.map(call => call[2].input.messages[0].content)).toEqual(["initial", "first", "edited"]);
+    expect(result.current.queuedMessages).toEqual([]);
   });
 
   it("sends the selected model through graph input on set, repeat, change and clear", async () => {
@@ -217,7 +255,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
 
     const notices = result.current.events.filter((event) => event.type === "system");
     expect(notices.at(-1)?.content).toBe(
-      "Could not restore this session. Check server availability and the session ID.",
+      "Could not restore this session: Session not found",
     );
   });
 
@@ -747,6 +785,17 @@ describe("useAgent — engagement handoff lifecycle", () => {
     expect(createThread).toHaveBeenCalledTimes(6);
     expect(mc.runs.stream).toHaveBeenCalledTimes(1);
     expect(result.current.runState).toBe("idle");
+  });
+
+  it("routes the next prompt to the restored session assistant instead of the previous mode override", async () => {
+    const { setAssistantOverride } = await import("../commands/assistantOverride.js");
+    setAssistantOverride("decepticon");
+    const { result } = renderHook(() => useAgent());
+    act(() => result.current.resume("plan-thread"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    act(() => result.current.submit("continue restored work"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    expect(mockState.client?.runs.stream).toHaveBeenCalledWith("plan-thread", "soundwave", expect.anything());
   });
 
   it("keeps queuedMessage intact after a legacy engagement_ready event", async () => {
