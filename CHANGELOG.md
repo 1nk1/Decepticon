@@ -7,24 +7,22 @@ onward (the `0.x` cycle is pre-stable per the core/framework/sdk split
 design spec, §13.4).
 
 Before opening or updating a PR, record its changes and PR link under
-**Unreleased**, marking unmerged proposals separately from merged changes.
+**Unreleased**. An open linked PR means proposed work; a merged linked PR means
+integrated but unreleased work. Only dated release sections describe shipped work.
 Update the root [Chagelog.md](Chagelog.md) entry point in the same PR. At release,
 move merged entries into a dated version section and add a comparison link.
 Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-### Proposed — not merged or released
+### Added
 
-- Add an operator-confirmed, create-only RoE import for existing engagements,
-  preserving planning artifacts and requiring fresh planning/Red approval.
-  Includes canonical schema export and installed/source usage instructions.
-  ([#1000](https://github.com/BitterSecurity/Decepticon/pull/1000), fixes
-  [#998](https://github.com/BitterSecurity/Decepticon/issues/998))
-  Requires source or an image containing this change; existing released images
-  do not gain the command until rebuilt or upgraded to a future release.
-
-### Added — merged, unreleased
+- Add a persistent light/dark dashboard toggle, retaining dark as the default.
+  Honor system preferences when toggling and keep status/severity labels readable
+  in light mode. Fixed dark terminal and graph surfaces retain their palette.
+  Browser-local preference only: no database migration, package version change
+  or configuration upgrade is required.
+  ([#997](https://github.com/BitterSecurity/Decepticon/pull/997))
 
 - Optional vendor-neutral OpenAI-compatible gateway (`compat/…`) driven by
   `OPENAI_COMPAT_GATEWAY_API_BASE`, `OPENAI_COMPAT_GATEWAY_API_KEY`, and
@@ -55,6 +53,13 @@ Keep proposed and unmerged changes out of released sections.
 
 ### Fixed
 
+- Add an operator-confirmed, create-only RoE import for existing engagements,
+  preserving planning artifacts and requiring fresh planning/Red approval.
+  Includes canonical schema export and installed/source usage instructions.
+  ([#1000](https://github.com/BitterSecurity/Decepticon/pull/1000), fixes
+  [#998](https://github.com/BitterSecurity/Decepticon/issues/998))
+  Requires source or an image containing this change; existing released images
+  do not gain the command until rebuilt or upgraded to a future release.
 - Expect the unauthorized call to revert in generated Foundry access-control tests.
   ([#991](https://github.com/BitterSecurity/Decepticon/pull/991))
 - Retain file-backed approval decisions until their matching request consumes them.

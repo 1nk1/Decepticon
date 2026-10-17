@@ -9,5 +9,6 @@ independent of production/SaaS image and release identifiers.
 Unreleased distinguishes proposed work from merged changes. The status of each
 linked PR records integration; only dated release sections describe shipped work.
 Related PRs: [#995](https://github.com/BitterSecurity/Decepticon/pull/995),
+[#997](https://github.com/BitterSecurity/Decepticon/pull/997),
 [#999](https://github.com/BitterSecurity/Decepticon/pull/999),
 [#1000](https://github.com/BitterSecurity/Decepticon/pull/1000).
