@@ -108,6 +108,30 @@ describe("Blue Cell chat notifications", () => {
     unmount();
   });
 
+  it("clears a recovered connection error and marks disconnected AI state unknown", async () => {
+    vi.useFakeTimers();
+    let offline = false;
+    let first = true;
+    vi.stubGlobal("fetch", vi.fn(async () => {
+      if (offline) throw new Error("offline");
+      const notifications = first ? [{ seq: 1, kind: "assessment", payload: { id: "incident", analysis: "evidence" } }] : [];
+      first = false;
+      return { ok: true, json: async () => ({ notifications, has_more: false }) };
+    }));
+    const { result, unmount } = renderHook(() => useBlueNotifications(() => {}));
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    expect(result.current.aiStatus).toBe("healthy");
+    offline = true;
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(result.current.error).toBe("offline");
+    expect(result.current.aiStatus).toBe("unknown");
+    offline = false;
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    expect(result.current.status).toBe("connected");
+    expect(result.current.error).toBeNull();
+    unmount();
+  });
+
   it("shows autonomous alerts and review gaps with their evidence window", () => {
     const alert = formatBlueNotification({
       seq: 3,

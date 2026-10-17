@@ -30,7 +30,8 @@ Keep proposed and unmerged changes out of released sections.
   retaining scope approval checks. Scope and paginate saved sessions, restore
   pending questions, and offer confirmed migration of older conversation metadata.
   Mount the selected CLI workspace and persist local UI state across container
-  recreation. No database reset or version bump is required. Updated images and
+  recreation. Retain waiting messages when session creation or streaming fails,
+  and clear stale Blue connection errors after recovery. No database reset or version bump is required. Updated images and
   Compose configuration are required; this change has not been released.
 
 - Add a persistent light/dark dashboard toggle, retaining dark as the default.

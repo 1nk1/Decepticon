@@ -43,6 +43,8 @@ let useAgent: (typeof import("./useAgent.js"))["useAgent"];
 // ── Common event fixtures ────────────────────────────────────────────────────
 const noopValuesEvent: StreamEvent = { event: "values", data: { messages: [] } };
 
+const completedValuesEvent: StreamEvent = { event: "values", data: { messages: [{ type: "ai", content: "Completed" }] } };
+
 const engagementReadyEvent: StreamEvent = {
   event: "custom",
   data: { type: "engagement_ready" },
@@ -95,14 +97,15 @@ describe("useAgent — engagement handoff lifecycle", () => {
     const stream = createControllableStream();
     const client = mockState.client;
     if (!client) throw new TypeError("Missing fixture");
-    client.runs.stream.mockReturnValueOnce(stream).mockImplementation(() => createMockStream([noopValuesEvent]));
+    let completedRuns = 1;
+    client.runs.stream.mockReturnValueOnce(stream).mockImplementation(() => createMockStream([{ event: "values", data: { messages: Array.from({ length: ++completedRuns }, (_, index) => ({ type: "ai", content: `Completed ${index}` })) } }]));
     const { result } = renderHook(() => useAgent());
     act(() => result.current.submit("initial"));
     await act(async () => { await vi.runAllTimersAsync(); });
     act(() => { result.current.enqueue("first"); result.current.enqueue("remove"); result.current.enqueue("third"); result.current.removeQueuedMessage(1); result.current.editQueuedMessage(1, "edited"); });
     expect(result.current.queuedMessages).toEqual(["first", "edited"]);
     // When the active run completes.
-    await act(async () => { stream.end(); await vi.runAllTimersAsync(); });
+    await act(async () => { await stream.emit(completedValuesEvent); stream.end(); await vi.runAllTimersAsync(); });
     // Then each remaining item is delivered once in order.
     expect(client.runs.stream.mock.calls.map(call => call[2].input.messages[0].content)).toEqual(["initial", "first", "edited"]);
     expect(result.current.queuedMessages).toEqual([]);
@@ -319,6 +322,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
       await firstStream.emit(engagementReadyEvent);
     });
     await act(async () => {
+      await firstStream.emit(completedValuesEvent);
       firstStream.end();
       await vi.runAllTimersAsync(); // fire setTimeout(0) auto-submit
     });
@@ -365,6 +369,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
       await firstStream.emit(engagementReadyEvent);
     });
     await act(async () => {
+      await firstStream.emit(completedValuesEvent);
       firstStream.end();
       await vi.runAllTimersAsync();
     });
@@ -747,6 +752,43 @@ describe("useAgent — engagement handoff lifecycle", () => {
     expect(result.current.activeQuestion?.sourceId).toBe("paused-question");
   });
 
+  it("retains all waiting messages without auto-retrying them after thread creation fails", async () => {
+    const client = mockState.client;
+    if (!client) throw new TypeError("Missing client fixture");
+    client.threads.create.mockRejectedValue(new Error("server unavailable"));
+    const { result } = renderHook(() => useAgent());
+    act(() => result.current.submit("initial"));
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    act(() => { result.current.enqueue("queued one"); result.current.enqueue("queued two"); });
+    await act(async () => { await vi.runAllTimersAsync(); });
+    expect(result.current.queuedMessages).toEqual(["queued one", "queued two"]);
+    expect(client.threads.create).toHaveBeenCalledTimes(5);
+    expect(client.runs.stream).not.toHaveBeenCalled();
+    client.threads.create.mockResolvedValue({ thread_id: "recovered" });
+    let completedRuns = 0;
+    client.runs.stream.mockImplementation(() => createMockStream([{
+      event: "values", data: { messages: Array.from({ length: ++completedRuns }, () => ({ type: "ai", content: "Recovered" })) },
+    }]));
+    act(() => result.current.submit("retry initial"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    expect(client.runs.stream.mock.calls.map(call => call[2].input.messages[0].content)).toEqual(["retry initial", "queued one", "queued two"]);
+    expect(result.current.queuedMessages).toEqual([]);
+  });
+
+  it("retains waiting messages when the server reports a streaming error", async () => {
+    const client = mockState.client;
+    if (!client) throw new TypeError("Missing client fixture");
+    const stream = createControllableStream();
+    client.runs.stream.mockReturnValueOnce(stream);
+    const { result } = renderHook(() => useAgent());
+    act(() => result.current.submit("initial"));
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+    act(() => result.current.enqueue("waiting"));
+    await act(async () => { await stream.emit({ event: "error", data: { message: "provider unavailable" } }); stream.end(); await vi.runAllTimersAsync(); });
+    expect(result.current.queuedMessages).toEqual(["waiting"]);
+    expect(client.runs.stream).toHaveBeenCalledTimes(1);
+  });
+
   it("recovers after thread creation retries are exhausted", async () => {
     const mc = mockState.client!;
     const createThread = mc.threads.create as Mock;
@@ -834,6 +876,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
 
     // Now end the stream — handleStreamComplete handoff branch auto-submits
     await act(async () => {
+      await firstStream.emit(completedValuesEvent);
       firstStream.end();
       await vi.runAllTimersAsync();
     });

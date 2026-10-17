@@ -666,6 +666,7 @@ export function useAgent({
         );
         setRunState("idle");
       }
+      return completionReceived && !serverErrorReceived;
     },
     [addEvent, addSystemEvent, setRunState],
   );
@@ -673,7 +674,7 @@ export function useAgent({
   // ── Handle stream completion (shared by submit and resume) ─────
 
   const handleStreamComplete = useCallback(
-    (abortController: AbortController) => {
+    (abortController: AbortController, drainQueue = true) => {
       if (abortController.signal.aborted) return;
       streamReadyResolveRef.current?.();
       streamReadyResolveRef.current = null;
@@ -693,7 +694,7 @@ export function useAgent({
 
       // Auto-submit queued message
       const pending = queuedMessageRef.current[0];
-      if (pending && !switchingRef.current) {
+      if (pending && drainQueue && !switchingRef.current) {
         queuedMessageRef.current = queuedMessageRef.current.slice(1);
         setQueuedMessages(queuedMessageRef.current);
         const assistant = assistantIdRef.current;
@@ -941,7 +942,7 @@ export function useAgent({
           const denied = error instanceof Error ? error.message : "Mode prerequisite failed.";
           setError(denied);
           addEvent({ type: "system", content: denied });
-          handleStreamComplete(abortController);
+          handleStreamComplete(abortController, false);
           return;
         }
 
@@ -966,10 +967,7 @@ export function useAgent({
                 const connectionError = `Connection failed: ${msg}`;
                 setError(connectionError);
                 addEvent({ type: "system", content: connectionError });
-                // Clear queued message to prevent infinite retry loop
-                queuedMessageRef.current = [];
-                setQueuedMessages([]);
-                handleStreamComplete(abortController);
+                handleStreamComplete(abortController, false);
                 return;
               }
               // Server may still be loading graphs — wait and retry
@@ -995,6 +993,7 @@ export function useAgent({
         const configurable = buildConfigurable();
         const streamConfig = configurable ? { configurable } : undefined;
 
+        let completed = false;
         try {
           const stream = client.runs.stream(
             threadIdRef.current!,
@@ -1008,7 +1007,7 @@ export function useAgent({
             },
           );
 
-          await processStream(stream, abortController);
+          completed = (await processStream(stream, abortController)) === true;
         } catch (err) {
           // Ignore abort errors — triggered by interrupt() or cancel()
           if (abortController.signal.aborted) return;
@@ -1017,7 +1016,7 @@ export function useAgent({
           setError(msg);
         }
 
-        handleStreamComplete(abortController);
+        handleStreamComplete(abortController, completed);
       };
 
       runStream().catch((err) => {
@@ -1099,6 +1098,7 @@ export function useAgent({
           completionTokens: 0,
         });
 
+        let completed = false;
         try {
           const configurable = buildConfigurable();
           const stream = client.runs.stream(
@@ -1112,12 +1112,12 @@ export function useAgent({
               signal: abortController.signal,
             },
           );
-          await processStream(stream, abortController);
+          completed = (await processStream(stream, abortController)) === true;
         } catch (err) {
           if (abortController.signal.aborted) return;
           setError(err instanceof Error ? err.message : "Answer submit failed");
         }
-        handleStreamComplete(abortController);
+        handleStreamComplete(abortController, completed);
       };
 
       runResume().catch((err) => {
@@ -1165,6 +1165,7 @@ export function useAgent({
           setActiveAgent(threadAssistantRef.current);
           setStreamStats({ startTime: Date.now(), totalTokens: 0, promptTokens: 0, completionTokens: 0 });
 
+          let completed = false;
           try {
             const configurable = buildConfigurable();
             const stream = client.runs.stream(
@@ -1178,12 +1179,12 @@ export function useAgent({
                 signal: abortController.signal,
               },
             );
-            await processStream(stream, abortController);
+            completed = (await processStream(stream, abortController)) === true;
           } catch (err) {
             if (abortController.signal.aborted) return;
             setError(err instanceof Error ? err.message : "Resume failed");
           }
-          handleStreamComplete(abortController);
+          handleStreamComplete(abortController, completed);
         };
 
         runResume().catch((err) => {

@@ -114,7 +114,7 @@ export function useBlueNotifications(addSystemEvent: (message: string) => void) 
             persist();
             continue;
           }
-          setState(previous => ({ ...previous, status: "connected" }));
+          setState(previous => ({ ...previous, status: "connected", error: null }));
           for (const notification of page.notifications) {
             if (notification.seq <= cursor.current.after) continue;
             cursor.current.after = notification.seq;
@@ -137,7 +137,7 @@ export function useBlueNotifications(addSystemEvent: (message: string) => void) 
       } catch (error) {
         if (stopped) return;
         const message = error instanceof Error ? error.message : String(error);
-        setState(previous => ({ ...previous, status: connected ? "disconnected" : "unavailable", error: message, collectorStatus: "unknown" }));
+        setState(previous => ({ ...previous, status: connected ? "disconnected" : "unavailable", error: message, collectorStatus: "unknown", aiStatus: "unknown" }));
         if (connected && !disconnected) callback.current(`[Blue Cell] Monitor disconnected: ${message}`);
         disconnected = true;
       } finally { polling = false; }
