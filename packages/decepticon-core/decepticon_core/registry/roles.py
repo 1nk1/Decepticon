@@ -13,8 +13,20 @@ multi-process workers each register on startup without conflict.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Literal
 
 from decepticon_core.contracts.slots import MiddlewareSlot
+
+AgentPurpose = Literal["execution", "planning", "observation"]
+
+
+def default_role_purpose(name: str) -> AgentPurpose:
+    """Unknown roles require execution authorization unless explicitly registered."""
+    if name == "soundwave":
+        return "planning"
+    if name == "blue_cell":
+        return "observation"
+    return "execution"
 
 
 @dataclass(frozen=True)
@@ -29,6 +41,7 @@ class RoleSpec:
     slots: frozenset[MiddlewareSlot]
     skill_sources: tuple[str, ...] = ()
     llm_role_fallback: str | None = None
+    purpose: AgentPurpose = "execution"
 
 
 class RoleRegistry:
@@ -50,6 +63,7 @@ class RoleRegistry:
         slots: frozenset[MiddlewareSlot],
         skill_sources: tuple[str, ...] = (),
         llm_role_fallback: str | None = None,
+        purpose: AgentPurpose | None = None,
     ) -> None:
         """Register a role (idempotent on identical parameters).
 
@@ -67,6 +81,7 @@ class RoleRegistry:
             slots=slots,
             skill_sources=skill_sources,
             llm_role_fallback=llm_role_fallback,
+            purpose=purpose if purpose is not None else default_role_purpose(name),
         )
         existing = cls._entries.get(name)
         if existing is not None:
