@@ -25,3 +25,6 @@ It is not released; see [CLI compatibility notes](docs/cli-experience.md).
 
 PR #1002 integration review preserves #1001 scope/workflow contracts and corrects
 launcher/Korean onboarding instructions; see canonical Unreleased.
+
+PR #1002 review corrections retain recoverable pause state, prevent queued-input
+transfer to another conversation and correct Delete; see canonical Unreleased.

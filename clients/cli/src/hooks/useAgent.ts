@@ -851,18 +851,11 @@ export function useAgent({
     switchingRef.current = true;
     try {
       const pausedState = await pauseRun();
-      if (commit) {
-        resetStreamState();
-        runStateRef.current = pausedState;
-        setRunState(pausedState);
-        await commit();
-      }
-      if (next === current) {
-        resetStreamState();
-        runStateRef.current = pausedState;
-        setRunState(pausedState);
-        return true;
-      }
+      resetStreamState();
+      runStateRef.current = pausedState;
+      setRunState(pausedState);
+      if (commit) await commit();
+      if (next === current) return true;
       modeSessionsRef.current.set(current, {
         threadId: threadIdRef.current,
         events: [...eventsRef.current],
@@ -1233,6 +1226,10 @@ export function useAgent({
 
       // Case 2: Load a specific thread by ID (from session picker or --resume)
       if (value && runStateRef.current === "idle") {
+        if (queuedMessageRef.current.length > 0) {
+          addSystemEvent("Handle waiting messages with /queue before switching sessions.");
+          return;
+        }
         restoringRef.current = true;
         setRestoring(true);
         const client = clientRef.current;

@@ -120,7 +120,10 @@ function Composer({ runState, onSubmit, activeAgent = null, assistantId = "decep
     if (key.ctrl && input === "a") { setCursor(value.lastIndexOf("\n", cursor - 1) + 1); return; }
     if (key.ctrl && input === "e") { const end = value.indexOf("\n", cursor); setCursor(end < 0 ? value.length : end); return; }
     if (key.ctrl && input === "u") { replace(value.slice(cursor)); setCursor(0); return; }
-    if (key.backspace || key.delete) {
+    if (key.delete) {
+      replace(value.slice(0, cursor) + value.slice(cursor + 1)); setCursor(cursor); return;
+    }
+    if (key.backspace) {
       replace(value.slice(0, Math.max(0, cursor - 1)) + value.slice(cursor)); setCursor(Math.max(0, cursor - 1)); return;
     }
     if (!key.ctrl && !key.meta && input) insert(input.replace(/\u001b\[20[01]~/g, "").replace(/\r\n?/g, "\n"));

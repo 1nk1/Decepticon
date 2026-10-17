@@ -659,6 +659,47 @@ describe("useAgent — engagement handoff lifecycle", () => {
     await act(async () => { stream.end(); });
   });
 
+  it("keeps the original paused session recoverable when a mode lookup fails", async () => {
+    const stream = createControllableStream();
+    const client = mockState.client;
+    if (!client) throw new TypeError("Missing client fixture");
+    client.runs.stream.mockReturnValueOnce(stream);
+    const { listThreads } = await import("../utils/threadStore.js");
+    const { result } = renderHook(() => useAgent({ resumeThread: true }));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    act(() => result.current.submit("original"));
+    await act(async () => { await vi.runAllTimersAsync(); await stream.emit({ event: "metadata", data: { run_id: "active-run" } }); });
+    vi.mocked(listThreads).mockRejectedValueOnce(new Error("lookup offline"));
+    await act(async () => { expect(await result.current.selectAssistant("decepticon")).toBe(false); });
+    expect(result.current.assistantId).toBe("soundwave");
+    expect(result.current.runState).toBe("paused");
+    act(() => result.current.resume());
+    await act(async () => { await vi.runAllTimersAsync(); });
+    expect(client.runs.stream).toHaveBeenCalledTimes(2);
+    await act(async () => { stream.end(); });
+  });
+
+  it("refuses restoring another session while undelivered messages remain", async () => {
+    const stream = createControllableStream();
+    const client = mockState.client;
+    if (!client) throw new TypeError("Missing client fixture");
+    client.runs.stream.mockReturnValueOnce(stream);
+    const { result } = renderHook(() => useAgent());
+    act(() => result.current.submit("original"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    act(() => result.current.enqueue("belongs to original"));
+    await act(async () => { await stream.emit({ event: "error", data: { message: "offline" } }); stream.end(); await vi.runAllTimersAsync(); });
+    const original = result.current.threadId;
+    const { validateThread } = await import("../utils/threadStore.js");
+    vi.mocked(validateThread).mockClear();
+    act(() => result.current.resume("other-thread"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    expect(validateThread).not.toHaveBeenCalled();
+    expect(result.current.threadId).toBe(original);
+    expect(result.current.queuedMessages).toEqual(["belongs to original"]);
+    expect(result.current.events.at(-1)?.content).toContain("/queue");
+  });
+
   it("isolates a late thread creation after switching while connecting", async () => {
     let finishCreate = (_thread: { thread_id: string }) => {};
     (mockState.client!.threads.create as Mock).mockImplementationOnce(() => new Promise((resolve) => { finishCreate = resolve; }));
