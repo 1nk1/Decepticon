@@ -20,11 +20,30 @@ active workflow.
 
 ## File Naming Convention
 
-`findings/FIND-{NNN}.md`
+For workflow version 2 use system artifact tools. A vulnerability is saved as
+`findings/{severity}_{number}_{title}.md`, e.g.
+`findings/high_01_cross-tenant-document-read.md`. The system issues its UUID,
+stable human ID (`FIND-01`), number and filename. Never count files to allocate
+IDs. UUID relationships survive filename, title and severity changes.
 
-The file name and the `id` field in YAML frontmatter (FIND-001,
-FIND-002, ...) use the same canonical cross-reference. Determine the
-next unused sequential ID by inspecting existing `findings/FIND-*.md` names.
+The orchestrator alone registers drafts and commits them with artifact tools.
+An unassigned proof producer returns candidate title, severity rationale,
+structured metadata, body and exact evidence paths to the orchestrator; it does
+not invent a UUID or write another finding file. A verifier/reporter edits only
+the committed UUID/path explicitly assigned to it. Without artifact tools,
+return observations for the orchestrator's `info_entry` records.
+
+Observations, negative results, hypotheses, blocked and untested coverage are
+`info_entry` records in `findings/info_observations-and-negative-results.md`.
+Explicit HYP/AP/PATH documents have descriptive names and UUID links. Inspect
+prior results before creating a distinct hypothesis; preserve refutations.
+
+Many edits may update one draft. Commit only at a plan, experiment, verification
+or publication milestone. A revision and SHA-256 pin the saved content; UUID
+alone proves neither integrity nor truth. Preserve raw evidence separately.
+
+Pinned legacy workflows continue using `findings/FIND-{NNN}.md`. Examples below
+illustrate metadata and evidence; resolve actual paths through the registry in v2.
 
 Do not create empty scaffold directories or placeholder files before
 there is a real artifact to write.

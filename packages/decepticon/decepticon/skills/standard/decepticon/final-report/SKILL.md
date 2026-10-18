@@ -23,8 +23,14 @@ the examples or treat the template's pentest title as a required engagement type
 
 ## Finding metadata interpretation
 
-Read every `findings/FIND-*.md` (canonical name `findings/FIND-{NNN}.md`; the
-`id` frontmatter field matches the filename) and extract frontmatter fields:
+For workflow version 2 inspect the artifact registry and committed finding UUIDs;
+publish one `report/security-assessment-report.md` with executive conclusions,
+scope and limits, findings links, observed paths, Info/coverage and remediation.
+Keep detailed reproduction in canonical findings. Freeze referenced revisions and
+evidence hashes. Do not duplicate the executive and technical templates below as
+separate new documents; they are legacy templates and optional writing guidance.
+
+For pinned legacy workflows read every `findings/FIND-*.md`. Extract:
 
 ```
 for each FIND-NNN.md:

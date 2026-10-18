@@ -348,6 +348,8 @@ def _next_finding_id(findings_dir: Path) -> int:
 def _write_inflight_findings(state: LangGraphState, workspace: Path) -> int:
     if not isinstance(state, Mapping):
         return 0
+    if state.get("search_state") or state.get("artifact_registry"):
+        return 0
     candidates = state.get("pending_findings") or state.get("findings") or []
     if not isinstance(candidates, (list, tuple)):
         return 0
@@ -425,6 +427,8 @@ def _write_opplan_checkpoint(state: LangGraphState, workspace: Path) -> bool:
 
 def _write_partial_executive(state: LangGraphState, workspace: Path) -> bool:
     if not isinstance(state, Mapping):
+        return False
+    if state.get("search_state") or state.get("artifact_registry"):
         return False
     engagement = str(state.get("engagement_name") or "Engagement")
     graph = state.get("knowledge_graph") or state.get("graph")

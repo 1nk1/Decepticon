@@ -418,11 +418,15 @@ def build_middleware(
     }
     factories.update(resolved.middleware_replace)
 
+    from decepticon.middleware.search_runtime import get_search_middleware
     from decepticon.middleware.workflow import WorkflowMiddleware
 
     result: list = []
-    if role in SLOTS_PER_ROLE and role not in {"soundwave", "autohunt", "blue_cell"}:
-        result.append(WorkflowMiddleware(role=role))
+    search_middleware = get_search_middleware(role=role, backend=backend)
+    workflow_role = "decepticon" if search_middleware else role
+    if workflow_role in SLOTS_PER_ROLE and workflow_role not in {"soundwave", "autohunt", "blue_cell"}:
+        result.append(WorkflowMiddleware(role=workflow_role))
+    result.extend(search_middleware)
     for slot in MiddlewareSlot:  # canonical enum order
         if slot not in role_slots:
             continue
