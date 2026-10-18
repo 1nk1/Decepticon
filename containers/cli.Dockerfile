@@ -7,12 +7,6 @@ COPY package.json package-lock.json ./
 COPY clients/cli/package.json clients/cli/
 COPY clients/shared/streaming/package.json clients/shared/streaming/
 
-# Stamp the package version from the git tag at build time. Source-tree
-# package.json carries a "0.0.0" sentinel; release.yml passes the real
-# version via --build-arg so the shipped package metadata matches the tag.
-ARG VERSION=0.0.0
-RUN sed -i 's/"version": "[^"]*"/"version": "'"$VERSION"'"/' clients/cli/package.json
-
 RUN npm ci --workspace=@decepticon/cli
 
 # Copy CLI and shared source and build. Build the shared workspace first
@@ -20,6 +14,15 @@ RUN npm ci --workspace=@decepticon/cli
 # to its emitted dist/ (its package.json main points at dist/index.js).
 COPY clients/shared/ clients/shared/
 COPY clients/cli/ clients/cli/
+
+# Stamp the package version from the git tag at build time. Source-tree
+# package.json carries a "0.0.0" sentinel; release.yml passes the real
+# version via --build-arg so the shipped package metadata matches the tag.
+# Stamp after the source COPY so it cannot restore the sentinel; keep npm ci
+# independent of VERSION so dependency caching also survives releases.
+ARG VERSION=0.0.0
+RUN sed -i 's/"version": "[^"]*"/"version": "'"$VERSION"'"/' clients/cli/package.json
+
 RUN npm run build --workspace=@decepticon/streaming
 RUN npm run build --workspace=@decepticon/cli
 

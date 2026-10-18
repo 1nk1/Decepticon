@@ -15,6 +15,12 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Fix release CLI image metadata being reset to the source `0.0.0` sentinel:
+  stamp the version after copying source, preserve dependency cache across
+  versions, and verify the actual published CLI container package version in CI
+  before signing/publication. Candidate v1.5.1 final publication was withheld;
+  its existing tag/packages remain immutable. Proposed [PR #1006](https://github.com/BitterSecurity/Decepticon/pull/1006).
+
 - Restore direct Red execution for new CLI engagements: collect name and target
   web URL, automatically create a canonical RoE and byte-bound direct approval,
   and open Red ready for the first request. Plan remains optional; no external
