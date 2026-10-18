@@ -15,12 +15,12 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed findings-search v2 implementation: system-issued document UUIDs,
+- [#1012](https://github.com/BitterSecurity/Decepticon/pull/1012), proposed findings-search v2 implementation: system-issued document UUIDs,
   explicit draft/committed revisions and immutable snapshots, a structured Info
   log and unified assessment report, and runtime-gated search replanning. Existing
   workflow pins and legacy finding readers remain compatible; new full-search
   runs adopt the new policy. This source change is not an OSS release or SaaS
-  deployment. The task PR link will be recorded when the PR is opened.
+  deployment. Paired SaaS integration: [decepticon-saas#1294](https://github.com/BitterSecurity/decepticon-saas/pull/1294).
 - Consolidate all version history into root `CHAGELOG.md`, preserving the former
   canonical history and publication notes; update contributor/release references.
   Documentation maintenance only; no version bump.
