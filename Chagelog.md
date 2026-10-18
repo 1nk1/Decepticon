@@ -14,6 +14,11 @@ features, fixes and upgrade notes, including merged PRs
 
 ## Unreleased
 
+Proposed [PR #1006](https://github.com/BitterSecurity/Decepticon/pull/1006) fixes
+CLI release metadata being overwritten after stamping and adds an actual-image
+version gate. Candidate v1.5.1 was withheld before final publication; immutable
+artifacts are retained. See [canonical Unreleased](CHANGELOG.md#unreleased).
+
 Proposed [PR #1005](https://github.com/BitterSecurity/Decepticon/pull/1005) restores
 name + target URL creation, automatic RoE/direct approval and immediate Red
 execution with optional Plan. Existing data/scopes are preserved. See the

@@ -216,6 +216,20 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Verify shipped CLI package version
+        if: matrix.image == 'decepticon-cli'
+        env:
+          EXPECTED_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          actual="$(docker run --rm --platform linux/amd64 --entrypoint node \
+            "ghcr.io/bittersecurity/decepticon-cli:${EXPECTED_VERSION}" \
+            -p "require('/app/package.json').version")"
+          if [[ "${actual}" != "${EXPECTED_VERSION}" ]]; then
+            echo "::error::CLI image package version ${actual} does not match ${EXPECTED_VERSION}"
+            exit 1
+          fi
+
       - name: Cosign sign image (keyless)
         env:
           COSIGN_EXPERIMENTAL: "true"
