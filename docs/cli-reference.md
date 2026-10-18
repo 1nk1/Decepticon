@@ -20,8 +20,12 @@
 
 ### Scope and workflow selection
 
-New and saved workspaces open in Red. A mode label alone does not authorize
-execution. For a new name-only workspace, use:
+New engagements ask for a name and target web URL. The launcher generates and
+approves the matching RoE, then opens Red ready for the first request. Plan is
+optional; no scope JSON or separate approval step is needed for new engagements.
+
+Saved workspaces keep their existing scope. For legacy name-only workspaces that
+have no scope file, the manual recovery path remains:
 
 ```text
 /scope import plan/roe-authorized.json --confirm

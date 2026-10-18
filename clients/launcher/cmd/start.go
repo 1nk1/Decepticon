@@ -258,7 +258,7 @@ func runStart(cmd *cobra.Command, args []string) error {
 	if !choice.AuthorizationConfirmed {
 		ui.Info("Scope not ready: import reviewed scope with /scope import <file> --confirm, then /mode red approve. Optional planning: /mode plan.")
 	} else {
-		ui.Info("Saved scope loaded. Execution checks RoE and approval before running tools.")
+		ui.Info("Target scope loaded. Red checks its current approval before execution; /mode plan is optional.")
 	}
 	// Export the bind path. composeEnv() forwards os.Environ(), so docker
 	// compose interpolates ${DECEPTICON_ENGAGEMENT_WORKSPACE} from this var.

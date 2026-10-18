@@ -14,6 +14,11 @@ features, fixes and upgrade notes, including merged PRs
 
 ## Unreleased
 
+Proposed [PR #1005](https://github.com/BitterSecurity/Decepticon/pull/1005) restores
+name + target URL creation, automatic RoE/direct approval and immediate Red
+execution with optional Plan. Existing data/scopes are preserved. See the
+[canonical Unreleased entry](CHANGELOG.md#unreleased) for compatibility details.
+
 The [canonical Unreleased section](CHANGELOG.md#unreleased) records the
 release-history documentation follow-up. It records the actual publication and
 changes no runtime behavior. The same follow-up establishes the

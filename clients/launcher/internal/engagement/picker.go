@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 
 	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/list"
@@ -421,17 +422,12 @@ func Select(home string) (Choice, error) {
 		return Choice{}, fmt.Errorf("engagement picker cancelled")
 	}
 
-	root := filepath.Join(home, "workspace")
 	if final.chosen.isNew {
-		slug, err := promptNewEngagement(home)
+		slug, target, err := promptNewEngagement(home)
 		if err != nil {
 			return Choice{}, err
 		}
-		dir := filepath.Join(root, slug)
-		if err := os.MkdirAll(filepath.Join(dir, "plan"), 0o755); err != nil {
-			return Choice{}, fmt.Errorf("create engagement dir: %w", err)
-		}
-		return choiceForEngagement(home, slug), nil
+		return createDirectEngagement(home, slug, target, time.Now())
 	}
 
 	return choiceForEngagement(home, final.chosen.slug), nil
@@ -450,8 +446,8 @@ func choiceForEngagement(home, slug string) Choice {
 	}
 }
 
-func promptNewEngagement(home string) (string, error) {
-	var slug string
+func promptNewEngagement(home string) (string, string, error) {
+	var slug, target string
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().
@@ -460,10 +456,21 @@ func promptNewEngagement(home string) (string, error) {
 				Placeholder("e.g., acme-external-2026").
 				Value(&slug).
 				Validate(func(s string) error { return validateSlug(home, s) }),
+			huh.NewInput().Title("Target web URL").
+				Description("Enter the target you are authorized to test. Create starts Red with this scope; Plan is optional.").
+				Placeholder("https://example.com").Value(&target).
+				Validate(func(s string) error { _, err := parseDirectWebTarget(s); return err }),
 		).Title("New engagement"),
 	).WithTheme(huh.ThemeFunc(ui.DecepticonTheme))
 	if err := form.Run(); err != nil {
-		return "", fmt.Errorf("engagement setup cancelled: %w", err)
+		return "", "", fmt.Errorf("engagement setup cancelled: %w", err)
 	}
-	return slug, validateSlug(home, slug)
+	if err := validateSlug(home, slug); err != nil {
+		return "", "", err
+	}
+	parsed, err := parseDirectWebTarget(target)
+	if err != nil {
+		return "", "", err
+	}
+	return slug, parsed, nil
 }

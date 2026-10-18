@@ -47,10 +47,10 @@
 
 ## What the OSS agent does
 
-- **Start with approved scope:** CLI creation asks for an engagement name and
-  defaults to Red. Import reviewed scope with `/scope import <file> --confirm`,
-  then approve it with `/mode red approve` before execution. Use `/mode plan`
-  explicitly for optional planning, or `/mode blue` for connected local sensor
+- **Start directly in Red:** enter an engagement name and target web URL. The
+  launcher creates the RoE and direct approval automatically, then opens Red;
+  no prewritten scope file, manual approval command or Plan session is needed.
+  Use `/mode plan` explicitly for optional planning, or `/mode blue` for connected local sensor
   investigation. The web dashboard has its own setup form and mode selector.
   [Engagement workflow](docs/engagement-workflow.md).
 - **Terminal controls:** searchable mode/model/session pickers, multiline prompts,

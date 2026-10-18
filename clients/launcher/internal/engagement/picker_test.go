@@ -235,8 +235,8 @@ func TestValidateSlug_RejectsCollisionWithExistingDir(t *testing.T) {
 	}
 }
 
-func TestPromptNewEngagement_CompletesWithNameOnly(t *testing.T) {
-	// Given a fresh workspace and only the engagement name on stdin.
+func TestPromptNewEngagement_RejectsEndOfInputBeforeTarget(t *testing.T) {
+	// Given a workspace name but no target URL.
 	home := t.TempDir()
 	t.Setenv("TERM", "dumb")
 	input, err := os.CreateTemp(t.TempDir(), "name-input")
@@ -244,7 +244,7 @@ func TestPromptNewEngagement_CompletesWithNameOnly(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer input.Close()
-	if _, err := input.WriteString("name-only-test\n"); err != nil {
+	if _, err := input.WriteString("direct-test\n"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := input.Seek(0, 0); err != nil {
@@ -253,15 +253,11 @@ func TestPromptNewEngagement_CompletesWithNameOnly(t *testing.T) {
 	previousInput := os.Stdin
 	os.Stdin = input
 	t.Cleanup(func() { os.Stdin = previousInput })
-
-	// When the new-engagement prompt consumes that single answer.
-	slug, err := promptNewEngagement(home)
-	// Then creation can proceed without target or authorization answers.
-	if err != nil {
-		t.Fatalf("name-only setup failed: %v", err)
-	}
-	if slug != "name-only-test" {
-		t.Fatalf("engagement = %q, want name-only-test", slug)
+	// When target input ends before the URL is supplied.
+	_, _, err = promptNewEngagement(home)
+	// Then no unscoped engagement can be submitted.
+	if err == nil {
+		t.Fatal("accepted a name without a target")
 	}
 }
 
@@ -279,7 +275,7 @@ func TestPromptNewEngagement_RejectsEndOfInputBeforeName(t *testing.T) {
 	t.Cleanup(func() { os.Stdin = previousInput })
 
 	// When the form reaches EOF without a name.
-	_, err = promptNewEngagement(home)
+	_, _, err = promptNewEngagement(home)
 	// Then it must not create an engagement at the workspace root.
 	if err == nil {
 		t.Fatal("accepted EOF without an engagement name")
