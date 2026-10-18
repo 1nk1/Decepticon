@@ -338,6 +338,9 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string) 
 		defer os.Remove(overlay)
 		c.OverlayFile = overlay
 		c.ExtraEnv = []string{"DECEPTICON_DESKTOP_MODEL=" + desktopRuntime.model}
+		if version != "" && version != "dev" {
+			c.ExtraEnv = append(c.ExtraEnv, "DECEPTICON_VERSION="+strings.TrimPrefix(version, "v"))
+		}
 		if desktopRuntime.secret != "" {
 			c.ExtraEnv = append(c.ExtraEnv, "DECEPTICON_DESKTOP_API_KEY="+desktopRuntime.secret)
 		}

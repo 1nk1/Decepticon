@@ -21,6 +21,9 @@ Keep proposed and unmerged changes out of released sections.
   Support canonical Desktop workspace/engagement document paths alongside legacy
   CLI folders. Source work only; no package version or release is published.
 
+- Consolidate change tracking in this single `CHANGELOG.md`; remove the former
+  alternate entry point and update contributor/release instructions.
+
 - Record v1.5.2's actual publication date and included fixes; retain v1.5.1 as
   an incomplete candidate rather than a published final. Documentation only;
   no runtime or upgrade changes. [PR #1007](https://github.com/BitterSecurity/Decepticon/pull/1007).
