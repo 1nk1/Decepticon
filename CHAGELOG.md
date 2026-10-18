@@ -9,11 +9,16 @@ design spec, §13.4).
 Before opening or updating a PR, record its changes and PR link under
 **Unreleased**. An open linked PR means proposed work; a merged linked PR means
 integrated but unreleased work. Only dated release sections describe shipped work.
-Update the root [Chagelog.md](Chagelog.md) entry point in the same PR. At release,
-move merged entries into a dated version section and add a comparison link.
+Maintain this single root `CHAGELOG.md`, preserving the full version history.
+At release, move merged entries into a dated version section and add a comparison link.
 Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
+
+- Consolidate version history into the single root `CHAGELOG.md`, preserving
+  existing history and updating contributor guidance, links and tooling.
+  Documentation only; no runtime or upgrade changes.
+  [PR #1010](https://github.com/BitterSecurity/Decepticon/pull/1010).
 
 - Distinguish host-side LangGraph HTTP connectivity, status errors, malformed
   assistant catalogs and missing `graph_id: decepticon` registration in startup
