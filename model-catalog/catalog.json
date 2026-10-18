@@ -1,0 +1,3009 @@
+{
+  "schema_version": 1,
+  "models": [
+    {
+      "id": "anthropic/claude-opus-5",
+      "params": {
+        "model": "anthropic/claude-opus-5",
+        "additional_drop_params": [
+          "temperature"
+        ]
+      },
+      "info": {
+        "input_cost_per_token": 5e-06,
+        "output_cost_per_token": 2.5e-05,
+        "cache_read_input_token_cost": 5e-07,
+        "cache_creation_input_token_cost": 6.25e-06,
+        "supports_prompt_caching": true
+      },
+      "ui": {
+        "id": "anthropic/claude-opus-5",
+        "label": "Claude Opus 5",
+        "provider": "anthropic"
+      }
+    },
+    {
+      "id": "anthropic/claude-sonnet-5",
+      "params": {
+        "model": "anthropic/claude-sonnet-5"
+      },
+      "info": {
+        "input_cost_per_token": 2e-06,
+        "output_cost_per_token": 1e-05,
+        "cache_read_input_token_cost": 2e-07,
+        "cache_creation_input_token_cost": 2.5e-06,
+        "supports_prompt_caching": true
+      },
+      "ui": {
+        "id": "anthropic/claude-sonnet-5",
+        "label": "Claude Sonnet 5",
+        "provider": "anthropic"
+      }
+    },
+    {
+      "id": "openai/gpt-5.4-mini",
+      "params": {
+        "model": "openai/gpt-5.4-mini"
+      },
+      "info": {
+        "input_cost_per_token": 7.5e-07,
+        "output_cost_per_token": 4.5e-06,
+        "cache_read_input_token_cost": 7.5e-08
+      }
+    },
+    {
+      "id": "openai/gpt-5.6-sol",
+      "params": {
+        "model": "openai/gpt-5.6-sol",
+        "allowed_openai_params": [
+          "reasoning_effort",
+          "tool_choice"
+        ],
+        "additional_drop_params": [
+          "temperature"
+        ]
+      },
+      "info": {
+        "supports_reasoning": true,
+        "supports_xhigh_reasoning_effort": true,
+        "input_cost_per_token": 5e-06,
+        "output_cost_per_token": 3e-05,
+        "cache_read_input_token_cost": 5e-07
+      },
+      "ui": {
+        "id": "openai/gpt-5.6-sol",
+        "label": "GPT-5.6 Sol",
+        "provider": "openai",
+        "reasoningEfforts": [
+          "none",
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max"
+        ]
+      }
+    },
+    {
+      "id": "openai/gpt-5.6-terra",
+      "params": {
+        "model": "openai/gpt-5.6-terra",
+        "allowed_openai_params": [
+          "reasoning_effort",
+          "tool_choice"
+        ],
+        "additional_drop_params": [
+          "temperature"
+        ]
+      },
+      "info": {
+        "supports_reasoning": true,
+        "supports_xhigh_reasoning_effort": true,
+        "input_cost_per_token": 2.5e-06,
+        "output_cost_per_token": 1.5e-05,
+        "cache_read_input_token_cost": 2.5e-07
+      },
+      "ui": {
+        "id": "openai/gpt-5.6-terra",
+        "label": "GPT-5.6 Terra",
+        "provider": "openai",
+        "reasoningEfforts": [
+          "none",
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max"
+        ]
+      }
+    },
+    {
+      "id": "openai/gpt-5.6-luna",
+      "params": {
+        "model": "openai/gpt-5.6-luna",
+        "allowed_openai_params": [
+          "reasoning_effort",
+          "tool_choice"
+        ],
+        "additional_drop_params": [
+          "temperature"
+        ]
+      },
+      "info": {
+        "supports_reasoning": true,
+        "supports_xhigh_reasoning_effort": true,
+        "input_cost_per_token": 1e-06,
+        "output_cost_per_token": 6e-06,
+        "cache_read_input_token_cost": 1e-07
+      },
+      "ui": {
+        "id": "openai/gpt-5.6-luna",
+        "label": "GPT-5.6 Luna",
+        "provider": "openai",
+        "reasoningEfforts": [
+          "none",
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max"
+        ]
+      }
+    },
+    {
+      "id": "gemini/gemini-3.7-flash",
+      "params": {
+        "model": "gemini/gemini-3.7-flash"
+      },
+      "info": {
+        "input_cost_per_token": 7.5e-07,
+        "output_cost_per_token": 3.75e-06,
+        "cache_read_input_token_cost": 7.5e-08
+      },
+      "ui": {
+        "id": "gemini/gemini-3.7-flash",
+        "label": "Gemini 3.7 Flash",
+        "provider": "google"
+      }
+    },
+    {
+      "id": "gemini/gemini-3.6-flash",
+      "params": {
+        "model": "gemini/gemini-3.6-flash"
+      },
+      "info": {
+        "input_cost_per_token": 7.5e-07,
+        "output_cost_per_token": 3.75e-06,
+        "cache_read_input_token_cost": 7.5e-08
+      },
+      "ui": {
+        "id": "gemini/gemini-3.6-flash",
+        "label": "Gemini 3.6 Flash",
+        "provider": "google"
+      }
+    },
+    {
+      "id": "gemini/gemini-3.5-flash-lite",
+      "params": {
+        "model": "gemini/gemini-3.5-flash-lite"
+      },
+      "info": {
+        "input_cost_per_token": 3e-07,
+        "output_cost_per_token": 2.5e-06,
+        "cache_read_input_token_cost": 3e-08
+      },
+      "ui": {
+        "id": "gemini/gemini-3.5-flash-lite",
+        "label": "Gemini 3.5 Flash-Lite",
+        "provider": "google"
+      }
+    },
+    {
+      "id": "minimax/MiniMax-M2.7",
+      "params": {
+        "model": "minimax/MiniMax-M2.7",
+        "api_base": "https://api.minimax.io/v1"
+      },
+      "info": {
+        "input_cost_per_token": 3e-07,
+        "output_cost_per_token": 1.2e-06,
+        "cache_read_input_token_cost": 6e-08
+      },
+      "ui": {
+        "id": "minimax/MiniMax-M2.7",
+        "label": "MiniMax M2.7",
+        "provider": "minimax"
+      }
+    },
+    {
+      "id": "minimax/MiniMax-M2.5",
+      "params": {
+        "model": "minimax/MiniMax-M2.5",
+        "api_base": "https://api.minimax.io/v1"
+      },
+      "info": {
+        "input_cost_per_token": 3e-07,
+        "output_cost_per_token": 1.2e-06,
+        "cache_read_input_token_cost": 3e-08,
+        "cache_creation_input_token_cost": 3.75e-07
+      }
+    },
+    {
+      "id": "minimax/MiniMax-M2.5-lightning",
+      "params": {
+        "model": "minimax/MiniMax-M2.5-lightning",
+        "api_base": "https://api.minimax.io/v1"
+      },
+      "info": {}
+    },
+    {
+      "id": "deepseek/deepseek-flash",
+      "params": {
+        "model": "deepseek/deepseek-flash"
+      },
+      "info": {
+        "input_cost_per_token": 3e-07,
+        "output_cost_per_token": 1.2e-06,
+        "cache_read_input_token_cost": 6e-09
+      },
+      "ui": {
+        "id": "deepseek/deepseek-flash",
+        "label": "DeepSeek V4.1 Flash",
+        "provider": "deepseek"
+      }
+    },
+    {
+      "id": "xai/grok-4.5",
+      "params": {
+        "model": "xai/grok-4.5"
+      },
+      "info": {
+        "input_cost_per_token": 2e-06,
+        "output_cost_per_token": 6e-06,
+        "cache_read_input_token_cost": 3e-07
+      },
+      "ui": {
+        "id": "xai/grok-4.5",
+        "label": "Grok 4.5",
+        "provider": "xai"
+      }
+    },
+    {
+      "id": "mistral/mistral-medium-3-5",
+      "params": {
+        "model": "mistral/mistral-medium-3-5"
+      },
+      "info": {
+        "input_cost_per_token": 1.5e-06,
+        "output_cost_per_token": 7.5e-06
+      },
+      "ui": {
+        "id": "mistral/mistral-medium-3-5",
+        "label": "Mistral Medium 3.5",
+        "provider": "mistral"
+      }
+    },
+    {
+      "id": "mistral/mistral-large-2512",
+      "params": {
+        "model": "mistral/mistral-large-2512"
+      },
+      "info": {
+        "input_cost_per_token": 5e-07,
+        "output_cost_per_token": 1.5e-06
+      },
+      "ui": {
+        "id": "mistral/mistral-large-2512",
+        "label": "Mistral Large 3",
+        "provider": "mistral"
+      }
+    },
+    {
+      "id": "mistral/mistral-small-2603",
+      "params": {
+        "model": "mistral/mistral-small-2603"
+      },
+      "info": {
+        "input_cost_per_token": 1.5e-07,
+        "output_cost_per_token": 6e-07
+      },
+      "ui": {
+        "id": "mistral/mistral-small-2603",
+        "label": "Mistral Small 4",
+        "provider": "mistral"
+      }
+    },
+    {
+      "id": "openrouter/*",
+      "params": {
+        "model": "openrouter/*"
+      },
+      "info": {}
+    },
+    {
+      "id": "openrouter/anthropic/claude-opus-5.5",
+      "params": {
+        "model": "openrouter/anthropic/claude-opus-5.5"
+      },
+      "info": {
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "openrouter/anthropic/claude-opus-5.5",
+        "label": "Claude Opus 5.5 via OpenRouter",
+        "provider": "openrouter"
+      }
+    },
+    {
+      "id": "openrouter/anthropic/claude-sonnet-5.5",
+      "params": {
+        "model": "openrouter/anthropic/claude-sonnet-5.5"
+      },
+      "info": {
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "openrouter/anthropic/claude-sonnet-5.5",
+        "label": "Claude Sonnet 5.5 via OpenRouter",
+        "provider": "openrouter"
+      }
+    },
+    {
+      "id": "openrouter/openai/gpt-6.1-sol",
+      "params": {
+        "model": "openrouter/openai/gpt-6.1-sol"
+      },
+      "info": {
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "openrouter/openai/gpt-6.1-sol",
+        "label": "GPT-6.1 Sol via OpenRouter",
+        "provider": "openrouter"
+      }
+    },
+    {
+      "id": "openrouter/google/gemini-3.8-flash",
+      "params": {
+        "model": "openrouter/google/gemini-3.8-flash"
+      },
+      "info": {
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "openrouter/google/gemini-3.8-flash",
+        "label": "Gemini 3.8 Flash via OpenRouter",
+        "provider": "openrouter"
+      }
+    },
+    {
+      "id": "openrouter/deepseek/deepseek-v4.1-flash",
+      "params": {
+        "model": "openrouter/deepseek/deepseek-v4.1-flash"
+      },
+      "info": {
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "openrouter/deepseek/deepseek-v4.1-flash",
+        "label": "DeepSeek V4.1 Flash via OpenRouter",
+        "provider": "openrouter"
+      }
+    },
+    {
+      "id": "openrouter/anthropic/claude-opus-5",
+      "params": {
+        "model": "openrouter/anthropic/claude-opus-5",
+        "additional_drop_params": [
+          "temperature"
+        ]
+      },
+      "info": {
+        "input_cost_per_token": 5e-06,
+        "output_cost_per_token": 2.5e-05
+      },
+      "ui": {
+        "id": "openrouter/anthropic/claude-opus-5",
+        "label": "Claude Opus 5 via OpenRouter",
+        "provider": "openrouter"
+      }
+    },
+    {
+      "id": "openrouter/anthropic/claude-sonnet-5",
+      "params": {
+        "model": "openrouter/anthropic/claude-sonnet-5"
+      },
+      "info": {
+        "input_cost_per_token": 2e-06,
+        "output_cost_per_token": 1e-05
+      },
+      "ui": {
+        "id": "openrouter/anthropic/claude-sonnet-5",
+        "label": "Claude Sonnet 5 via OpenRouter",
+        "provider": "openrouter"
+      }
+    },
+    {
+      "id": "nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b",
+      "params": {
+        "model": "nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b"
+      },
+      "info": {},
+      "ui": {
+        "id": "nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b",
+        "label": "Nemotron 3 Ultra (NVIDIA NIM)",
+        "provider": "nvidia"
+      }
+    },
+    {
+      "id": "nvidia_nim/nvidia/nemotron-3-super-120b-a12b",
+      "params": {
+        "model": "nvidia_nim/nvidia/nemotron-3-super-120b-a12b"
+      },
+      "info": {},
+      "ui": {
+        "id": "nvidia_nim/nvidia/nemotron-3-super-120b-a12b",
+        "label": "Nemotron 3 Super (NVIDIA NIM)",
+        "provider": "nvidia"
+      }
+    },
+    {
+      "id": "nvidia_nim/nvidia/nemotron-3-nano-30b-a3b",
+      "params": {
+        "model": "nvidia_nim/nvidia/nemotron-3-nano-30b-a3b"
+      },
+      "info": {},
+      "ui": {
+        "id": "nvidia_nim/nvidia/nemotron-3-nano-30b-a3b",
+        "label": "Nemotron 3 Nano (NVIDIA NIM)",
+        "provider": "nvidia"
+      }
+    },
+    {
+      "id": "nvidia_nim/nvidia/nemotron-3.5-lightning-30b-a3b",
+      "params": {
+        "model": "nvidia_nim/nvidia/nemotron-3.5-lightning-30b-a3b"
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "nvidia_nim/nvidia/nemotron-3.5-lightning-30b-a3b",
+        "label": "Nemotron 3.5 Lightning (NVIDIA NIM)",
+        "provider": "nvidia"
+      }
+    },
+    {
+      "id": "moonshot/kimi-k3",
+      "params": {
+        "model": "moonshot/kimi-k3",
+        "allowed_openai_params": [
+          "reasoning_effort"
+        ],
+        "additional_drop_params": [
+          "temperature"
+        ]
+      },
+      "info": {},
+      "ui": {
+        "id": "moonshot/kimi-k3",
+        "label": "Kimi K3",
+        "provider": "moonshot"
+      }
+    },
+    {
+      "id": "moonshot/kimi-k2.7-code",
+      "params": {
+        "model": "moonshot/kimi-k2.7-code"
+      },
+      "info": {},
+      "ui": {
+        "id": "moonshot/kimi-k2.7-code",
+        "label": "Kimi K2.7 Code",
+        "provider": "moonshot"
+      }
+    },
+    {
+      "id": "moonshot/kimi-k2.6",
+      "params": {
+        "model": "moonshot/kimi-k2.6"
+      },
+      "info": {
+        "input_cost_per_token": 9.5e-07,
+        "output_cost_per_token": 4e-06,
+        "cache_read_input_token_cost": 1.6e-07
+      },
+      "ui": {
+        "id": "moonshot/kimi-k2.6",
+        "label": "Kimi K2.6",
+        "provider": "moonshot"
+      }
+    },
+    {
+      "id": "zai/glm-5.3",
+      "params": {
+        "model": "zai/glm-5.3",
+        "allowed_openai_params": [
+          "reasoning_effort"
+        ]
+      },
+      "info": {
+        "input_cost_per_token": 1.4e-06,
+        "output_cost_per_token": 4.4e-06,
+        "cache_read_input_token_cost": 2.6e-07
+      },
+      "ui": {
+        "id": "zai/glm-5.3",
+        "label": "GLM-5.3",
+        "provider": "zai",
+        "reasoningEfforts": [
+          "low",
+          "high",
+          "max"
+        ]
+      }
+    },
+    {
+      "id": "zai/glm-5.3-flash",
+      "params": {
+        "model": "zai/glm-5.3-flash",
+        "allowed_openai_params": [
+          "reasoning_effort"
+        ]
+      },
+      "info": {
+        "input_cost_per_token": 1.5e-07,
+        "output_cost_per_token": 5e-07,
+        "cache_read_input_token_cost": 3e-08
+      },
+      "ui": {
+        "id": "zai/glm-5.3-flash",
+        "label": "GLM-5.3 Flash",
+        "provider": "zai",
+        "reasoningEfforts": [
+          "low",
+          "high",
+          "max"
+        ]
+      }
+    },
+    {
+      "id": "zai/glm-5.3-flashx",
+      "params": {
+        "model": "zai/glm-5.3-flashx",
+        "allowed_openai_params": [
+          "reasoning_effort"
+        ]
+      },
+      "info": {
+        "input_cost_per_token": 3.7e-07,
+        "output_cost_per_token": 1.25e-06,
+        "cache_read_input_token_cost": 7.5e-08
+      },
+      "ui": {
+        "id": "zai/glm-5.3-flashx",
+        "label": "GLM-5.3 FlashX",
+        "provider": "zai",
+        "reasoningEfforts": [
+          "low",
+          "high",
+          "max"
+        ]
+      }
+    },
+    {
+      "id": "zai/glm-5.2",
+      "params": {
+        "model": "zai/glm-5.2"
+      },
+      "info": {
+        "input_cost_per_token": 1.4e-06,
+        "output_cost_per_token": 4.4e-06,
+        "cache_read_input_token_cost": 2.6e-07
+      },
+      "ui": {
+        "id": "zai/glm-5.2",
+        "label": "GLM-5.2",
+        "provider": "zai"
+      }
+    },
+    {
+      "id": "zai/glm-5-turbo",
+      "params": {
+        "model": "zai/glm-5-turbo"
+      },
+      "info": {
+        "input_cost_per_token": 1.2e-06,
+        "output_cost_per_token": 4e-06,
+        "cache_read_input_token_cost": 2.4e-07
+      },
+      "ui": {
+        "id": "zai/glm-5-turbo",
+        "label": "GLM-5 Turbo",
+        "provider": "zai"
+      }
+    },
+    {
+      "id": "zai/glm-4.7-flashx",
+      "params": {
+        "model": "zai/glm-4.7-flashx"
+      },
+      "info": {
+        "input_cost_per_token": 7e-08,
+        "output_cost_per_token": 4e-07,
+        "cache_read_input_token_cost": 1e-08
+      },
+      "ui": {
+        "id": "zai/glm-4.7-flashx",
+        "label": "GLM-4.7 FlashX",
+        "provider": "zai"
+      }
+    },
+    {
+      "id": "groq/openai/gpt-oss-20b",
+      "params": {
+        "model": "openai/openai/gpt-oss-20b",
+        "api_base": "https://api.groq.com/openai/v1"
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "groq/openai/gpt-oss-20b",
+        "label": "GPT-OSS 20B via Groq",
+        "provider": "groq"
+      }
+    },
+    {
+      "id": "groq/openai/gpt-oss-120b",
+      "params": {
+        "model": "openai/openai/gpt-oss-120b",
+        "api_base": "https://api.groq.com/openai/v1"
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "groq/openai/gpt-oss-120b",
+        "label": "GPT-OSS 120B via Groq",
+        "provider": "groq"
+      }
+    },
+    {
+      "id": "cerebras/qwen-3.8-27b",
+      "params": {
+        "model": "openai/qwen-3.8-27b",
+        "api_base": "https://api.cerebras.ai/v1"
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "cerebras/qwen-3.8-27b",
+        "label": "Qwen 3.8 27B via Cerebras",
+        "provider": "cerebras"
+      }
+    },
+    {
+      "id": "cerebras/gpt-oss-120b",
+      "params": {
+        "model": "openai/gpt-oss-120b",
+        "api_base": "https://api.cerebras.ai/v1"
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "cerebras/gpt-oss-120b",
+        "label": "GPT-OSS 120B via Cerebras",
+        "provider": "cerebras"
+      }
+    },
+    {
+      "id": "together_ai/MiniMaxAI/MiniMax-M3",
+      "params": {
+        "model": "openai/MiniMaxAI/MiniMax-M3",
+        "api_base": "https://api.together.xyz/v1"
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "together_ai/MiniMaxAI/MiniMax-M3",
+        "label": "MiniMax M3 via Together AI",
+        "provider": "together"
+      }
+    },
+    {
+      "id": "together_ai/zai-org/GLM-5.3",
+      "params": {
+        "model": "openai/zai-org/GLM-5.3",
+        "api_base": "https://api.together.xyz/v1"
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "together_ai/zai-org/GLM-5.3",
+        "label": "GLM-5.3 via Together AI",
+        "provider": "together"
+      }
+    },
+    {
+      "id": "together_ai/moonshotai/Kimi-K3",
+      "params": {
+        "model": "openai/moonshotai/Kimi-K3",
+        "api_base": "https://api.together.xyz/v1"
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "together_ai/moonshotai/Kimi-K3",
+        "label": "Kimi K3 via Together AI",
+        "provider": "together"
+      }
+    },
+    {
+      "id": "fireworks_ai/accounts/fireworks/models/deepseek-v4p1-flash",
+      "params": {
+        "model": "openai/accounts/fireworks/models/deepseek-v4p1-flash",
+        "api_base": "https://api.fireworks.ai/inference/v1"
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "fireworks_ai/accounts/fireworks/models/deepseek-v4p1-flash",
+        "label": "DeepSeek V4.1 Flash via Fireworks AI",
+        "provider": "fireworks"
+      }
+    },
+    {
+      "id": "fireworks_ai/accounts/fireworks/models/glm-5p3",
+      "params": {
+        "model": "openai/accounts/fireworks/models/glm-5p3",
+        "api_base": "https://api.fireworks.ai/inference/v1"
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "fireworks_ai/accounts/fireworks/models/glm-5p3",
+        "label": "GLM-5.3 via Fireworks AI",
+        "provider": "fireworks"
+      }
+    },
+    {
+      "id": "fireworks_ai/accounts/fireworks/models/deepseek-v4-flash-0731",
+      "params": {
+        "model": "openai/accounts/fireworks/models/deepseek-v4-flash-0731",
+        "api_base": "https://api.fireworks.ai/inference/v1"
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "fireworks_ai/accounts/fireworks/models/deepseek-v4-flash-0731",
+        "label": "DeepSeek V4 Flash via Fireworks AI",
+        "provider": "fireworks"
+      }
+    },
+    {
+      "id": "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash",
+      "params": {
+        "model": "openai/deepseek-ai/DeepSeek-V4.1-Flash",
+        "api_base": "https://api.deepinfra.com/v1/openai"
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash",
+        "label": "DeepSeek V4.1 Flash via DeepInfra",
+        "provider": "deepinfra"
+      }
+    },
+    {
+      "id": "deepinfra/zai-org/GLM-5.3-Flash",
+      "params": {
+        "model": "openai/zai-org/GLM-5.3-Flash",
+        "api_base": "https://api.deepinfra.com/v1/openai"
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "deepinfra/zai-org/GLM-5.3-Flash",
+        "label": "GLM-5.3 Flash via DeepInfra",
+        "provider": "deepinfra"
+      }
+    },
+    {
+      "id": "deepinfra/deepseek-ai/DeepSeek-V4-Flash-0731",
+      "params": {
+        "model": "openai/deepseek-ai/DeepSeek-V4-Flash-0731",
+        "api_base": "https://api.deepinfra.com/v1/openai"
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "deepinfra/deepseek-ai/DeepSeek-V4-Flash-0731",
+        "label": "DeepSeek V4 Flash via DeepInfra",
+        "provider": "deepinfra"
+      }
+    },
+    {
+      "id": "sambanova/MiniMax-M2.7",
+      "params": {
+        "model": "openai/MiniMax-M2.7",
+        "api_base": "https://api.sambanova.ai/v1"
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "sambanova/MiniMax-M2.7",
+        "label": "MiniMax M2.7 via SambaNova",
+        "provider": "sambanova"
+      }
+    },
+    {
+      "id": "dashscope/qwen3.8-max",
+      "params": {
+        "model": "openai/qwen3.8-max",
+        "api_base": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "dashscope/qwen3.8-max",
+        "label": "Qwen 3.8 Max",
+        "provider": "alibaba"
+      }
+    },
+    {
+      "id": "dashscope/qwen3.8-flash",
+      "params": {
+        "model": "openai/qwen3.8-flash",
+        "api_base": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "dashscope/qwen3.8-flash",
+        "label": "Qwen 3.8 Flash",
+        "provider": "alibaba"
+      }
+    },
+    {
+      "id": "dashscope/qwen3.7-plus",
+      "params": {
+        "model": "openai/qwen3.7-plus",
+        "api_base": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "dashscope/qwen3.7-plus",
+        "label": "Qwen 3.7 Plus",
+        "provider": "alibaba"
+      }
+    },
+    {
+      "id": "dashscope/qwen-plus",
+      "params": {
+        "model": "openai/qwen-plus",
+        "api_base": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "dashscope/qwen-plus",
+        "label": "Qwen Plus",
+        "provider": "alibaba"
+      }
+    },
+    {
+      "id": "upstage/solar-pro4",
+      "params": {
+        "model": "openai/solar-pro4",
+        "api_base": "https://api.upstage.ai/v1"
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "upstage/solar-pro4",
+        "label": "Solar Pro 4",
+        "provider": "upstage"
+      }
+    },
+    {
+      "id": "cohere/command-a-plus-05-2026",
+      "params": {
+        "model": "openai/command-a-plus-05-2026",
+        "api_base": "https://api.cohere.ai/compatibility/v1"
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "cohere/command-a-plus-05-2026",
+        "label": "Command A+",
+        "provider": "cohere"
+      }
+    },
+    {
+      "id": "huggingface/openai/gpt-oss-120b",
+      "params": {
+        "model": "openai/openai/gpt-oss-120b",
+        "api_base": "https://router.huggingface.co/v1"
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "huggingface/openai/gpt-oss-120b",
+        "label": "GPT-OSS 120B via Hugging Face",
+        "provider": "huggingface"
+      }
+    },
+    {
+      "id": "nebius/Qwen/Qwen3-235B-A22B-Instruct-2507",
+      "params": {
+        "model": "openai/Qwen/Qwen3-235B-A22B-Instruct-2507",
+        "api_base": "https://api.tokenfactory.nebius.com/v1"
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "nebius/Qwen/Qwen3-235B-A22B-Instruct-2507",
+        "label": "Qwen3 235B via Nebius Token Factory",
+        "provider": "nebius"
+      }
+    },
+    {
+      "id": "novita/zai-org/glm-5.3-flash",
+      "params": {
+        "model": "openai/zai-org/glm-5.3-flash",
+        "api_base": "https://api.novita.ai/v3/openai"
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "novita/zai-org/glm-5.3-flash",
+        "label": "GLM-5.3 Flash via Novita AI",
+        "provider": "novita"
+      }
+    },
+    {
+      "id": "siliconflow/deepseek-ai/DeepSeek-V4.1-Flash",
+      "params": {
+        "model": "openai/deepseek-ai/DeepSeek-V4.1-Flash",
+        "api_base": "https://api.siliconflow.com/v1"
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "siliconflow/deepseek-ai/DeepSeek-V4.1-Flash",
+        "label": "DeepSeek V4.1 Flash via SiliconFlow",
+        "provider": "siliconflow"
+      }
+    },
+    {
+      "id": "siliconflow/deepseek-ai/DeepSeek-V3",
+      "params": {
+        "model": "openai/deepseek-ai/DeepSeek-V3",
+        "api_base": "https://api.siliconflow.com/v1"
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "siliconflow/deepseek-ai/DeepSeek-V3",
+        "label": "DeepSeek V3 via SiliconFlow (International)",
+        "provider": "siliconflow"
+      }
+    },
+    {
+      "id": "requesty/anthropic/claude-sonnet-5",
+      "params": {
+        "model": "openai/anthropic/claude-sonnet-5",
+        "api_base": "https://router.requesty.ai/v1"
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "requesty/anthropic/claude-sonnet-5",
+        "label": "Claude Sonnet 5 via Requesty",
+        "provider": "requesty"
+      }
+    },
+    {
+      "id": "vercel/anthropic/claude-opus-5",
+      "params": {
+        "model": "openai/anthropic/claude-opus-5",
+        "api_base": "https://ai-gateway.vercel.sh/v1",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "vercel/anthropic/claude-opus-5",
+        "label": "Claude Opus 5 via Vercel AI Gateway",
+        "provider": "vercel"
+      }
+    },
+    {
+      "id": "vercel/openai/gpt-5.4",
+      "params": {
+        "model": "openai/openai/gpt-5.4",
+        "api_base": "https://ai-gateway.vercel.sh/v1",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "vercel/openai/gpt-5.4",
+        "label": "GPT-5.4 via Vercel AI Gateway",
+        "provider": "vercel"
+      }
+    },
+    {
+      "id": "vercel/google/gemini-3.7-flash",
+      "params": {
+        "model": "openai/google/gemini-3.7-flash",
+        "api_base": "https://ai-gateway.vercel.sh/v1",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "vercel/google/gemini-3.7-flash",
+        "label": "Gemini 3.7 Flash via Vercel AI Gateway",
+        "provider": "vercel"
+      }
+    },
+    {
+      "id": "vercel/moonshotai/kimi-k3",
+      "params": {
+        "model": "openai/moonshotai/kimi-k3",
+        "api_base": "https://ai-gateway.vercel.sh/v1",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "vercel/moonshotai/kimi-k3",
+        "label": "Kimi K3 via Vercel AI Gateway",
+        "provider": "vercel"
+      }
+    },
+    {
+      "id": "kilo/anthropic/claude-sonnet-5",
+      "params": {
+        "model": "openai/anthropic/claude-sonnet-5",
+        "api_base": "https://api.kilo.ai/api/gateway",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "kilo/anthropic/claude-sonnet-5",
+        "label": "Claude Sonnet 5 via Kilo AI Gateway",
+        "provider": "kilo"
+      }
+    },
+    {
+      "id": "kilo/anthropic/claude-opus-5",
+      "params": {
+        "model": "openai/anthropic/claude-opus-5",
+        "api_base": "https://api.kilo.ai/api/gateway",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "kilo/anthropic/claude-opus-5",
+        "label": "Claude Opus 5 via Kilo AI Gateway",
+        "provider": "kilo"
+      }
+    },
+    {
+      "id": "kilo/anthropic/claude-haiku-4.5",
+      "params": {
+        "model": "openai/anthropic/claude-haiku-4.5",
+        "api_base": "https://api.kilo.ai/api/gateway",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "kilo/anthropic/claude-haiku-4.5",
+        "label": "Claude Haiku 4.5 via Kilo AI Gateway",
+        "provider": "kilo"
+      }
+    },
+    {
+      "id": "kilo/openai/gpt-5.4",
+      "params": {
+        "model": "openai/openai/gpt-5.4",
+        "api_base": "https://api.kilo.ai/api/gateway",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "kilo/openai/gpt-5.4",
+        "label": "GPT-5.4 via Kilo AI Gateway",
+        "provider": "kilo"
+      }
+    },
+    {
+      "id": "kilo/google/gemini-3.7-flash",
+      "params": {
+        "model": "openai/google/gemini-3.7-flash",
+        "api_base": "https://api.kilo.ai/api/gateway",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "kilo/google/gemini-3.7-flash",
+        "label": "Gemini 3.7 Flash via Kilo AI Gateway",
+        "provider": "kilo"
+      }
+    },
+    {
+      "id": "kilo/moonshotai/kimi-k3",
+      "params": {
+        "model": "openai/moonshotai/kimi-k3",
+        "api_base": "https://api.kilo.ai/api/gateway",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "kilo/moonshotai/kimi-k3",
+        "label": "Kimi K3 via Kilo AI Gateway",
+        "provider": "kilo"
+      }
+    },
+    {
+      "id": "opencode_zen/kimi-k3",
+      "params": {
+        "model": "openai/kimi-k3",
+        "api_base": "https://opencode.ai/zen/v1",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "opencode_zen/kimi-k3",
+        "label": "Kimi K3 via OpenCode Zen",
+        "provider": "opencode_zen"
+      }
+    },
+    {
+      "id": "opencode_zen/minimax-m3",
+      "params": {
+        "model": "openai/minimax-m3",
+        "api_base": "https://opencode.ai/zen/v1",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "opencode_zen/minimax-m3",
+        "label": "MiniMax M3 via OpenCode Zen",
+        "provider": "opencode_zen"
+      }
+    },
+    {
+      "id": "opencode_zen/glm-5.3",
+      "params": {
+        "model": "openai/glm-5.3",
+        "api_base": "https://opencode.ai/zen/v1",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "opencode_zen/glm-5.3",
+        "label": "GLM 5.3 via OpenCode Zen",
+        "provider": "opencode_zen"
+      }
+    },
+    {
+      "id": "opencode_zen/glm-5.3-flash",
+      "params": {
+        "model": "openai/glm-5.3-flash",
+        "api_base": "https://opencode.ai/zen/v1",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "opencode_zen/glm-5.3-flash",
+        "label": "GLM 5.3 Flash via OpenCode Zen",
+        "provider": "opencode_zen"
+      }
+    },
+    {
+      "id": "opencode_zen/deepseek-v4-pro",
+      "params": {
+        "model": "openai/deepseek-v4-pro",
+        "api_base": "https://opencode.ai/zen/v1",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "opencode_zen/deepseek-v4-pro",
+        "label": "DeepSeek V4 Pro via OpenCode Zen",
+        "provider": "opencode_zen"
+      }
+    },
+    {
+      "id": "opencode_zen/deepseek-v4-flash",
+      "params": {
+        "model": "openai/deepseek-v4-flash",
+        "api_base": "https://opencode.ai/zen/v1",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "opencode_zen/deepseek-v4-flash",
+        "label": "DeepSeek V4 Flash via OpenCode Zen",
+        "provider": "opencode_zen"
+      }
+    },
+    {
+      "id": "kimi_code/k3",
+      "params": {
+        "model": "openai/k3",
+        "allowed_openai_params": [
+          "reasoning_effort"
+        ],
+        "api_base": "https://api.kimi.ai/coding/v1",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "kimi_code/k3",
+        "label": "Kimi K3 (plan context limit) \u00b7 Kimi Code",
+        "provider": "kimi_code",
+        "reasoningEfforts": [
+          "none",
+          "low",
+          "high",
+          "max"
+        ]
+      }
+    },
+    {
+      "id": "kimi_code/k3-256k",
+      "params": {
+        "model": "openai/k3-256k",
+        "allowed_openai_params": [
+          "reasoning_effort"
+        ],
+        "api_base": "https://api.kimi.ai/coding/v1",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "kimi_code/k3-256k",
+        "label": "Kimi K3 256K \u00b7 Kimi Code",
+        "provider": "kimi_code",
+        "reasoningEfforts": [
+          "none",
+          "low",
+          "high",
+          "max"
+        ]
+      }
+    },
+    {
+      "id": "kimi_code/kimi-for-coding",
+      "params": {
+        "model": "openai/kimi-for-coding",
+        "allowed_openai_params": [
+          "reasoning_effort"
+        ],
+        "api_base": "https://api.kimi.ai/coding/v1",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "kimi_code/kimi-for-coding",
+        "label": "Kimi K2.8 Preview \u00b7 Kimi Code",
+        "provider": "kimi_code",
+        "reasoningEfforts": [
+          "none",
+          "low",
+          "high",
+          "max"
+        ]
+      }
+    },
+    {
+      "id": "kimi_code/kimi-for-coding-highspeed",
+      "params": {
+        "model": "openai/kimi-for-coding-highspeed",
+        "api_base": "https://api.kimi.ai/coding/v1",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "kimi_code/kimi-for-coding-highspeed",
+        "label": "Kimi K2.7 Code Highspeed (Pro+) \u00b7 Kimi Code",
+        "provider": "kimi_code"
+      }
+    },
+    {
+      "id": "minimax_plan/MiniMax-M3",
+      "params": {
+        "model": "openai/MiniMax-M3",
+        "api_base": "https://api.minimax.io/v1",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "minimax_plan/MiniMax-M3",
+        "label": "MiniMax M3 \u00b7 Token Plan",
+        "provider": "minimax_plan"
+      }
+    },
+    {
+      "id": "minimax_plan/MiniMax-M2.7",
+      "params": {
+        "model": "openai/MiniMax-M2.7",
+        "api_base": "https://api.minimax.io/v1",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "minimax_plan/MiniMax-M2.7",
+        "label": "MiniMax M2.7 \u00b7 Token Plan",
+        "provider": "minimax_plan"
+      }
+    },
+    {
+      "id": "vercel/anthropic/claude-sonnet-5.5",
+      "params": {
+        "model": "openai/anthropic/claude-sonnet-5.5",
+        "api_base": "https://ai-gateway.vercel.sh/v1",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "vercel/anthropic/claude-sonnet-5.5",
+        "label": "Claude Sonnet 5.5 via Vercel AI Gateway",
+        "provider": "vercel"
+      }
+    },
+    {
+      "id": "vercel/openai/gpt-6.1-sol",
+      "params": {
+        "model": "openai/openai/gpt-6.1-sol",
+        "api_base": "https://ai-gateway.vercel.sh/v1",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "vercel/openai/gpt-6.1-sol",
+        "label": "GPT-6.1 Sol via Vercel AI Gateway",
+        "provider": "vercel"
+      }
+    },
+    {
+      "id": "vercel/anthropic/claude-sonnet-5",
+      "params": {
+        "model": "openai/anthropic/claude-sonnet-5",
+        "api_base": "https://ai-gateway.vercel.sh/v1"
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "vercel/anthropic/claude-sonnet-5",
+        "label": "Claude Sonnet 5 via Vercel AI Gateway",
+        "provider": "vercel"
+      }
+    },
+    {
+      "id": "chutes/moonshotai/Kimi-K3-TEE",
+      "params": {
+        "model": "openai/moonshotai/Kimi-K3-TEE",
+        "api_base": "https://llm.chutes.ai/v1",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "chutes/moonshotai/Kimi-K3-TEE",
+        "label": "Kimi K3 via Chutes",
+        "provider": "chutes"
+      }
+    },
+    {
+      "id": "chutes/zai-org/GLM-5.2-TEE",
+      "params": {
+        "model": "openai/zai-org/GLM-5.2-TEE",
+        "api_base": "https://llm.chutes.ai/v1",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "chutes/zai-org/GLM-5.2-TEE",
+        "label": "GLM 5.2 via Chutes",
+        "provider": "chutes"
+      }
+    },
+    {
+      "id": "chutes/deepseek-ai/DeepSeek-V4-Flash-0731-TEE",
+      "params": {
+        "model": "openai/deepseek-ai/DeepSeek-V4-Flash-0731-TEE",
+        "api_base": "https://llm.chutes.ai/v1",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "chutes/deepseek-ai/DeepSeek-V4-Flash-0731-TEE",
+        "label": "DeepSeek V4 Flash via Chutes",
+        "provider": "chutes"
+      }
+    },
+    {
+      "id": "synthetic/hf:moonshotai/Kimi-K3",
+      "params": {
+        "model": "openai/hf:moonshotai/Kimi-K3",
+        "api_base": "https://api.synthetic.new/v1",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "synthetic/hf:moonshotai/Kimi-K3",
+        "label": "Kimi K3 via Synthetic",
+        "provider": "synthetic"
+      }
+    },
+    {
+      "id": "synthetic/hf:deepseek-ai/DeepSeek-V4.1-Flash",
+      "params": {
+        "model": "openai/hf:deepseek-ai/DeepSeek-V4.1-Flash",
+        "api_base": "https://api.synthetic.new/v1",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "synthetic/hf:deepseek-ai/DeepSeek-V4.1-Flash",
+        "label": "DeepSeek V4.1 Flash via Synthetic",
+        "provider": "synthetic"
+      }
+    },
+    {
+      "id": "synthetic/hf:zai-org/GLM-5.3-Flash",
+      "params": {
+        "model": "openai/hf:zai-org/GLM-5.3-Flash",
+        "api_base": "https://api.synthetic.new/v1",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "synthetic/hf:zai-org/GLM-5.3-Flash",
+        "label": "GLM 5.3 Flash via Synthetic",
+        "provider": "synthetic"
+      }
+    },
+    {
+      "id": "ollama_cloud/kimi-k3",
+      "params": {
+        "model": "openai/kimi-k3",
+        "api_base": "https://ollama.com/v1",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "ollama_cloud/kimi-k3",
+        "label": "Kimi K3 via Ollama Cloud",
+        "provider": "ollama_cloud"
+      }
+    },
+    {
+      "id": "ollama_cloud/glm-5.3",
+      "params": {
+        "model": "openai/glm-5.3",
+        "api_base": "https://ollama.com/v1",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "ollama_cloud/glm-5.3",
+        "label": "GLM 5.3 via Ollama Cloud",
+        "provider": "ollama_cloud"
+      }
+    },
+    {
+      "id": "ollama_cloud/deepseek-v4.1-flash",
+      "params": {
+        "model": "openai/deepseek-v4.1-flash",
+        "api_base": "https://ollama.com/v1",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "ollama_cloud/deepseek-v4.1-flash",
+        "label": "DeepSeek V4.1 Flash via Ollama Cloud",
+        "provider": "ollama_cloud"
+      }
+    },
+    {
+      "id": "ollama_cloud/minimax-m3",
+      "params": {
+        "model": "openai/minimax-m3",
+        "api_base": "https://ollama.com/v1",
+        "extra_headers": {
+          "User-Agent": "Decepticon/1.0"
+        }
+      },
+      "info": {
+        "mode": "chat",
+        "supports_function_calling": true
+      },
+      "ui": {
+        "id": "ollama_cloud/minimax-m3",
+        "label": "MiniMax M3 via Ollama Cloud",
+        "provider": "ollama_cloud"
+      }
+    },
+    {
+      "id": "anthropic/claude-fable-5-1",
+      "params": {
+        "model": "anthropic/claude-fable-5-1",
+        "additional_drop_params": [
+          "temperature",
+          "top_p",
+          "top_k"
+        ],
+        "max_tokens": 128000
+      },
+      "info": {
+        "input_cost_per_token": 1e-05,
+        "output_cost_per_token": 5e-05,
+        "cache_read_input_token_cost": 2.5e-07
+      },
+      "ui": {
+        "id": "anthropic/claude-fable-5-1",
+        "label": "Claude Fable 5.1",
+        "provider": "anthropic"
+      }
+    },
+    {
+      "id": "anthropic/claude-opus-5-5",
+      "params": {
+        "model": "anthropic/claude-opus-5-5",
+        "additional_drop_params": [
+          "temperature",
+          "top_p",
+          "top_k"
+        ],
+        "max_tokens": 128000
+      },
+      "info": {
+        "input_cost_per_token": 4e-06,
+        "output_cost_per_token": 2e-05,
+        "cache_read_input_token_cost": 2e-07
+      },
+      "ui": {
+        "id": "anthropic/claude-opus-5-5",
+        "label": "Claude Opus 5.5",
+        "provider": "anthropic"
+      }
+    },
+    {
+      "id": "anthropic/claude-sonnet-5-5",
+      "params": {
+        "model": "anthropic/claude-sonnet-5-5",
+        "additional_drop_params": [
+          "temperature",
+          "top_p",
+          "top_k"
+        ],
+        "max_tokens": 128000
+      },
+      "info": {
+        "input_cost_per_token": 2e-06,
+        "output_cost_per_token": 1e-05,
+        "cache_read_input_token_cost": 2e-07
+      },
+      "ui": {
+        "id": "anthropic/claude-sonnet-5-5",
+        "label": "Claude Sonnet 5.5",
+        "provider": "anthropic"
+      }
+    },
+    {
+      "id": "anthropic/claude-opus-4-8",
+      "params": {
+        "model": "anthropic/claude-opus-4-8",
+        "additional_drop_params": [
+          "temperature"
+        ],
+        "max_tokens": 128000
+      },
+      "info": {
+        "input_cost_per_token": 5e-06,
+        "output_cost_per_token": 2.5e-05
+      }
+    },
+    {
+      "id": "anthropic/claude-opus-4-7",
+      "params": {
+        "model": "anthropic/claude-opus-4-7",
+        "additional_drop_params": [
+          "temperature"
+        ],
+        "max_tokens": 128000
+      },
+      "info": {
+        "input_cost_per_token": 5e-06,
+        "output_cost_per_token": 2.5e-05
+      }
+    },
+    {
+      "id": "anthropic/claude-sonnet-4-6",
+      "params": {
+        "model": "anthropic/claude-sonnet-4-6",
+        "max_tokens": 64000
+      },
+      "info": {
+        "input_cost_per_token": 3e-06,
+        "output_cost_per_token": 1.5e-05
+      }
+    },
+    {
+      "id": "anthropic/claude-haiku-4-5",
+      "params": {
+        "model": "anthropic/claude-haiku-4-5-20251001",
+        "max_tokens": 64000
+      },
+      "info": {
+        "input_cost_per_token": 1e-06,
+        "output_cost_per_token": 5e-06
+      },
+      "ui": {
+        "id": "anthropic/claude-haiku-4-5",
+        "label": "Claude Haiku 4.5",
+        "provider": "anthropic"
+      }
+    },
+    {
+      "id": "bedrock/anthropic.claude-opus-4-7",
+      "params": {
+        "model": "bedrock/anthropic.claude-opus-4-7",
+        "additional_drop_params": [
+          "temperature"
+        ]
+      },
+      "info": {}
+    },
+    {
+      "id": "bedrock/anthropic.claude-sonnet-4-6",
+      "params": {
+        "model": "bedrock/anthropic.claude-sonnet-4-6"
+      },
+      "info": {}
+    },
+    {
+      "id": "bedrock/anthropic.claude-haiku-4-5-20251001-v1:0",
+      "params": {
+        "model": "bedrock/anthropic.claude-haiku-4-5-20251001-v1:0"
+      },
+      "info": {}
+    },
+    {
+      "id": "openai/gpt-6-astra",
+      "params": {
+        "model": "openai/gpt-6-astra",
+        "allowed_openai_params": [
+          "reasoning_effort",
+          "tool_choice"
+        ],
+        "additional_drop_params": [
+          "temperature",
+          "top_p",
+          "top_logprobs",
+          "logprobs"
+        ]
+      },
+      "info": {
+        "mode": "responses",
+        "input_cost_per_token": 1e-05,
+        "output_cost_per_token": 5e-05,
+        "cache_read_input_token_cost": 1e-06
+      },
+      "ui": {
+        "id": "openai/gpt-6-astra",
+        "label": "GPT-6 Astra",
+        "provider": "openai",
+        "reasoningEfforts": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max"
+        ]
+      }
+    },
+    {
+      "id": "openai/gpt-6.1-sol",
+      "params": {
+        "model": "openai/gpt-6.1-sol",
+        "allowed_openai_params": [
+          "reasoning_effort",
+          "tool_choice"
+        ],
+        "additional_drop_params": [
+          "temperature",
+          "top_p",
+          "top_logprobs",
+          "logprobs"
+        ]
+      },
+      "info": {
+        "mode": "responses",
+        "input_cost_per_token": 2e-06,
+        "output_cost_per_token": 1e-05,
+        "cache_read_input_token_cost": 1e-07
+      },
+      "ui": {
+        "id": "openai/gpt-6.1-sol",
+        "label": "GPT-6.1 Sol",
+        "provider": "openai",
+        "reasoningEfforts": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max"
+        ]
+      }
+    },
+    {
+      "id": "openai/gpt-6-sol",
+      "params": {
+        "model": "openai/gpt-6-sol",
+        "allowed_openai_params": [
+          "reasoning_effort",
+          "tool_choice"
+        ],
+        "additional_drop_params": [
+          "temperature",
+          "top_p",
+          "top_logprobs",
+          "logprobs"
+        ]
+      },
+      "info": {
+        "mode": "responses",
+        "input_cost_per_token": 2e-06,
+        "output_cost_per_token": 1e-05,
+        "cache_read_input_token_cost": 2e-07
+      },
+      "ui": {
+        "id": "openai/gpt-6-sol",
+        "label": "GPT-6 Sol",
+        "provider": "openai",
+        "reasoningEfforts": [
+          "none",
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max"
+        ]
+      }
+    },
+    {
+      "id": "openai/gpt-6-luna",
+      "params": {
+        "model": "openai/gpt-6-luna",
+        "allowed_openai_params": [
+          "reasoning_effort",
+          "tool_choice"
+        ],
+        "additional_drop_params": [
+          "temperature",
+          "top_p",
+          "top_logprobs",
+          "logprobs"
+        ]
+      },
+      "info": {
+        "mode": "responses",
+        "input_cost_per_token": 1e-07,
+        "output_cost_per_token": 5e-07,
+        "cache_read_input_token_cost": 1e-08
+      },
+      "ui": {
+        "id": "openai/gpt-6-luna",
+        "label": "GPT-6 Luna",
+        "provider": "openai",
+        "reasoningEfforts": [
+          "none",
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max"
+        ]
+      }
+    },
+    {
+      "id": "openai/gpt-5.5",
+      "params": {
+        "model": "openai/gpt-5.5"
+      },
+      "info": {
+        "input_cost_per_token": 5e-06,
+        "output_cost_per_token": 3e-05
+      }
+    },
+    {
+      "id": "openai/gpt-5.4",
+      "params": {
+        "model": "openai/gpt-5.4"
+      },
+      "info": {
+        "input_cost_per_token": 2.5e-06,
+        "output_cost_per_token": 1.5e-05
+      }
+    },
+    {
+      "id": "openai/gpt-5-nano",
+      "params": {
+        "model": "openai/gpt-5-nano"
+      },
+      "info": {
+        "input_cost_per_token": 5e-08,
+        "output_cost_per_token": 4e-07
+      }
+    },
+    {
+      "id": "openai/gpt-5.3-codex",
+      "params": {
+        "model": "openai/gpt-5.3-codex"
+      },
+      "info": {
+        "input_cost_per_token": 1.75e-06,
+        "output_cost_per_token": 1.4e-05
+      }
+    },
+    {
+      "id": "openai/text-embedding-3-small",
+      "params": {
+        "model": "openai/text-embedding-3-small"
+      },
+      "info": {
+        "mode": "embedding",
+        "input_cost_per_token": 2e-08
+      }
+    },
+    {
+      "id": "voyage/voyage-3",
+      "params": {
+        "model": "voyage/voyage-3"
+      },
+      "info": {
+        "mode": "embedding",
+        "input_cost_per_token": 6e-08
+      }
+    },
+    {
+      "id": "gemini/gemini-embedding-001",
+      "params": {
+        "model": "gemini/gemini-embedding-001"
+      },
+      "info": {
+        "mode": "embedding"
+      }
+    },
+    {
+      "id": "gemini/gemini-3.8-flash",
+      "params": {
+        "model": "gemini/gemini-3.8-flash",
+        "additional_drop_params": [
+          "temperature",
+          "top_p",
+          "top_k",
+          "thinking_budget",
+          "candidate_count"
+        ]
+      },
+      "info": {
+        "input_cost_per_token": 7.5e-07,
+        "output_cost_per_token": 3.75e-06,
+        "cache_read_input_token_cost": 7.5e-08
+      },
+      "ui": {
+        "id": "gemini/gemini-3.8-flash",
+        "label": "Gemini 3.8 Flash",
+        "provider": "google"
+      }
+    },
+    {
+      "id": "gemini/gemini-2.5-pro",
+      "params": {
+        "model": "gemini/gemini-2.5-pro"
+      },
+      "info": {
+        "input_cost_per_token": 1.25e-06,
+        "output_cost_per_token": 1e-05
+      }
+    },
+    {
+      "id": "gemini/gemini-2.5-flash",
+      "params": {
+        "model": "gemini/gemini-2.5-flash"
+      },
+      "info": {
+        "input_cost_per_token": 3e-07,
+        "output_cost_per_token": 2.5e-06
+      }
+    },
+    {
+      "id": "gemini/gemini-2.5-flash-lite",
+      "params": {
+        "model": "gemini/gemini-2.5-flash-lite"
+      },
+      "info": {
+        "input_cost_per_token": 1e-07,
+        "output_cost_per_token": 4e-07
+      }
+    },
+    {
+      "id": "gemini/gemini-3.5-flash",
+      "params": {
+        "model": "gemini/gemini-3.5-flash"
+      },
+      "info": {
+        "input_cost_per_token": 1.5e-06,
+        "output_cost_per_token": 9e-06
+      },
+      "ui": {
+        "id": "gemini/gemini-3.5-flash",
+        "label": "Gemini 3.5 Flash",
+        "provider": "google"
+      }
+    },
+    {
+      "id": "gemini/gemini-3.1-flash-lite",
+      "params": {
+        "model": "gemini/gemini-3.1-flash-lite"
+      },
+      "info": {
+        "input_cost_per_token": 2.5e-07,
+        "output_cost_per_token": 1.5e-06
+      }
+    },
+    {
+      "id": "minimax/MiniMax-M3",
+      "params": {
+        "model": "minimax/MiniMax-M3",
+        "api_base": "https://api.minimax.io/v1"
+      },
+      "info": {
+        "input_cost_per_token": 6e-07,
+        "output_cost_per_token": 2.4e-06
+      },
+      "ui": {
+        "id": "minimax/MiniMax-M3",
+        "label": "MiniMax M3",
+        "provider": "minimax"
+      }
+    },
+    {
+      "id": "minimax/MiniMax-M2.7-highspeed",
+      "params": {
+        "model": "minimax/MiniMax-M2.7-highspeed",
+        "api_base": "https://api.minimax.io/v1"
+      },
+      "info": {
+        "input_cost_per_token": 3e-07,
+        "output_cost_per_token": 1.2e-06
+      },
+      "ui": {
+        "id": "minimax/MiniMax-M2.7-highspeed",
+        "label": "MiniMax M2.7 Highspeed",
+        "provider": "minimax"
+      }
+    },
+    {
+      "id": "deepseek/deepseek-v4-pro",
+      "params": {
+        "model": "deepseek/deepseek-v4-pro"
+      },
+      "info": {
+        "input_cost_per_token": 1.74e-06,
+        "output_cost_per_token": 3.48e-06
+      }
+    },
+    {
+      "id": "deepseek/deepseek-v4-flash",
+      "params": {
+        "model": "deepseek/deepseek-v4-flash"
+      },
+      "info": {
+        "input_cost_per_token": 1.4e-07,
+        "output_cost_per_token": 2.8e-07
+      }
+    },
+    {
+      "id": "deepseek/deepseek-chat",
+      "params": {
+        "model": "deepseek/deepseek-chat"
+      },
+      "info": {}
+    },
+    {
+      "id": "deepseek/deepseek-reasoner",
+      "params": {
+        "model": "deepseek/deepseek-reasoner"
+      },
+      "info": {}
+    },
+    {
+      "id": "xai/grok-4.7",
+      "params": {
+        "model": "xai/grok-4.7"
+      },
+      "info": {
+        "input_cost_per_token": 2e-06,
+        "output_cost_per_token": 6e-06,
+        "cache_read_input_token_cost": 5e-07
+      },
+      "ui": {
+        "id": "xai/grok-4.7",
+        "label": "Grok 4.7",
+        "provider": "xai",
+        "reasoningEfforts": [
+          "low",
+          "medium",
+          "high",
+          "xhigh"
+        ]
+      }
+    },
+    {
+      "id": "xai/grok-4.3",
+      "params": {
+        "model": "xai/grok-4.3"
+      },
+      "info": {
+        "input_cost_per_token": 1.25e-06,
+        "output_cost_per_token": 2.5e-06
+      },
+      "ui": {
+        "id": "xai/grok-4.3",
+        "label": "Grok 4.3",
+        "provider": "xai"
+      }
+    },
+    {
+      "id": "xai/grok-4-1-fast-reasoning",
+      "params": {
+        "model": "xai/grok-4-1-fast-reasoning"
+      },
+      "info": {
+        "input_cost_per_token": 2e-07,
+        "output_cost_per_token": 5e-07
+      }
+    },
+    {
+      "id": "mistral/mistral-large-latest",
+      "params": {
+        "model": "mistral/mistral-large-latest"
+      },
+      "info": {
+        "input_cost_per_token": 5e-07,
+        "output_cost_per_token": 1.5e-06
+      }
+    },
+    {
+      "id": "mistral/codestral-latest",
+      "params": {
+        "model": "mistral/codestral-latest"
+      },
+      "info": {
+        "input_cost_per_token": 3e-07,
+        "output_cost_per_token": 9e-07
+      }
+    },
+    {
+      "id": "openrouter/anthropic/claude-opus-4-8",
+      "params": {
+        "model": "openrouter/anthropic/claude-opus-4-8",
+        "additional_drop_params": [
+          "temperature"
+        ],
+        "max_tokens": 128000
+      },
+      "info": {
+        "input_cost_per_token": 5e-06,
+        "output_cost_per_token": 2.5e-05
+      }
+    },
+    {
+      "id": "openrouter/anthropic/claude-opus-4-7",
+      "params": {
+        "model": "openrouter/anthropic/claude-opus-4-7",
+        "additional_drop_params": [
+          "temperature"
+        ],
+        "max_tokens": 128000
+      },
+      "info": {
+        "input_cost_per_token": 5e-06,
+        "output_cost_per_token": 2.5e-05
+      }
+    },
+    {
+      "id": "openrouter/anthropic/claude-sonnet-4-6",
+      "params": {
+        "model": "openrouter/anthropic/claude-sonnet-4-6",
+        "max_tokens": 64000
+      },
+      "info": {
+        "input_cost_per_token": 3e-06,
+        "output_cost_per_token": 1.5e-05
+      }
+    },
+    {
+      "id": "openrouter/anthropic/claude-haiku-4-5",
+      "params": {
+        "model": "openrouter/anthropic/claude-haiku-4-5",
+        "max_tokens": 64000
+      },
+      "info": {
+        "input_cost_per_token": 1e-06,
+        "output_cost_per_token": 5e-06
+      },
+      "ui": {
+        "id": "openrouter/anthropic/claude-haiku-4-5",
+        "label": "Claude Haiku 4.5 via OpenRouter",
+        "provider": "openrouter"
+      }
+    },
+    {
+      "id": "cerebras/llama3.1-8b",
+      "params": {
+        "model": "cerebras/llama3.1-8b"
+      },
+      "info": {}
+    },
+    {
+      "id": "openai/mimo-vl",
+      "params": {
+        "model": "openai/mimo-vl",
+        "api_base": "https://platform.xiaomimimo.com/v1"
+      },
+      "info": {}
+    },
+    {
+      "id": "openai/mimo-rl",
+      "params": {
+        "model": "openai/mimo-rl",
+        "api_base": "https://platform.xiaomimimo.com/v1"
+      },
+      "info": {}
+    },
+    {
+      "id": "openai/mimo-7b",
+      "params": {
+        "model": "openai/mimo-7b",
+        "api_base": "https://platform.xiaomimimo.com/v1"
+      },
+      "info": {}
+    },
+    {
+      "id": "nvidia_nim/meta/llama-3.3-70b-instruct",
+      "params": {
+        "model": "nvidia_nim/meta/llama-3.3-70b-instruct"
+      },
+      "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0
+      }
+    },
+    {
+      "id": "nvidia_nim/nvidia/llama-3.1-nemotron-70b-instruct",
+      "params": {
+        "model": "nvidia_nim/nvidia/llama-3.1-nemotron-70b-instruct"
+      },
+      "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0
+      }
+    },
+    {
+      "id": "nvidia_nim/meta/llama-3.2-3b-instruct",
+      "params": {
+        "model": "nvidia_nim/meta/llama-3.2-3b-instruct"
+      },
+      "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0
+      }
+    },
+    {
+      "id": "opencode/claude-opus-4-6",
+      "params": {
+        "model": "openai/claude-opus-4-6",
+        "api_base": "https://opencode.ai/zen/v1"
+      },
+      "info": {
+        "input_cost_per_token": 5e-06,
+        "output_cost_per_token": 2.5e-05
+      }
+    },
+    {
+      "id": "opencode/gpt-5.4",
+      "params": {
+        "model": "openai/gpt-5.4",
+        "api_base": "https://opencode.ai/zen/v1"
+      },
+      "info": {
+        "input_cost_per_token": 2.5e-06,
+        "output_cost_per_token": 1.5e-05
+      }
+    },
+    {
+      "id": "opencode/glm-5-free",
+      "params": {
+        "model": "openai/glm-5-free",
+        "api_base": "https://opencode.ai/zen/v1"
+      },
+      "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0
+      }
+    },
+    {
+      "id": "vercel/anthropic/claude-opus-4.6",
+      "params": {
+        "model": "openai/anthropic/claude-opus-4.6",
+        "api_base": "https://ai-gateway.vercel.sh/v1"
+      },
+      "info": {
+        "input_cost_per_token": 5e-06,
+        "output_cost_per_token": 2.5e-05
+      }
+    },
+    {
+      "id": "vercel/anthropic/claude-sonnet-4.6",
+      "params": {
+        "model": "openai/anthropic/claude-sonnet-4.6",
+        "api_base": "https://ai-gateway.vercel.sh/v1"
+      },
+      "info": {
+        "input_cost_per_token": 3e-06,
+        "output_cost_per_token": 1.5e-05
+      }
+    },
+    {
+      "id": "vercel/anthropic/claude-haiku-4.5",
+      "params": {
+        "model": "openai/anthropic/claude-haiku-4.5",
+        "api_base": "https://ai-gateway.vercel.sh/v1"
+      },
+      "info": {
+        "input_cost_per_token": 1e-06,
+        "output_cost_per_token": 5e-06
+      },
+      "ui": {
+        "id": "vercel/anthropic/claude-haiku-4.5",
+        "label": "Claude Haiku 4.5 via Vercel AI Gateway",
+        "provider": "vercel"
+      }
+    },
+    {
+      "id": "hf/deepseek-ai/DeepSeek-V3.1",
+      "params": {
+        "model": "openai/deepseek-ai/DeepSeek-V3.1",
+        "api_base": "https://router.huggingface.co/v1"
+      },
+      "info": {
+        "input_cost_per_token": 6e-07,
+        "output_cost_per_token": 1.25e-06
+      }
+    },
+    {
+      "id": "hf/meta-llama/Llama-3.3-70B-Instruct-Turbo",
+      "params": {
+        "model": "openai/meta-llama/Llama-3.3-70B-Instruct-Turbo",
+        "api_base": "https://router.huggingface.co/v1"
+      },
+      "info": {
+        "input_cost_per_token": 8.8e-07,
+        "output_cost_per_token": 8.8e-07
+      }
+    },
+    {
+      "id": "hf/openai/gpt-oss-120b",
+      "params": {
+        "model": "openai/openai/gpt-oss-120b",
+        "api_base": "https://router.huggingface.co/v1"
+      },
+      "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0
+      }
+    },
+    {
+      "id": "venice/claude-opus-4-6",
+      "params": {
+        "model": "openai/claude-opus-4-6",
+        "api_base": "https://api.venice.ai/api/v1"
+      },
+      "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0
+      }
+    },
+    {
+      "id": "venice/claude-sonnet-4-6",
+      "params": {
+        "model": "openai/claude-sonnet-4-6",
+        "api_base": "https://api.venice.ai/api/v1"
+      },
+      "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0
+      }
+    },
+    {
+      "id": "venice/deepseek-v4-flash",
+      "params": {
+        "model": "openai/deepseek-v4-flash",
+        "api_base": "https://api.venice.ai/api/v1"
+      },
+      "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0
+      }
+    },
+    {
+      "id": "nanogpt/anthropic/claude-opus-4.6",
+      "params": {
+        "model": "openai/anthropic/claude-opus-4.6",
+        "api_base": "https://nano-gpt.com/api/v1"
+      },
+      "info": {
+        "input_cost_per_token": 5e-06,
+        "output_cost_per_token": 2.5e-05
+      }
+    },
+    {
+      "id": "nanogpt/anthropic/claude-sonnet-4.6",
+      "params": {
+        "model": "openai/anthropic/claude-sonnet-4.6",
+        "api_base": "https://nano-gpt.com/api/v1"
+      },
+      "info": {
+        "input_cost_per_token": 3e-06,
+        "output_cost_per_token": 1.5e-05
+      }
+    },
+    {
+      "id": "nanogpt/anthropic/claude-haiku-4.5",
+      "params": {
+        "model": "openai/anthropic/claude-haiku-4.5",
+        "api_base": "https://nano-gpt.com/api/v1"
+      },
+      "info": {
+        "input_cost_per_token": 1e-06,
+        "output_cost_per_token": 5e-06
+      }
+    },
+    {
+      "id": "synthetic/hf:deepseek-ai/DeepSeek-V3.2",
+      "params": {
+        "model": "openai/hf:deepseek-ai/DeepSeek-V3.2",
+        "api_base": "https://api.synthetic.new/openai/v1"
+      },
+      "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0
+      }
+    },
+    {
+      "id": "synthetic/hf:meta-llama/Llama-3.3-70B-Instruct",
+      "params": {
+        "model": "openai/hf:meta-llama/Llama-3.3-70B-Instruct",
+        "api_base": "https://api.synthetic.new/openai/v1"
+      },
+      "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0
+      }
+    },
+    {
+      "id": "synthetic/hf:openai/gpt-oss-120b",
+      "params": {
+        "model": "openai/hf:openai/gpt-oss-120b",
+        "api_base": "https://api.synthetic.new/openai/v1"
+      },
+      "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0
+      }
+    },
+    {
+      "id": "zenmux/anthropic/claude-opus-4.6",
+      "params": {
+        "model": "openai/anthropic/claude-opus-4.6",
+        "api_base": "https://zenmux.ai/api/v1"
+      },
+      "info": {
+        "input_cost_per_token": 5e-06,
+        "output_cost_per_token": 2.5e-05
+      }
+    },
+    {
+      "id": "zenmux/anthropic/claude-sonnet-4.6",
+      "params": {
+        "model": "openai/anthropic/claude-sonnet-4.6",
+        "api_base": "https://zenmux.ai/api/v1"
+      },
+      "info": {
+        "input_cost_per_token": 3e-06,
+        "output_cost_per_token": 1.5e-05
+      }
+    },
+    {
+      "id": "zenmux/anthropic/claude-haiku-4.5",
+      "params": {
+        "model": "openai/anthropic/claude-haiku-4.5",
+        "api_base": "https://zenmux.ai/api/v1"
+      },
+      "info": {
+        "input_cost_per_token": 1e-06,
+        "output_cost_per_token": 5e-06
+      }
+    },
+    {
+      "id": "qianfan/ernie-4.5-turbo-128k",
+      "params": {
+        "model": "openai/ernie-4.5-turbo-128k",
+        "api_base": "https://qianfan.baidubce.com/v2"
+      },
+      "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0
+      }
+    },
+    {
+      "id": "qianfan/ernie-4.5-turbo-32k",
+      "params": {
+        "model": "openai/ernie-4.5-turbo-32k",
+        "api_base": "https://qianfan.baidubce.com/v2"
+      },
+      "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0
+      }
+    },
+    {
+      "id": "qianfan/ernie-speed-pro-128k",
+      "params": {
+        "model": "openai/ernie-speed-pro-128k",
+        "api_base": "https://qianfan.baidubce.com/v2"
+      },
+      "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0
+      }
+    },
+    {
+      "id": "cfgateway/anthropic/claude-opus-4-6",
+      "params": {
+        "model": "openai/anthropic/claude-opus-4-6",
+        "api_base": "os.environ/CLOUDFLARE_AI_GATEWAY_API_BASE"
+      },
+      "info": {
+        "input_cost_per_token": 5e-06,
+        "output_cost_per_token": 2.5e-05
+      }
+    },
+    {
+      "id": "cfgateway/anthropic/claude-sonnet-4-6",
+      "params": {
+        "model": "openai/anthropic/claude-sonnet-4-6",
+        "api_base": "os.environ/CLOUDFLARE_AI_GATEWAY_API_BASE"
+      },
+      "info": {
+        "input_cost_per_token": 3e-06,
+        "output_cost_per_token": 1.5e-05
+      }
+    },
+    {
+      "id": "cfgateway/anthropic/claude-haiku-4-5",
+      "params": {
+        "model": "openai/anthropic/claude-haiku-4-5",
+        "api_base": "os.environ/CLOUDFLARE_AI_GATEWAY_API_BASE"
+      },
+      "info": {
+        "input_cost_per_token": 1e-06,
+        "output_cost_per_token": 5e-06
+      }
+    },
+    {
+      "id": "kimi/k3",
+      "params": {
+        "model": "openai/k3",
+        "api_base": "https://api.kimi.com/coding/v1",
+        "additional_drop_params": [
+          "temperature"
+        ]
+      },
+      "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0
+      }
+    },
+    {
+      "id": "kimi/kimi-for-coding",
+      "params": {
+        "model": "openai/kimi-for-coding",
+        "api_base": "https://api.kimi.com/coding/v1",
+        "additional_drop_params": [
+          "temperature"
+        ]
+      },
+      "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0
+      }
+    },
+    {
+      "id": "kimi/kimi-for-coding-highspeed",
+      "params": {
+        "model": "openai/kimi-for-coding-highspeed",
+        "api_base": "https://api.kimi.com/coding/v1",
+        "additional_drop_params": [
+          "temperature"
+        ]
+      },
+      "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0
+      }
+    },
+    {
+      "id": "cheaperinference/claude-sonnet-5",
+      "params": {
+        "model": "openai/claude-sonnet-5",
+        "api_base": "https://api.cheaperinference.com/v1"
+      },
+      "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0
+      }
+    },
+    {
+      "id": "cheaperinference/gpt-5.4",
+      "params": {
+        "model": "openai/gpt-5.4",
+        "api_base": "https://api.cheaperinference.com/v1"
+      },
+      "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0
+      }
+    },
+    {
+      "id": "cheaperinference/gpt-5.4-mini",
+      "params": {
+        "model": "openai/gpt-5.4-mini",
+        "api_base": "https://api.cheaperinference.com/v1"
+      },
+      "info": {
+        "input_cost_per_token": 0,
+        "output_cost_per_token": 0
+      }
+    },
+    {
+      "id": "openrouter/openai/gpt-5.6-sol",
+      "params": {
+        "model": "openrouter/openai/gpt-5.6-sol"
+      },
+      "info": {},
+      "ui": {
+        "id": "openrouter/openai/gpt-5.6-sol",
+        "label": "GPT-5.6 Sol via OpenRouter",
+        "provider": "openrouter"
+      }
+    },
+    {
+      "id": "openrouter/openai/gpt-5.6-terra",
+      "params": {
+        "model": "openrouter/openai/gpt-5.6-terra"
+      },
+      "info": {},
+      "ui": {
+        "id": "openrouter/openai/gpt-5.6-terra",
+        "label": "GPT-5.6 Terra via OpenRouter",
+        "provider": "openrouter"
+      }
+    },
+    {
+      "id": "openrouter/openai/gpt-5.6-luna",
+      "params": {
+        "model": "openrouter/openai/gpt-5.6-luna"
+      },
+      "info": {},
+      "ui": {
+        "id": "openrouter/openai/gpt-5.6-luna",
+        "label": "GPT-5.6 Luna via OpenRouter",
+        "provider": "openrouter"
+      }
+    },
+    {
+      "id": "openrouter/google/gemini-3.7-flash",
+      "params": {
+        "model": "openrouter/google/gemini-3.7-flash"
+      },
+      "info": {},
+      "ui": {
+        "id": "openrouter/google/gemini-3.7-flash",
+        "label": "Gemini 3.7 Flash via OpenRouter",
+        "provider": "openrouter"
+      }
+    },
+    {
+      "id": "openrouter/google/gemini-3.6-flash",
+      "params": {
+        "model": "openrouter/google/gemini-3.6-flash"
+      },
+      "info": {},
+      "ui": {
+        "id": "openrouter/google/gemini-3.6-flash",
+        "label": "Gemini 3.6 Flash via OpenRouter",
+        "provider": "openrouter"
+      }
+    },
+    {
+      "id": "openrouter/google/gemini-3.5-flash-lite",
+      "params": {
+        "model": "openrouter/google/gemini-3.5-flash-lite"
+      },
+      "info": {},
+      "ui": {
+        "id": "openrouter/google/gemini-3.5-flash-lite",
+        "label": "Gemini 3.5 Flash-Lite via OpenRouter",
+        "provider": "openrouter"
+      }
+    },
+    {
+      "id": "openrouter/moonshotai/kimi-k3",
+      "params": {
+        "model": "openrouter/moonshotai/kimi-k3"
+      },
+      "info": {},
+      "ui": {
+        "id": "openrouter/moonshotai/kimi-k3",
+        "label": "Kimi K3 via OpenRouter",
+        "provider": "openrouter"
+      }
+    },
+    {
+      "id": "openrouter/moonshotai/kimi-k2.7-code",
+      "params": {
+        "model": "openrouter/moonshotai/kimi-k2.7-code"
+      },
+      "info": {},
+      "ui": {
+        "id": "openrouter/moonshotai/kimi-k2.7-code",
+        "label": "Kimi K2.7 Code via OpenRouter",
+        "provider": "openrouter"
+      }
+    },
+    {
+      "id": "openrouter/moonshotai/kimi-k2.6",
+      "params": {
+        "model": "openrouter/moonshotai/kimi-k2.6"
+      },
+      "info": {},
+      "ui": {
+        "id": "openrouter/moonshotai/kimi-k2.6",
+        "label": "Kimi K2.6 via OpenRouter",
+        "provider": "openrouter"
+      }
+    },
+    {
+      "id": "openrouter/x-ai/grok-4.5",
+      "params": {
+        "model": "openrouter/x-ai/grok-4.5"
+      },
+      "info": {},
+      "ui": {
+        "id": "openrouter/x-ai/grok-4.5",
+        "label": "Grok 4.5 via OpenRouter",
+        "provider": "openrouter"
+      }
+    },
+    {
+      "id": "openrouter/x-ai/grok-4.3",
+      "params": {
+        "model": "openrouter/x-ai/grok-4.3"
+      },
+      "info": {},
+      "ui": {
+        "id": "openrouter/x-ai/grok-4.3",
+        "label": "Grok 4.3 via OpenRouter",
+        "provider": "openrouter"
+      }
+    },
+    {
+      "id": "openrouter/minimax/minimax-m2.7",
+      "params": {
+        "model": "openrouter/minimax/minimax-m2.7"
+      },
+      "info": {},
+      "ui": {
+        "id": "openrouter/minimax/minimax-m2.7",
+        "label": "MiniMax M2.7 via OpenRouter",
+        "provider": "openrouter"
+      }
+    },
+    {
+      "id": "openrouter/mistralai/mistral-medium-3-5",
+      "params": {
+        "model": "openrouter/mistralai/mistral-medium-3-5"
+      },
+      "info": {},
+      "ui": {
+        "id": "openrouter/mistralai/mistral-medium-3-5",
+        "label": "Mistral Medium 3.5 via OpenRouter",
+        "provider": "openrouter"
+      }
+    },
+    {
+      "id": "openrouter/mistralai/mistral-large-2512",
+      "params": {
+        "model": "openrouter/mistralai/mistral-large-2512"
+      },
+      "info": {},
+      "ui": {
+        "id": "openrouter/mistralai/mistral-large-2512",
+        "label": "Mistral Large 3 via OpenRouter",
+        "provider": "openrouter"
+      }
+    },
+    {
+      "id": "openrouter/mistralai/mistral-small-2603",
+      "params": {
+        "model": "openrouter/mistralai/mistral-small-2603"
+      },
+      "info": {},
+      "ui": {
+        "id": "openrouter/mistralai/mistral-small-2603",
+        "label": "Mistral Small 4 via OpenRouter",
+        "provider": "openrouter"
+      }
+    },
+    {
+      "id": "openrouter/z-ai/glm-5.2",
+      "params": {
+        "model": "openrouter/z-ai/glm-5.2"
+      },
+      "info": {},
+      "ui": {
+        "id": "openrouter/z-ai/glm-5.2",
+        "label": "GLM-5.2 via OpenRouter",
+        "provider": "openrouter"
+      }
+    },
+    {
+      "id": "openrouter/z-ai/glm-5-turbo",
+      "params": {
+        "model": "openrouter/z-ai/glm-5-turbo"
+      },
+      "info": {},
+      "ui": {
+        "id": "openrouter/z-ai/glm-5-turbo",
+        "label": "GLM-5 Turbo via OpenRouter",
+        "provider": "openrouter"
+      }
+    }
+  ]
+}

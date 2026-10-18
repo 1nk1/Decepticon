@@ -15,6 +15,14 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #1011](https://github.com/BitterSecurity/Decepticon/pull/1011):
+  own a shared public LiteLLM model catalog and deterministic route/CLI generation
+  for OSS and the pinned SaaS consumer. Retain existing route semantics,
+  credential references and local OAuth behavior; admit new providers explicitly.
+  No runtime network dependency, version bump or release. See
+  [catalog maintenance](model-catalog/README.md).
+
+
 - Consolidate version history into the single root `CHAGELOG.md`, preserving
   existing history and updating contributor guidance, links and tooling.
   Documentation only; no runtime or upgrade changes.
