@@ -15,11 +15,17 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Record v1.5.2's actual publication date and included fixes; retain v1.5.1 as
+  an incomplete candidate rather than a published final. Documentation only;
+  no runtime or upgrade changes. [PR #1007](https://github.com/BitterSecurity/Decepticon/pull/1007).
+
+## [1.5.2] — 2026-10-18
+
 - Fix release CLI image metadata being reset to the source `0.0.0` sentinel:
   stamp the version after copying source, preserve dependency cache across
   versions, and verify the actual published CLI container package version in CI
   before signing/publication. Candidate v1.5.1 final publication was withheld;
-  its existing tag/packages remain immutable. Proposed [PR #1006](https://github.com/BitterSecurity/Decepticon/pull/1006).
+  its existing tag/packages remain immutable. [PR #1006](https://github.com/BitterSecurity/Decepticon/pull/1006).
 
 - Restore direct Red execution for new CLI engagements: collect name and target
   web URL, automatically create a canonical RoE and byte-bound direct approval,
@@ -27,7 +33,7 @@ Keep proposed and unmerged changes out of released sections.
   scope file, authorization-reference field or manual approval command is needed.
   Preserve existing engagement scopes and conversations; legacy missing-scope
   recovery remains available. URL input follows current exact-root/default-port
-  enforcement rather than expanding it. Proposed [PR #1005](https://github.com/BitterSecurity/Decepticon/pull/1005).
+  enforcement rather than expanding it. [PR #1005](https://github.com/BitterSecurity/Decepticon/pull/1005).
 
 - Release-history documentation follow-up: record the published v1.5.0
   version/date and preserve the canonical history. No runtime or upgrade behavior
@@ -1303,7 +1309,8 @@ The following legacy import paths keep working but emit a
   atomic release.
 - Downstream plugin package lockstep migration.
 
-[Unreleased]: https://github.com/BitterSecurity/Decepticon/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/BitterSecurity/Decepticon/compare/v1.5.2...HEAD
+[1.5.2]: https://github.com/BitterSecurity/Decepticon/compare/v1.5.0...v1.5.2
 [1.5.0]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.4...v1.5.0
 [1.4.4]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.3...v1.4.4
 [1.4.3]: https://github.com/BitterSecurity/Decepticon/compare/v1.4.2...v1.4.3

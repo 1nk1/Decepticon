@@ -1,33 +1,27 @@
 # Decepticon change history
 
 [CHANGELOG.md](CHANGELOG.md) is the canonical version history and release-automation
-source. This entry point intentionally does not duplicate it. OSS package versions
-are independent of production/SaaS image and release identifiers.
+source. This entry point intentionally does not duplicate it. OSS versions and
+production/SaaS identifiers remain independent.
 
 ## Released
 
-[v1.5.0 — 2026-10-17](https://github.com/BitterSecurity/Decepticon/releases/tag/v1.5.0)
-is published. See the [canonical v1.5.0 history](CHANGELOG.md#150--2026-10-17) for
-features, fixes and upgrade notes, including merged PRs
-[#1001](https://github.com/BitterSecurity/Decepticon/pull/1001) and
-[#1002](https://github.com/BitterSecurity/Decepticon/pull/1002).
+[v1.5.2 — 2026-10-18](https://github.com/BitterSecurity/Decepticon/releases/tag/v1.5.2)
+is published. The [canonical v1.5.2 history](CHANGELOG.md#152--2026-10-18) records
+name + target URL creation, automatic RoE/direct approval and immediate Red
+execution with optional Plan from [PR #1005](https://github.com/BitterSecurity/Decepticon/pull/1005),
+and shipped CLI image metadata verification from
+[PR #1006](https://github.com/BitterSecurity/Decepticon/pull/1006).
+Existing scopes and data are preserved; see the compatibility notes.
+
+v1.5.1 final publication was withheld after candidate verification. Its immutable
+tag and existing packages remain; it is not recorded as a published final.
+Earlier releases remain in the canonical history. Maintainers follow the
+[OSS version and release policy](RELEASE.md).
 
 ## Unreleased
 
-Proposed [PR #1006](https://github.com/BitterSecurity/Decepticon/pull/1006) fixes
-CLI release metadata being overwritten after stamping and adds an actual-image
-version gate. Candidate v1.5.1 was withheld before final publication; immutable
-artifacts are retained. See [canonical Unreleased](CHANGELOG.md#unreleased).
-
-Proposed [PR #1005](https://github.com/BitterSecurity/Decepticon/pull/1005) restores
-name + target URL creation, automatic RoE/direct approval and immediate Red
-execution with optional Plan. Existing data/scopes are preserved. See the
-[canonical Unreleased entry](CHANGELOG.md#unreleased) for compatibility details.
-
-The [canonical Unreleased section](CHANGELOG.md#unreleased) records the
-release-history documentation follow-up. It records the actual publication and
-changes no runtime behavior. The same follow-up establishes the
-[OSS release policy](RELEASE.md), including version criteria, actual WSL/artifact
-verification, immutable tags, channel promotion and recovery. [PR #1003](https://github.com/BitterSecurity/Decepticon/pull/1003).
-An open PR means proposed work; a merged PR means integrated work. Only dated
-version sections describe released product changes.
+[PR #1007](https://github.com/BitterSecurity/Decepticon/pull/1007) records the actual
+v1.5.2 publication in the canonical history. This post-tag documentation change
+has no runtime effect and does not create another product version. Linked PR state
+distinguishes proposed from merged work; dated sections describe shipped changes.
