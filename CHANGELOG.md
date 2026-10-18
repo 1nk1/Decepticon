@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed: add the Desktop `serve --engagement` adapter for existing local
+- Proposed [PR #1009](https://github.com/BitterSecurity/Decepticon/pull/1009): add the Desktop `serve --engagement` adapter for existing local
   engagements, with native model selection, private runtime configuration and
   engagement-scoped mounts. Preserve normal CLI startup and existing homes.
   Support canonical Desktop workspace/engagement document paths alongside legacy
