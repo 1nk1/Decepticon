@@ -15,6 +15,17 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Distinguish host-side LangGraph HTTP connectivity, status errors, malformed
+  assistant catalogs and missing `graph_id: decepticon` registration in startup
+  and `doctor`. Replace string matching with exact catalog validation, reject
+  redirects/invalid ports, and enforce the overall startup timeout across HTTP
+  requests and retry waits. Keep the doctor JSON `langgraph` key; its check now
+  requires both HTTP health and the actual assistant. Preserve existing timeout
+  configuration, scopes, credentials and volumes. Proposed
+  [PR #1008](https://github.com/BitterSecurity/Decepticon/pull/1008), related to
+  [#1004](https://github.com/BitterSecurity/Decepticon/issues/1004); the reported
+  host networking root cause remains unconfirmed and is not declared resolved.
+
 - Record v1.5.2's actual publication date and included fixes; retain v1.5.1 as
   an incomplete candidate rather than a published final. Documentation only;
   no runtime or upgrade changes. [PR #1007](https://github.com/BitterSecurity/Decepticon/pull/1007).

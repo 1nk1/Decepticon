@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/config"
+	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/health"
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/opscontrol"
 	"github.com/spf13/cobra"
 )
@@ -89,8 +90,14 @@ func diagnose(ctx context.Context) doctorReport {
 	authOK := configErr == nil && config.ValidateAuth(env) == nil
 	add("auth", true, authOK, "Configured authentication method (presence only; provider login validity is not tested)", "Run `decepticon onboard` to configure an authentication method")
 	client := &http.Client{Timeout: 3 * time.Second, CheckRedirect: func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }}
-	graph := "http://127.0.0.1:" + config.Get(env, "LANGGRAPH_PORT", "2024") + "/ok"
-	add("langgraph", true, doctorHTTP(ctx, client, graph), "LangGraph HTTP health response", "Run `decepticon logs langgraph`; retry `decepticon start --no-update`")
+	graphCtx, cancelGraph := context.WithTimeout(ctx, 3*time.Second)
+	graphErr := health.ProbeLangGraph(graphCtx, env)
+	cancelGraph()
+	graphDetail := "Host LangGraph HTTP and decepticon assistant ready"
+	if graphErr != nil {
+		graphDetail = graphErr.Error()
+	}
+	add("langgraph", true, graphErr == nil, graphDetail, "Inspect LANGGRAPH_PORT and Docker published ports; compare host connectivity with container health using `decepticon logs langgraph`; retry `decepticon start --no-update`")
 	socket := opscontrol.HostSocketPath()
 	info, socketErr := os.Stat(socket)
 	add("opscontrol_socket", false, socketErr == nil && info.Mode()&os.ModeSocket != 0, "Opscontrol Unix socket presence", "Run `decepticon opscontrol status`; start with `decepticon start --no-update`")
