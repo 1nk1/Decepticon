@@ -21,6 +21,13 @@ Earlier releases remain in the canonical history. Maintainers follow the
 
 ## Unreleased
 
+Proposed [PR #1008](https://github.com/BitterSecurity/Decepticon/pull/1008)
+corrects host/assistant readiness diagnostics, exact graph matching and startup
+deadline enforcement, and shares these checks with doctor. Existing settings and
+volumes are preserved. The external host networking report in
+[issue #1004](https://github.com/BitterSecurity/Decepticon/issues/1004) still requires
+affected-host confirmation; this change does not claim to repair Docker routing.
+
 [PR #1007](https://github.com/BitterSecurity/Decepticon/pull/1007) records the actual
 v1.5.2 publication in the canonical history. This post-tag documentation change
 has no runtime effect and does not create another product version. Linked PR state

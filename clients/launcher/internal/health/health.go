@@ -2,6 +2,7 @@ package health
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -44,40 +45,90 @@ var (
 // DECEPTICON_STARTUP_TIMEOUT_SECONDS overrides LangGraphTimeout for slow
 // environments where graph compile is the long pole.
 func CheckLangGraph(env map[string]string) error {
-	port := config.Get(env, "LANGGRAPH_PORT", DefaultLangGraphPort)
-	url := fmt.Sprintf("http://localhost:%s/assistants/search", port)
-
-	body, _ := json.Marshal(map[string]any{
-		"graph_id": "decepticon",
-		"limit":    1,
-	})
-
 	timeout := LangGraphTimeout
 	if v := os.Getenv("DECEPTICON_STARTUP_TIMEOUT_SECONDS"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil && n > 0 {
 			timeout = time.Duration(n) * time.Second
 		}
 	}
-	deadline := time.Now().Add(timeout)
-	client := &http.Client{Timeout: 5 * time.Second}
-
-	for time.Now().Before(deadline) {
-		resp, err := client.Post(url, "application/json", bytes.NewReader(body))
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	var lastErr error
+	for {
+		err := ProbeLangGraph(ctx, env)
 		if err == nil {
-			if resp.StatusCode == http.StatusOK {
-				respBody, _ := io.ReadAll(resp.Body)
-				resp.Body.Close()
-				if bytes.Contains(respBody, []byte(`"decepticon"`)) {
-					return nil
-				}
-			} else {
-				resp.Body.Close()
+			return nil
+		}
+		if ctx.Err() == nil || lastErr == nil {
+			lastErr = err
+		}
+		timer := time.NewTimer(PollInterval)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return fmt.Errorf("LangGraph readiness timed out after %s; last observation: %w; inspect Docker published ports and `decepticon doctor --json`", timeout, lastErr)
+		case <-timer.C:
+		}
+	}
+}
+
+func ProbeLangGraph(ctx context.Context, env map[string]string) error {
+	port := config.Get(env, "LANGGRAPH_PORT", DefaultLangGraphPort)
+	portNumber, err := strconv.Atoi(port)
+	if err != nil || portNumber < 1 || portNumber > 65535 {
+		return fmt.Errorf("LangGraph invalid LANGGRAPH_PORT %q: expected an integer from 1 to 65535", port)
+	}
+	baseURL := "http://127.0.0.1:" + strconv.Itoa(portNumber)
+	client := &http.Client{Timeout: 5 * time.Second, CheckRedirect: func(_ *http.Request, _ []*http.Request) error {
+		return http.ErrUseLastResponse
+	}}
+	for _, probe := range []struct{ method, path, body string }{
+		{http.MethodGet, "/ok", ""},
+		{http.MethodPost, "/assistants/search", `{"graph_id":"decepticon","limit":1}`},
+	} {
+		endpoint := baseURL + probe.path
+		request, err := http.NewRequestWithContext(ctx, probe.method, endpoint, bytes.NewBufferString(probe.body))
+		if err != nil {
+			return fmt.Errorf("LangGraph invalid host endpoint %s: %w", endpoint, err)
+		}
+		if probe.body != "" {
+			request.Header.Set("Content-Type", "application/json")
+		}
+		response, err := client.Do(request)
+		if err != nil {
+			return fmt.Errorf("LangGraph host request failed (%s %s): %w", probe.method, endpoint, err)
+		}
+		if response.StatusCode != http.StatusOK {
+			response.Body.Close()
+			return fmt.Errorf("LangGraph %s returned HTTP %d (%s)", probe.path, response.StatusCode, endpoint)
+		}
+		if probe.path == "/ok" {
+			response.Body.Close()
+			continue
+		}
+		const maxCatalogBytes = 1 << 20
+		body, readErr := io.ReadAll(io.LimitReader(response.Body, maxCatalogBytes+1))
+		response.Body.Close()
+		if readErr != nil {
+			return fmt.Errorf("LangGraph assistant catalog read failed (%s): %w", endpoint, readErr)
+		}
+		if len(body) > maxCatalogBytes {
+			return fmt.Errorf("LangGraph assistant catalog exceeds %d bytes (%s)", maxCatalogBytes, endpoint)
+		}
+		var assistants []struct {
+			GraphID string `json:"graph_id"`
+		}
+		if err := json.Unmarshal(body, &assistants); err != nil {
+			return fmt.Errorf("LangGraph invalid assistant catalog (%s): %w", endpoint, err)
+		}
+		for _, assistant := range assistants {
+			if assistant.GraphID == "decepticon" {
+				return nil
 			}
 		}
-		time.Sleep(PollInterval)
+		return fmt.Errorf("LangGraph /ok responds but decepticon assistant is not registered (%s)", endpoint)
 	}
-
-	return fmt.Errorf("LangGraph assistant not loaded after %s (port %s)", timeout, port)
+	return nil
 }
 
 // CheckLiteLLM polls the LiteLLM health endpoint. Kept for diagnostics.
