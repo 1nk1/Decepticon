@@ -433,6 +433,54 @@ func Select(home string) (Choice, error) {
 	return choiceForEngagement(home, final.chosen.slug), nil
 }
 
+func ResolveExisting(home, slug string) (Choice, error) {
+	return ResolveExistingAt(home, slug, "")
+}
+
+func ResolveExistingAt(home, slug, documentRoot string) (Choice, error) {
+	if !slugRe.MatchString(slug) {
+		return Choice{}, fmt.Errorf("invalid engagement name %q", slug)
+	}
+	dir := filepath.Join(home, "workspace", slug)
+	if documentRoot != "" {
+		absoluteHome, err := filepath.Abs(home)
+		if err != nil {
+			return Choice{}, err
+		}
+		absoluteRoot, err := filepath.Abs(documentRoot)
+		if err != nil {
+			return Choice{}, err
+		}
+		relative, err := filepath.Rel(absoluteHome, absoluteRoot)
+		if err != nil {
+			return Choice{}, err
+		}
+		parts := strings.Split(relative, string(filepath.Separator))
+		if len(parts) != 2 || parts[0] == ".." || parts[0] == "." || parts[1] == ".." || parts[1] == "." {
+			return Choice{}, fmt.Errorf("desktop engagement documents must belong to this Local home")
+		}
+		for _, parent := range []string{absoluteHome, filepath.Join(absoluteHome, parts[0])} {
+			info, err := os.Lstat(parent)
+			if err != nil {
+				return Choice{}, err
+			}
+			if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+				return Choice{}, fmt.Errorf("desktop document parent is not a regular directory")
+			}
+		}
+		dir = absoluteRoot
+	}
+	info, err := os.Lstat(dir)
+	if err != nil {
+		return Choice{}, fmt.Errorf("inspect engagement: %w", err)
+	}
+	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		return Choice{}, fmt.Errorf("engagement %q is not a regular directory", slug)
+	}
+	target, authorized := readScopeTarget(dir)
+	return Choice{AssistantID: AssistantDecepticon, Engagement: slug, WorkspacePath: dir, Mode: "red", Target: target, AuthorizationConfirmed: authorized}, nil
+}
+
 func choiceForEngagement(home, slug string) Choice {
 	workspace := filepath.Join(home, "workspace", slug)
 	target, authorized := readScopeTarget(workspace)

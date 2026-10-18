@@ -94,6 +94,14 @@ func init() {
 }
 
 func runStart(cmd *cobra.Command, args []string) error {
+	return runStartMode(cmd, args, "")
+}
+
+func runStartMode(cmd *cobra.Command, args []string, existingEngagement string) error {
+	desktopRuntime, err := parseDesktopRuntime(existingEngagement != "")
+	if err != nil {
+		return err
+	}
 	workflowEnv, err := workflowEnvironment(cmd)
 	if err != nil {
 		return err
@@ -109,12 +117,21 @@ func runStart(cmd *cobra.Command, args []string) error {
 	ui.Info("[1/5] Configuration · checking credentials and settings")
 	// 1. Check .env exists
 	if !config.EnvExists() {
-		ui.Warning("No configuration found. Running setup wizard...")
-		fmt.Println()
-		if err := runOnboard(cmd, nil); err != nil {
-			return err
+		if existingEngagement != "" {
+			if desktopRuntime == nil {
+				return fmt.Errorf("complete Decepticon CLI setup before starting the desktop service")
+			}
+			if err := bootstrapDesktopEnv(); err != nil {
+				return err
+			}
+		} else {
+			ui.Warning("No configuration found. Running setup wizard...")
+			fmt.Println()
+			if err := runOnboard(cmd, nil); err != nil {
+				return err
+			}
+			fmt.Println()
 		}
-		fmt.Println()
 	}
 
 	// 1.5. One-shot migration for v1.1.7→v1.1.8 upgraders.
@@ -144,8 +161,12 @@ func runStart(cmd *cobra.Command, args []string) error {
 	// into internal/migrate.Registry — no wiring needed here.
 	migrate.RunAll(env)
 
-	if err := config.ValidateAuth(env); err != nil {
-		return err
+	if desktopRuntime == nil {
+		if err := config.ValidateAuth(env); err != nil {
+			return err
+		}
+	} else {
+		os.Unsetenv("DECEPTICON_DESKTOP_API_KEY")
 	}
 
 	ui.Info("[2/5] Check · verifying Docker and Compose")
@@ -165,7 +186,9 @@ func runStart(cmd *cobra.Command, args []string) error {
 	// reach a running server. We translate ``host.docker.internal`` to
 	// ``localhost`` for the host-side probe; from inside the litellm
 	// container the original URL is what gets used at runtime.
-	probeOllamaIfSelected(env)
+	if desktopRuntime == nil {
+		probeOllamaIfSelected(env)
+	}
 
 	// 2.3. Ensure config files exist (docker-compose.yml, litellm.yaml, workspace)
 	home := config.DecepticonHome()
@@ -193,12 +216,17 @@ func runStart(cmd *cobra.Command, args []string) error {
 	// creates it first it lands root-owned, and the host-side CLI can no longer
 	// write the anonymous install id.
 	_ = os.MkdirAll(filepath.Join(home, "telemetry"), 0o755)
+	if err := os.MkdirAll(filepath.Join(home, "langgraph"), 0o700); err != nil {
+		return err
+	}
 
 	// Ensure DECEPTICON_HOME is set in .env (Docker Compose needs absolute path)
 	if config.Get(env, "DECEPTICON_HOME", "") == "" {
 		env["DECEPTICON_HOME"] = home
-		if err := config.AppendEnvLine(config.EnvPath(), "DECEPTICON_HOME", home); err != nil {
-			ui.Warning("Could not set DECEPTICON_HOME in .env: " + err.Error())
+		if desktopRuntime == nil {
+			if err := config.AppendEnvLine(config.EnvPath(), "DECEPTICON_HOME", home); err != nil {
+				ui.Warning("Could not set DECEPTICON_HOME in .env: " + err.Error())
+			}
 		}
 	}
 	if err := migrateLegacyCredentials(env); err != nil {
@@ -236,7 +264,7 @@ func runStart(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	checkStartupUpdate(env, version, skipUpdate)
+	checkStartupUpdate(env, version, skipUpdate || existingEngagement != "")
 
 	// 2.6. One-time GitHub star ask. Idempotent across launches — the
 	// ack file at $DECEPTICON_HOME/.starred suppresses the prompt
@@ -250,7 +278,12 @@ func runStart(cmd *cobra.Command, args []string) error {
 	// workspace through the sandbox before any picking happens.
 	fmt.Println()
 	ui.Info("[3/5] Engagement · select a workspace")
-	choice, err := engagement.Select(home)
+	var choice engagement.Choice
+	if existingEngagement == "" {
+		choice, err = engagement.Select(home)
+	} else {
+		choice, err = engagement.ResolveExistingAt(home, existingEngagement, os.Getenv("DECEPTICON_DESKTOP_WORKSPACE"))
+	}
 	if err != nil {
 		return err
 	}
@@ -264,6 +297,11 @@ func runStart(cmd *cobra.Command, args []string) error {
 	// compose interpolates ${DECEPTICON_ENGAGEMENT_WORKSPACE} from this var.
 	if err := os.Setenv("DECEPTICON_ENGAGEMENT_WORKSPACE", choice.WorkspacePath); err != nil {
 		return fmt.Errorf("set engagement workspace env: %w", err)
+	}
+	if existingEngagement != "" {
+		if err := checkDesktopSandboxMount(strings.TrimSpace(os.Getenv("DECEPTICON_STACK_NAME")), choice.WorkspacePath); err != nil {
+			return err
+		}
 	}
 
 	// 4. Spawn the opscontrol daemon BEFORE `compose up` so the
@@ -292,6 +330,18 @@ func runStart(cmd *cobra.Command, args []string) error {
 
 	// 5. Start services
 	c := compose.New()
+	if desktopRuntime != nil {
+		overlay, err := writeDesktopRuntimeOverlay(home, desktopRuntime)
+		if err != nil {
+			return err
+		}
+		defer os.Remove(overlay)
+		c.OverlayFile = overlay
+		c.ExtraEnv = []string{"DECEPTICON_DESKTOP_MODEL=" + desktopRuntime.model}
+		if desktopRuntime.secret != "" {
+			c.ExtraEnv = append(c.ExtraEnv, "DECEPTICON_DESKTOP_API_KEY="+desktopRuntime.secret)
+		}
+	}
 
 	ui.Info("[4/5] Services · starting and waiting for readiness")
 	if err := c.Up(compose.Profiles.CLI); err != nil {
@@ -301,6 +351,12 @@ func runStart(cmd *cobra.Command, args []string) error {
 	// 5. Health checks
 	if err := health.WaitForServices(env); err != nil {
 		return fmt.Errorf("service readiness: %w; inspect `decepticon doctor` and `decepticon logs` (services kept)", err)
+	}
+
+	if existingEngagement != "" {
+		ui.Success("Desktop agent service ready for " + choice.Engagement)
+		fmt.Println("DECEPTICON_DESKTOP_ASSISTANT=" + choice.AssistantID)
+		return nil
 	}
 
 	// 6. Launch CLI

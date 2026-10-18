@@ -9,11 +9,17 @@ design spec, §13.4).
 Before opening or updating a PR, record its changes and PR link under
 **Unreleased**. An open linked PR means proposed work; a merged linked PR means
 integrated but unreleased work. Only dated release sections describe shipped work.
-Update the root [Chagelog.md](Chagelog.md) entry point in the same PR. At release,
+Use this file as the single version history. At release,
 move merged entries into a dated version section and add a comparison link.
 Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
+
+- Proposed: add the Desktop `serve --engagement` adapter for existing local
+  engagements, with native model selection, private runtime configuration and
+  engagement-scoped mounts. Preserve normal CLI startup and existing homes.
+  Support canonical Desktop workspace/engagement document paths alongside legacy
+  CLI folders. Source work only; no package version or release is published.
 
 - Record v1.5.2's actual publication date and included fixes; retain v1.5.1 as
   an incomplete candidate rather than a published final. Documentation only;
@@ -130,7 +136,7 @@ Keep proposed and unmerged changes out of released sections.
   Workflow updates affect new executions; existing checkpoint pins remain stable.
   Optional legacy VR and benchmark contracts retain their
   separately documented integration boundaries. Add root change-tracking
-  instructions and the `Chagelog.md` entry point while preserving this canonical
+  instructions while preserving the canonical CHANGELOG.md
   history and release automation. Included in v1.5.0.
 - Regenerate the checked-in Skillogy graph from the changed skill corpus so
   retrieval metadata and the deterministic CI build gate match the source (#999).
