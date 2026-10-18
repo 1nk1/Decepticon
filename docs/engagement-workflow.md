@@ -9,13 +9,19 @@ Use `/mode` for a searchable selector. Blue monitoring continues independently o
 
 ## Start an engagement
 
-The CLI starts in Red for both new and saved workspaces. Creation asks for the
-engagement name. If scope is missing, import a reviewed RoE containing the target
-and authorization context with `/scope import <file> --confirm`, then explicitly
-approve it with `/mode red approve`. Already approved workspaces can run directly.
-Red execution requires a valid current approval; selecting the mode alone does
-not grant permission. Existing engagements with missing scope use
-[operator RoE provisioning](roe-provisioning.md).
+The CLI starts in Red. Creating a new engagement asks for its name and the target
+web URL. Submitting the authorized target automatically creates `plan/roe.json`
+and its direct approval; the first Red request can execute without a prewritten
+scope, `/scope import`, `/mode red approve` or any Plan documents. The generated
+scope uses the same seven-day direct testing window as prod. Current host-level
+URL enforcement supports exact root HTTP/HTTPS URLs on their default ports; paths,
+custom ports, credentials, queries, fragments and wildcards are rejected rather
+than silently broadening the target.
+
+Saved engagements retain their existing scope and approval. Creation never
+replaces an existing workspace. For legacy name-only workspaces with missing
+scope, use [operator RoE provisioning](roe-provisioning.md); no engagement or
+volume reset is needed. Changing scope still invalidates the old approval.
 
 The web dashboard has its own creation form for the target and authorization
 reference. A direct approved RoE allows execution without Soundwave or the seven

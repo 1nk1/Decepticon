@@ -2,8 +2,9 @@
 
 An authorized operator provisions `plan/roe.json`. Soundwave can draft a
 candidate such as `plan/roe-authorized.json`, but its filesystem tools cannot
-create or modify the operator-confirmed `plan/roe.json`. The CLI launcher
-opens Red by default; missing scope must still be provisioned and approved.
+create or modify the operator-confirmed `plan/roe.json`. New CLI engagements generate and approve their RoE from the entered target URL
+and open Red immediately. This import procedure is for legacy or externally
+created workspaces with missing scope, not a prerequisite for normal creation.
 The web creation form provisions a direct
 RoE only for new engagements. Neither recreating the engagement nor restarting
 its services is required to import a missing RoE.

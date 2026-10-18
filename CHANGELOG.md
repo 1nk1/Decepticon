@@ -15,6 +15,14 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Restore direct Red execution for new CLI engagements: collect name and target
+  web URL, automatically create a canonical RoE and byte-bound direct approval,
+  and open Red ready for the first request. Plan remains optional; no external
+  scope file, authorization-reference field or manual approval command is needed.
+  Preserve existing engagement scopes and conversations; legacy missing-scope
+  recovery remains available. URL input follows current exact-root/default-port
+  enforcement rather than expanding it. Proposed [PR #1005](https://github.com/BitterSecurity/Decepticon/pull/1005).
+
 - Release-history documentation follow-up: record the published v1.5.0
   version/date and preserve the canonical history. No runtime or upgrade behavior
   changes. Define OSS Major/Minor/Patch selection, required actual WSL and candidate
