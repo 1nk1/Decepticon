@@ -1,6 +1,6 @@
 # Versioned change tracking
 
-Use only the repository-root `CHANGELOG.md` for versioned change history. Before opening or updating any PR, including documentation or maintenance work, update it and link it from the PR description. Record user-visible features, fixes and compatibility/upgrade notes with PR links under Unreleased; distinguish proposed, merged and released/deployed changes. Preserve existing history and release automation. On release, use the actual product version or immutable release/image identifier and actual date. SaaS identifiers and OSS versions are independent. Do not create alternate changelog files or edit another dirty worktree.
+Use only the repository-root `CHAGELOG.md` for versioned change history. Before opening or updating any PR, including documentation or maintenance work, update it and link it from the PR description. Record user-visible features, fixes and compatibility/upgrade notes with PR links under Unreleased; distinguish proposed, merged and released/deployed changes. Preserve existing history and release automation. On release, use the actual product version or immutable release/image identifier and actual date. SaaS identifiers and OSS versions are independent. Do not create alternate changelog files or edit another dirty worktree.
 
 # Task worktrees and pull requests
 

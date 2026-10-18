@@ -1,4 +1,4 @@
-# Changelog
+# Decepticon version history
 
 All notable changes to the Decepticon project. Format based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning
@@ -21,7 +21,7 @@ Keep proposed and unmerged changes out of released sections.
   Support canonical Desktop workspace/engagement document paths alongside legacy
   CLI folders. Source work only; no package version or release is published.
 
-- Consolidate change tracking in this single `CHANGELOG.md`; remove the former
+- Consolidate change tracking in this single `CHAGELOG.md`; remove the former
   alternate entry point and update contributor/release instructions.
 
 - Record v1.5.2's actual publication date and included fixes; retain v1.5.1 as
@@ -139,7 +139,7 @@ Keep proposed and unmerged changes out of released sections.
   Workflow updates affect new executions; existing checkpoint pins remain stable.
   Optional legacy VR and benchmark contracts retain their
   separately documented integration boundaries. Add root change-tracking
-  instructions while preserving the canonical CHANGELOG.md
+  instructions while preserving the canonical CHAGELOG.md
   history and release automation. Included in v1.5.0.
 - Regenerate the checked-in Skillogy graph from the changed skill corpus so
   retrieval metadata and the deterministic CI build gate match the source (#999).
