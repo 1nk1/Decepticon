@@ -156,6 +156,24 @@ service, rotate credentials, or print secret values. Authentication presence doe
 not establish that a remote provider login remains valid. A failed required check
 returns a nonzero exit status; optional unavailable components do not.
 
+The `langgraph` check verifies host-side `GET /ok` and then
+`POST /assistants/search` for an exact `graph_id: decepticon` registration.
+Docker's internal healthcheck only verifies `/ok` inside its container. A healthy
+container therefore does not establish host connectivity or assistant readiness.
+Startup and doctor now report the failed endpoint, transport error or HTTP status,
+invalid catalog, or missing graph separately. The startup deadline bounds both
+requests and retry delays; `DECEPTICON_STARTUP_TIMEOUT_SECONDS` remains available
+for genuinely slow graph initialization. Increasing it does not repair an
+unreachable published port.
+
+For a host connectivity failure, check `LANGGRAPH_PORT` in the installation's
+`.env` and compare `docker port decepticon-langgraph 2024/tcp` with that value
+(use the corresponding container name for a named stack). Then test the host
+endpoint with `curl --connect-timeout 3 --max-time 5 http://127.0.0.1:2024/ok`,
+substituting the configured port. Keep the containers and data in place for
+diagnosis; do not reset credentials or database volumes to address a network
+timeout.
+
 `/export json` and `/export markdown` export the current conversation only. Default
 exports go to the selected workspace's `exports/` directory. Explicit paths are
 relative to the CLI process, which runs inside the container for installed users.

@@ -9,8 +9,8 @@ design spec, §13.4).
 Before opening or updating a PR, record its changes and PR link under
 **Unreleased**. An open linked PR means proposed work; a merged linked PR means
 integrated but unreleased work. Only dated release sections describe shipped work.
-Use this file as the single version history. At release,
-move merged entries into a dated version section and add a comparison link.
+Maintain this single root `CHAGELOG.md`, preserving the full version history.
+At release, move merged entries into a dated version section and add a comparison link.
 Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
@@ -23,6 +23,40 @@ Keep proposed and unmerged changes out of released sections.
 
 - Consolidate change tracking in this single `CHAGELOG.md`; remove the former
   alternate entry point and update contributor/release instructions.
+
+- PR #1013 verification follow-up: format catalog tooling with repository Ruff
+  rules and keep safety assertions independent of the growing model count.
+
+- Proposed [PR #1013](https://github.com/BitterSecurity/Decepticon/pull/1013):
+  refresh the shared public catalog from reviewed SaaS main pricing/model data,
+  retaining context-tier prices and provenance. Include four public models and
+  admit their metadata in the locally reviewed generator. Existing credentials,
+  defaults and explicit local compatibility overrides remain; this does not
+  publish an OSS version or prove provider availability.
+
+- Proposed [PR #1011](https://github.com/BitterSecurity/Decepticon/pull/1011):
+  own a shared public LiteLLM model catalog and deterministic route/CLI generation
+  for OSS and the pinned SaaS consumer. Retain existing route semantics,
+  credential references and local OAuth behavior; admit new providers explicitly.
+  No runtime network dependency, version bump or release. See
+  [catalog maintenance](model-catalog/README.md).
+
+
+- Consolidate version history into the single root `CHAGELOG.md`, preserving
+  existing history and updating contributor guidance, links and tooling.
+  Documentation only; no runtime or upgrade changes.
+  [PR #1010](https://github.com/BitterSecurity/Decepticon/pull/1010).
+
+- Distinguish host-side LangGraph HTTP connectivity, status errors, malformed
+  assistant catalogs and missing `graph_id: decepticon` registration in startup
+  and `doctor`. Replace string matching with exact catalog validation, reject
+  redirects/invalid ports, and enforce the overall startup timeout across HTTP
+  requests and retry waits. Keep the doctor JSON `langgraph` key; its check now
+  requires both HTTP health and the actual assistant. Preserve existing timeout
+  configuration, scopes, credentials and volumes. Proposed
+  [PR #1008](https://github.com/BitterSecurity/Decepticon/pull/1008), related to
+  [#1004](https://github.com/BitterSecurity/Decepticon/issues/1004); the reported
+  host networking root cause remains unconfirmed and is not declared resolved.
 
 - Record v1.5.2's actual publication date and included fixes; retain v1.5.1 as
   an incomplete candidate rather than a published final. Documentation only;

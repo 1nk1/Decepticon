@@ -61,7 +61,8 @@ Use the [Feature Request](https://github.com/PurpleAILAB/Decepticon/issues/new?t
    - `chore:` — maintenance
    - `refactor:` — code restructuring
 5. **Record every PR**, including docs/maintenance, under `[Unreleased]` in
-   [CHAGELOG.md](CHAGELOG.md), the single version history, with the PR link. Maintainers use the
+   single root [CHAGELOG.md](CHAGELOG.md), preserving full history and including
+   the PR link. Maintainers use the
    actual publication date when moving released changes to a version section.
 6. **Open a PR** against `main` with a clear description of what and why.
 

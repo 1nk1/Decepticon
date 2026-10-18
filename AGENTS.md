@@ -1,10 +1,19 @@
 # Versioned change tracking
 
-Use only the repository-root `CHAGELOG.md` for versioned change history. Before opening or updating any PR, including documentation or maintenance work, update it and link it from the PR description. Record user-visible features, fixes and compatibility/upgrade notes with PR links under Unreleased; distinguish proposed, merged and released/deployed changes. Preserve existing history and release automation. On release, use the actual product version or immutable release/image identifier and actual date. SaaS identifiers and OSS versions are independent. Do not create alternate changelog files or edit another dirty worktree.
+Before opening or updating any PR, including documentation or maintenance changes,
+update the single root `CHAGELOG.md` and link it from the PR description. Preserve
+the full existing history and release automation; do not create another changelog.
+Record user-visible changes, fixes and
+compatibility/upgrade notes with PR links under Unreleased; distinguish proposed,
+merged and released changes. On release, move entries into a dated section using
+the actual version or immutable release identifier. Do not invent dates, bump
+unrelated versions or edit another dirty worktree. SaaS releases and OSS package
+versions are independent.
 
-# Task worktrees and pull requests
-
-Fetch the remote and confirm the latest remote main before each new task. Implement on a separate task branch and worktree based on that commit. Create a PR with changes and verification for each distinct task. Clean up the task worktree only after confirming its PR actually merged, its work is committed and pushed, and no active task uses it. Preserve pending or shared work.
+For each task, fetch and confirm the latest remote main, then create a separate
+task branch/worktree from it. Preserve other dirty worktrees. After confirming
+the task PR merged, remove its worktree only after checking for uncommitted,
+unpushed or active/shared work.
 
 # Extension architecture
 
