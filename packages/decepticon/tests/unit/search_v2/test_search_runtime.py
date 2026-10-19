@@ -622,6 +622,97 @@ def test_parallel_failed_recon_tasks_do_not_write_registry(tmp_path: Path) -> No
     assert "artifact_registry" not in state
 
 
+def test_parallel_failed_recon_restoration_errors_merge_receipts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    registry, _ = candidate(tmp_path)
+
+    def unavailable(*_args: object) -> ArtifactRegistry:
+        raise MaterializationError("findings/view.md", "backend unavailable")
+
+    monkeypatch.setattr(runtime_module, "persist_artifacts", unavailable)
+
+    @tool(description="Fixture failed recon task")
+    def task(subagent_type: str, description: str, runtime: ToolRuntime) -> Command[str]:
+        return Command(
+            update={
+                "messages": [
+                    ToolMessage(
+                        content=description,
+                        status="error",
+                        tool_call_id=runtime.tool_call_id or "",
+                    )
+                ]
+            }
+        )
+
+    response = AIMessage(
+        content="",
+        tool_calls=[
+            {
+                "id": "recon-one",
+                "name": "task",
+                "args": {"subagent_type": "recon", "description": "first"},
+            },
+            {
+                "id": "recon-two",
+                "name": "task",
+                "args": {"subagent_type": "recon", "description": "second"},
+            },
+        ],
+    )
+    backend = FilesystemBackend(root_dir=tmp_path, virtual_mode=True)
+    middleware = SearchRuntimeMiddleware(backend)
+    graph = create_agent(
+        ToolModel(responses=[response, *[AIMessage(content="Continue") for _ in range(4)]]),
+        tools=[task],
+        middleware=[middleware],
+        state_schema=GoalState,
+        checkpointer=InMemorySaver(),
+    )
+    config = {
+        "recursion_limit": 20,
+        "configurable": {
+            "thread_id": "parallel-recovery",
+            "search_policy_version": 2,
+            "search_run_id": "run",
+        },
+    }
+    session = SearchSession(
+        thread_id="parallel-recovery", run_id="run", started_at="2026-10-18T00:00:00Z"
+    )
+    graph.update_state(
+        config,
+        {
+            "artifact_registry": registry.model_dump_json(),
+            "search_state": session.model_dump_json(),
+            "workspace_path": "/workspace/engagement",
+        },
+        as_node="tools",
+    )
+    with pytest.raises(SearchContractError, match="premature closure"):
+        graph.invoke({"messages": [HumanMessage(content="Review the target")]}, config=config)
+    state = graph.get_state(config).values
+    assert ArtifactRegistry.model_validate_json(state["artifact_registry"]) == registry
+    assert state["search_recovery_events"] == {"run:recon-one": False, "run:recon-two": False}
+    next_call = {"id": "next", "name": "task", "args": {"subagent_type": "recon"}}
+    state["messages"] = [AIMessage(content="", tool_calls=[next_call])]
+    blocked = middleware._guard(SimpleNamespace(tool_call=next_call, state=state))
+    assert isinstance(blocked, ToolMessage)
+    assert "publish_artifacts" in blocked.text
+    monkeypatch.setattr(runtime_module, "persist_artifacts", persist_artifacts)
+    published = persist_artifacts(registry, backend, "/workspace/engagement")
+    cleared = middleware._returned(
+        SimpleNamespace(tool_call={"name": "publish_artifacts"}, state=state),
+        Command(update={"artifact_registry": published.model_dump_json()}),
+    )
+    assert isinstance(cleared, Command) and cleared.update is not None
+    assert cleared.update["search_recovery_events"] == {
+        "run:recon-one": True,
+        "run:recon-two": True,
+    }
+
+
 def test_plan_mutation_and_finalization_cannot_share_a_tool_batch(tmp_path: Path) -> None:
     mutations: list[str] = []
 

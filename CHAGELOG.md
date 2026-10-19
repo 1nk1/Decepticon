@@ -23,7 +23,8 @@ Keep proposed and unmerged changes out of released sections.
   retains historical Info pins, avoids implicit workflow injection into optional
   legacy plugin agents and makes backend publication failures retryable.
   Preserve imported revisions when publication fails, merge parallel task
-  receipts, and regenerate the checked-in skill graph after protocol edits.
+  receipts and parallel recovery failures, and regenerate the checked-in skill
+  graph after protocol edits.
   This source integration does not publish a release or deploy SaaS. Paired SaaS
   integration: [decepticon-saas#1294](https://github.com/BitterSecurity/decepticon-saas/pull/1294).
 

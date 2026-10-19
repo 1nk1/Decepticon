@@ -79,6 +79,15 @@ _DOCUMENT_WRITERS = frozenset(
         "report_drafter",
     }
 )
+
+
+def merge_recovery_events(
+    left: dict[str, bool] | None, right: dict[str, bool] | None
+) -> dict[str, bool]:
+    """Merge per-task recovery receipts without merging registry snapshots."""
+    return {**(left or {}), **(right or {})}
+
+
 _POLICY = """<artifact-search-v2>
 The runtime owns document UUIDs, filenames, numbers and committed revisions.
 Use create_artifact/edit_artifact for working drafts, commit_artifact at a plan,
@@ -110,6 +119,9 @@ class SearchRuntimeState(AgentState):
     search_receipt: NotRequired[Annotated[str, OmitFromInput]]
     search_last_review: NotRequired[Annotated[str, OmitFromInput]]
     search_task_events: Annotated[NotRequired[dict[str, str]], OmitFromInput, merge_search_events]
+    search_recovery_events: Annotated[
+        NotRequired[dict[str, bool]], OmitFromInput, merge_recovery_events
+    ]
 
 
 def _document_error(messages: list[BaseMessage], call_id: str, detail: str) -> list[BaseMessage]:
@@ -259,6 +271,16 @@ class SearchRuntimeMiddleware(AgentMiddleware):
             )
         if request.tool_call["name"] == "task":
             session = SearchSession.model_validate_json(request.state["search_state"])
+            recovery = request.state.get("search_recovery_events", {})
+            if any(
+                key.startswith(session.run_id + ":") and not resolved
+                for key, resolved in recovery.items()
+            ):
+                return ToolMessage(
+                    content="Document restoration pending; retry publish_artifacts before task dispatch.",
+                    tool_call_id=request.tool_call["id"],
+                    status="error",
+                )
             registry_raw = request.state.get("artifact_registry")
             if registry_raw:
                 registry = registry_from_state(registry_raw)
@@ -298,6 +320,19 @@ class SearchRuntimeMiddleware(AgentMiddleware):
     def _returned(
         self, request: ToolCallRequest, result: ToolMessage | Command[str]
     ) -> ToolMessage | Command[str]:
+        if request.tool_call["name"] == "publish_artifacts":
+            if isinstance(result, Command) and result.update:
+                update = dict(result.update)
+                raw = update.get("artifact_registry")
+                if raw and registry_from_state(raw).materialized:
+                    cleared = {
+                        key: True
+                        for key, resolved in request.state.get("search_recovery_events", {}).items()
+                        if not resolved
+                    }
+                    if cleared:
+                        return Command(update={**update, "search_recovery_events": cleared})
+            return result
         if request.tool_call["name"] != "task":
             return result
         session = SearchSession.model_validate_json(request.state["search_state"])
@@ -361,10 +396,10 @@ class SearchRuntimeMiddleware(AgentMiddleware):
             # Failed-return restoration has no imported state and falls back
             # to the original checkpoint registry instead.
             if "artifact_registry" not in update:
-                pending = (
-                    registry.model_copy(update={"materialized": False}) if failed else registry
-                )
-                update["artifact_registry"] = pending.model_dump_json()
+                if specialist_role in _DOCUMENT_WRITERS:
+                    pending = registry.model_copy(update={"materialized": False})
+                    update["artifact_registry"] = pending.model_dump_json()
+            update["search_recovery_events"] = {session.run_id + ":" + call_id: False}
             update["messages"] = _document_error(
                 update.get("messages", []),
                 call_id,
@@ -381,8 +416,10 @@ class SearchRuntimeMiddleware(AgentMiddleware):
                 if specialist_role in _DOCUMENT_WRITERS:
                     update["artifact_registry"] = restored.model_dump_json()
             except MaterializationError as restore_error:
-                pending = registry.model_copy(update={"materialized": False})
-                update["artifact_registry"] = pending.model_dump_json()
+                if specialist_role in _DOCUMENT_WRITERS:
+                    pending = registry.model_copy(update={"materialized": False})
+                    update["artifact_registry"] = pending.model_dump_json()
+                update["search_recovery_events"] = {session.run_id + ":" + call_id: False}
                 detail += f"; restoration pending; call publish_artifacts: {restore_error}"
             update["messages"] = _document_error(
                 update.get("messages", []),
