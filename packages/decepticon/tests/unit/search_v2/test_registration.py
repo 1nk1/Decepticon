@@ -38,6 +38,16 @@ def test_non_orchestrator_assembly_preserves_existing_behavior(tmp_path: Path, r
     assert not any(isinstance(item, SearchRuntimeMiddleware) for item in middleware)
 
 
+@pytest.mark.parametrize("role", ["vulnresearch", "verifier", "scanner"])
+def test_optional_legacy_plugin_does_not_inherit_default_red_workflow(
+    tmp_path: Path, role: str
+) -> None:
+    backend = FilesystemBackend(root_dir=tmp_path, virtual_mode=True)
+    middleware = build_middleware(role=role, backend=backend, llm=None, slots=frozenset())
+    assert not any(isinstance(item, WorkflowMiddleware) for item in middleware)
+    assert not any(isinstance(item, SearchRuntimeMiddleware) for item in middleware)
+
+
 def test_latest_workflow_automatically_enables_search_gate(tmp_path: Path) -> None:
     # Given the real parent assembly with no explicit search policy override.
     backend = FilesystemBackend(root_dir=tmp_path, virtual_mode=True)

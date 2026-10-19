@@ -20,7 +20,8 @@ Keep proposed and unmerged changes out of released sections.
   OPPLAN search toward independently verified High/Critical findings. Preserve
   legacy workflow checkpoints and finding readers. Review follow-up restores
   committed finding bytes after failed specialists, serializes verifier writers,
-  retains historical Info pins and makes backend publication failures retryable.
+  retains historical Info pins, avoids implicit workflow injection into optional
+  legacy plugin agents and makes backend publication failures retryable.
   This source integration does not publish a release or deploy SaaS. Paired SaaS
   integration: [decepticon-saas#1294](https://github.com/BitterSecurity/decepticon-saas/pull/1294).
 
