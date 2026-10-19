@@ -2,9 +2,30 @@ package cmd
 
 import (
 	"os"
+	"runtime"
 	"strings"
 	"testing"
 )
+
+func TestDesktopProviderCredentialsMatchRouter(t *testing.T) {
+	for _, tc := range []struct{ provider, model, keyEnv string }{
+		{"kimi_code", "kimi_code/kimi-k2", "KIMI_API_KEY"},
+		{"minimax_plan", "minimax_plan/MiniMax-M2", "MINIMAX_API_KEY"},
+	} {
+		t.Run(tc.provider, func(t *testing.T) {
+			t.Setenv("DECEPTICON_DESKTOP_PROVIDER", tc.provider)
+			t.Setenv("DECEPTICON_DESKTOP_MODEL", tc.model)
+			t.Setenv("DECEPTICON_DESKTOP_API_KEY", "test-key-with-enough-characters")
+			selected, err := parseDesktopRuntime(true)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if selected.keyEnv != tc.keyEnv {
+				t.Fatalf("credential env = %q, want %q", selected.keyEnv, tc.keyEnv)
+			}
+		})
+	}
+}
 
 func TestDesktopRuntimeRejectsProviderOrModelMismatch(t *testing.T) {
 	t.Setenv("DECEPTICON_DESKTOP_PROVIDER", "openai")
@@ -138,7 +159,9 @@ func TestDesktopBootstrapCreatesPrivateServiceEnvWithoutModelKey(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if info.Mode().Perm() != 0o600 {
+	// Windows os.FileMode does not represent the file's NTFS ACL. The
+	// config writer protects the file in the current user's home there.
+	if runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
 		t.Fatalf("service config mode = %o, want 600", info.Mode().Perm())
 	}
 	data, err := os.ReadFile(path)

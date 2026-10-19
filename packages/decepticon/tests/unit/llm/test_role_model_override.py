@@ -15,6 +15,15 @@ _ITER = "decepticon.agents.build._iter_override_bundles"
 
 
 class TestResolveRoleModel:
+    def test_desktop_selection_reaches_role_factory(self, monkeypatch):
+        monkeypatch.setenv("DECEPTICON_DESKTOP_MODEL", "openai/gpt-5.5")
+        monkeypatch.setenv("DECEPTICON_MODEL_EXPLOIT", "anthropic/claude-opus-4-8")
+        assert resolve_role_model("exploit") == "openai/gpt-5.5"
+        assignment = LLMFactory._compose_assignment(
+            "exploit", ModelAssignment(primary="anthropic/claude-opus-4-8", fallbacks=[])
+        )
+        assert assignment.primary == "openai/gpt-5.5"
+
     def test_none_when_neither_env_nor_bundle(self, monkeypatch):
         monkeypatch.delenv("DECEPTICON_MODEL_EXPLOIT", raising=False)
         monkeypatch.setattr(_ITER, lambda role: iter(()))

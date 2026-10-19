@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/config"
 )
 
 type desktopModelRuntime struct {
@@ -46,8 +48,8 @@ var desktopProviderKeys = map[string]string{
 	"chutes":       "CHUTES_API_KEY",
 	"synthetic":    "SYNTHETIC_API_KEY",
 	"ollama_cloud": "OLLAMA_CLOUD_API_KEY",
-	"kimi_code":    "KIMI_CODE_API_KEY",
-	"minimax_plan": "MINIMAX_PLAN_API_KEY",
+	"kimi_code":    "KIMI_API_KEY",
+	"minimax_plan": "MINIMAX_API_KEY",
 }
 
 var desktopProviderPrefixes = map[string]string{
@@ -142,7 +144,7 @@ func writeDesktopRuntimeOverlay(home string, selected *desktopModelRuntime) (str
 		agentEnv += "      DECEPTICON_LLM__TIMEOUT: '600'\n"
 	}
 	content := "services:\n  litellm:\n    environment:\n" + serviceEnv + "  langgraph:\n    environment:\n" + agentEnv
-	if err := file.Chmod(0o600); err != nil {
+	if err := config.ProtectPrivateFile(path); err != nil {
 		os.Remove(path)
 		return "", fmt.Errorf("protect Desktop runtime overlay: %w", err)
 	}

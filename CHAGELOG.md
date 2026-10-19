@@ -20,6 +20,9 @@ Keep proposed and unmerged changes out of released sections.
   engagement-scoped mounts. Preserve normal CLI startup and existing homes.
   Support canonical Desktop workspace/engagement document paths alongside legacy
   CLI folders. Source work only; no package version or release is published.
+  Review fix: route the selected model into every agent role and use the catalog's
+  actual Kimi/Minimax credential names; retain Windows platform-specific file
+  permission checks alongside private configuration handling.
 
 - Consolidate change tracking in this single `CHAGELOG.md`; remove the former
   alternate entry point and update contributor/release instructions.
