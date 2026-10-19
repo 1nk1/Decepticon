@@ -28,13 +28,19 @@ class MaterializationError(RuntimeError):
 
 
 def _upload(backend: BackendProtocol, path: str, content: bytes) -> None:
-    responses = backend.upload_files([(path, content)])
+    try:
+        responses = backend.upload_files([(path, content)])
+    except Exception as error:
+        raise MaterializationError(path, str(error)) from error
     if len(responses) != 1 or responses[0].error is not None:
         raise MaterializationError(path, str(responses))
 
 
 def _snapshot(backend: BackendProtocol, path: str, content: bytes) -> None:
-    responses = backend.download_files([path])
+    try:
+        responses = backend.download_files([path])
+    except Exception as error:
+        raise MaterializationError(path, str(error)) from error
     if len(responses) != 1:
         raise MaterializationError(path, "Missing download response")
     response = responses[0]
@@ -75,6 +81,16 @@ def materialize(registry: ArtifactRegistry, backend: BackendProtocol) -> Artifac
         path = f"plan/artifacts/{projection.document_uuid}/{projection.revision:06}.json"
         _snapshot(backend, path, projection.model_dump_json(indent=2).encode())
         _upload(backend, INFO_PATH, markdown.encode())
-    result = registry.model_copy(update={"materialized": True, "information_log": projection}, deep=True)
+    history = registry.information_log_history
+    if registry.information_log is not None and all(
+        prior.revision != registry.information_log.revision for prior in history
+    ):
+        history = (*history, registry.information_log)
+    if projection is not None and all(prior.revision != projection.revision for prior in history):
+        history = (*history, projection)
+    result = registry.model_copy(update={
+        "materialized": True, "information_log": projection,
+        "information_log_history": history,
+    }, deep=True)
     _upload(backend, REGISTRY_PATH, result.model_dump_json(indent=2).encode())
     return result

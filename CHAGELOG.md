@@ -21,6 +21,10 @@ Keep proposed and unmerged changes out of released sections.
   workflow pins and legacy finding readers remain compatible; new full-search
   runs adopt the new policy. This source change is not an OSS release or SaaS
   deployment. Paired SaaS integration: [decepticon-saas#1294](https://github.com/BitterSecurity/decepticon-saas/pull/1294).
+  Review follow-up: restore committed finding bytes after failed specialist work,
+  serialize all verifier writers, preserve legacy checkpoint search behavior and
+  historical Info pins, and keep backend publication failures retryable. Collect
+  artifact regressions in the normal CI test tree.
 - Consolidate all version history into root `CHAGELOG.md`, preserving the former
   canonical history and publication notes; update contributor/release references.
   Documentation maintenance only; no version bump.

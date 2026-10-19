@@ -46,8 +46,10 @@ def _check_links(registry: ArtifactRegistry, draft: ArtifactDraft) -> None:
             projection = registry.information_log
             if projection is None:
                 raise ArtifactError("Information log has no committed projection")
-            if link.revision is not None and (
-                link.revision != projection.revision or link.content_hash != projection.markdown_sha256
+            historical = (*registry.information_log_history, projection)
+            if link.revision is not None and not any(
+                link.revision == item.revision and link.content_hash == item.markdown_sha256
+                for item in historical
             ):
                 raise ArtifactError("Pinned information log reference does not match the committed projection")
             continue

@@ -135,6 +135,7 @@ class ArtifactRegistry(FrozenModel):
     schema_version: Literal[2] = 2
     information_log_uuid: UUID = Field(default_factory=uuid4)
     information_log: InformationLogProjection | None = None
+    information_log_history: tuple[InformationLogProjection, ...] = ()
     artifacts: dict[str, Artifact] = Field(default_factory=dict)
     next_numbers: dict[ArtifactKind, int] = Field(default_factory=dict)
     operations: dict[str, OperationReceipt] = Field(default_factory=dict)

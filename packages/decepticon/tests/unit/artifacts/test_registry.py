@@ -163,6 +163,47 @@ def test_info_entries_share_one_view_when_materialized(tmp_path: Path) -> None:
     assert "INFO-01" in files[0].read_text() and "INFO-02" in files[0].read_text()
 
 
+def test_report_may_pin_an_earlier_immutable_information_log(tmp_path: Path) -> None:
+    backend = FilesystemBackend(root_dir=tmp_path, virtual_mode=True)
+    entry = ArtifactDraft(
+        kind=ArtifactKind.INFO_ENTRY, title="Control", slug="control-result",
+        body="First observation", metadata={"kind": "negative_result"},
+    )
+    registry = create(ArtifactRegistry(), entry, "first-info")
+    info = list_artifacts(registry)[0]
+    registry = commit(registry, CommitRequest(
+        document_uuid=info.document_uuid, expected_revision=0,
+        operation_key="first-info-commit", reason="observed",
+    ), ACTOR)
+    registry = materialize(registry, backend)
+    first = registry.information_log
+    assert first is not None
+    registry = update_draft(registry, DraftUpdate(
+        document_uuid=info.document_uuid, expected_draft_version=1,
+        draft=entry.model_copy(update={"body": "Second observation"}),
+    ), ACTOR)
+    registry = commit(registry, CommitRequest(
+        document_uuid=info.document_uuid, expected_revision=1,
+        operation_key="second-info-commit", reason="follow-up",
+    ), ACTOR)
+    registry = ArtifactRegistry.model_validate_json(materialize(registry, backend).model_dump_json())
+    assert registry.information_log is not None
+    assert registry.information_log.revision > first.revision
+    pinned = ArtifactLink(
+        relation="reports", document_uuid=registry.information_log_uuid,
+        revision=first.revision, content_hash=first.markdown_sha256,
+    )
+    report = ArtifactDraft(
+        kind=ArtifactKind.ASSESSMENT_REPORT, title="Assessment", slug="security-assessment-report",
+        body="Earlier observation remains cited", links=(pinned,),
+    )
+    assert create(registry, report, "report").artifacts
+    with pytest.raises(ArtifactError, match="Pinned information log"):
+        create(registry, report.model_copy(update={"links": (
+            pinned.model_copy(update={"content_hash": "0" * 64}),
+        )}), "bad-report")
+
+
 def test_failed_materialization_is_retryable_when_view_parent_is_file(tmp_path: Path) -> None:
     # Given a filesystem obstruction after immutable snapshots can be written.
     registry = committed(initial())
@@ -176,6 +217,17 @@ def test_failed_materialization_is_retryable_when_view_parent_is_file(tmp_path: 
     assert not (tmp_path / "plan/artifact-registry.json").exists()
     obstruction.unlink()
     assert materialize(registry, backend).materialized
+
+
+def test_backend_exception_is_retryable_materialization_error(tmp_path: Path) -> None:
+    class FailingBackend(FilesystemBackend):
+        def upload_files(self, files):
+            raise OSError("fixture upload unavailable")
+
+    registry = committed(initial())
+    with pytest.raises(MaterializationError, match="fixture upload unavailable"):
+        materialize(registry, FailingBackend(root_dir=tmp_path, virtual_mode=True))
+    assert not registry.materialized
 
 
 def test_snapshot_collision_rejected_when_existing_bytes_differ(tmp_path: Path) -> None:

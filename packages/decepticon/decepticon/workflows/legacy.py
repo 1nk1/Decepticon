@@ -33,6 +33,7 @@ def legacy_snapshot(selected: WorkflowSnapshot) -> WorkflowSnapshot:
         update={
             "version": selected.version + "-legacy",
             "stages": (),
+            "search_goal": None,
         }
     )
     precedence = (

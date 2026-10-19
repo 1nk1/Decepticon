@@ -176,7 +176,7 @@ class SearchRuntimeMiddleware(AgentMiddleware):
             if set(events) - set(session.reviewed_task_ids):
                 return ToolMessage(content="Review returned results and revise OPPLAN through review_search before the next task.", tool_call_id=request.tool_call["id"], status="error")
             count = sum(call["name"] == "task" for call in calls)
-            writers = {"verifier", "finding_verifier", "validator", "report", "finding_reporter", "report_drafter"}
+            writers = {"verifier", "finding_verifier", "validator", "bugclaw_validator", "report", "finding_reporter", "report_drafter"}
             if count > 1 and any(call["name"] == "task" and call["args"].get("subagent_type") in writers for call in calls):
                 return ToolMessage(content="Serialize verifier/reporter tasks because they commit shared document revisions.", tool_call_id=request.tool_call["id"], status="error")
             if session.disposition or (session.max_dispatches is not None and len(events) + count > session.max_dispatches):
@@ -199,6 +199,19 @@ class SearchRuntimeMiddleware(AgentMiddleware):
         role = "" if failed else str(args.get("subagent_type", ""))
         registry = registry_from_state(request.state.get("artifact_registry"))
         try:
+            if failed:
+                # A failed specialist can leave partial edits in the shared
+                # workspace even though its checkpoint registry is rejected.
+                # Restore committed projections before another task reads them.
+                restored = persist_artifacts(registry, self.backend, request.state.get("workspace_path"))
+                update["artifact_registry"] = restored.model_dump_json()
+                update.pop("search_state", None)
+                update.pop("search_receipt", None)
+                update.pop("search_last_review", None)
+                return Command(update={
+                    **update,
+                    "search_task_events": {session.run_id + ":" + call_id: str(args.get("task_id", ""))},
+                })
             imported = import_specialist_edits(registry, scoped_backend(self.backend, request.state.get("workspace_path")), SpecialistHandoff(
                 context=ActorContext(actor=session.run_id + ":" + call_id, role=role, objective_id=args.get("task_id")),
                 assignment=json.dumps(args),
@@ -209,6 +222,7 @@ class SearchRuntimeMiddleware(AgentMiddleware):
                 imported = persist_artifacts(imported, self.backend, request.state.get("workspace_path"))
                 update["artifact_registry"] = imported.model_dump_json()
         except MaterializationError as error:
+            update["artifact_registry"] = registry.model_dump_json()
             update["messages"] = _document_error(update.get("messages", []), call_id, f"Document publication pending; call publish_artifacts: {error}")
         except (ArtifactError, ValidationError) as error:
             update["messages"] = _document_error(update.get("messages", []), call_id, f"Specialist result returned; document commit rejected: {error}")

@@ -36,6 +36,8 @@ from decepticon.middleware.search_runtime import (
 )
 from decepticon_core.contracts.slots import SLOTS_PER_ROLE
 from decepticon_core.registry.roles import RoleRegistry
+from decepticon.workflows import WorkflowCatalog
+from decepticon.workflows.legacy import legacy_snapshot
 
 from .helpers import ToolModel
 from .test_search_evidence import SCOPE, candidate, verify
@@ -52,6 +54,24 @@ def test_bounded_request_when_search_policy_is_legacy(tmp_path: Path) -> None:
     graph = create_agent(ToolModel(responses=[AIMessage(content="bounded answer")]), middleware=[SearchRuntimeMiddleware(FilesystemBackend(root_dir=tmp_path, virtual_mode=True))])
     result = graph.invoke({"messages": [HumanMessage(content="Explain this finding")]}, config={"configurable": {"search_policy_version": 1}})
     assert result["messages"][-1].content == "bounded answer"
+    assert "search_state" not in result
+
+
+def test_old_objective_checkpoint_retains_legacy_search_goal(tmp_path: Path) -> None:
+    selected = WorkflowCatalog.default().resolve("red-team")
+    legacy = legacy_snapshot(selected)
+    assert legacy.document.metadata.search_goal is None
+    graph = create_agent(
+        ToolModel(responses=[AIMessage(content="Continue legacy objectives")]),
+        middleware=[SearchRuntimeMiddleware(FilesystemBackend(root_dir=tmp_path, virtual_mode=True))],
+        state_schema=GoalState,
+    )
+    result = graph.invoke({
+        "messages": [HumanMessage(content="Resume the existing objective")],
+        "objectives": [{"id": "OBJ-01", "status": "pending"}],
+        "workflow_snapshot": legacy.model_dump_json(),
+    }, config={"configurable": {"thread_id": "legacy-thread"}})
+    assert result["messages"][-1].content == "Continue legacy objectives"
     assert "search_state" not in result
 
 
@@ -90,6 +110,7 @@ def test_parallel_search_returns_when_events_arrive_together() -> None:
 class GoalState(SearchRuntimeState):
     objectives: NotRequired[list[dict[str, JsonValue]]]
     workspace_path: NotRequired[str]
+    workflow_snapshot: NotRequired[str]
 
 
 @pytest.mark.parametrize("run_id", ["run", "new-run"])
@@ -151,6 +172,9 @@ def test_failed_verifier_return_cannot_commit_partial_document_edits(tmp_path: P
     assert list_artifacts(saved)[0].revision == 1
     assert list_artifacts(saved)[0].draft.metadata["verification_status"] == "unverified"
     assert "run:failed-verifier" in state["search_task_events"]
+    restored = scoped.read("/workspace/" + finding.current_path)
+    assert restored.file_data is not None
+    assert restored.file_data["content"] == finding.revisions[-1].markdown
 
 
 def test_plan_mutation_and_finalization_cannot_share_a_tool_batch(tmp_path: Path) -> None:
@@ -170,6 +194,35 @@ def test_plan_mutation_and_finalization_cannot_share_a_tool_batch(tmp_path: Path
     with pytest.raises(SearchContractError, match="premature closure"):
         graph.invoke({"messages": [HumanMessage(content="Close search while changing OPPLAN")]}, config=config)
     assert mutations == []
+    errors = [message for message in graph.get_state(config).values["messages"] if isinstance(message, ToolMessage)]
+    assert len(errors) == 2
+    assert all(message.status == "error" and "Serialize" in message.text for message in errors)
+
+
+def test_bugclaw_validator_cannot_write_alongside_another_task(tmp_path: Path) -> None:
+    executed: list[str] = []
+
+    @tool(description="Fixture specialist task")
+    def task(subagent_type: str, description: str) -> str:
+        executed.append(subagent_type)
+        return description
+
+    response = AIMessage(content="", tool_calls=[
+        {"id": "validator", "name": "task", "args": {"subagent_type": "bugclaw_validator", "description": "Check finding"}},
+        {"id": "other", "name": "task", "args": {"subagent_type": "recon", "description": "Inspect scope"}},
+    ])
+    graph = create_agent(
+        ToolModel(responses=[response, *[AIMessage(content="Continue") for _ in range(4)]]),
+        tools=[task],
+        middleware=[SearchRuntimeMiddleware(FilesystemBackend(root_dir=tmp_path, virtual_mode=True))],
+        checkpointer=InMemorySaver(),
+    )
+    config = {"recursion_limit": 20, "configurable": {
+        "thread_id": "validator-thread", "search_policy_version": 2, "search_run_id": "run",
+    }}
+    with pytest.raises(SearchContractError, match="premature closure"):
+        graph.invoke({"messages": [HumanMessage(content="Review the candidate")]}, config=config)
+    assert executed == []
     errors = [message for message in graph.get_state(config).values["messages"] if isinstance(message, ToolMessage)]
     assert len(errors) == 2
     assert all(message.status == "error" and "Serialize" in message.text for message in errors)
