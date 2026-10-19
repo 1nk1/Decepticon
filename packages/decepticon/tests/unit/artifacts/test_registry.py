@@ -1,9 +1,12 @@
 from hashlib import sha256
 from pathlib import Path
+from types import SimpleNamespace
+from typing import cast
 from uuid import uuid4
 
 import pytest
 from deepagents.backends import FilesystemBackend
+from langchain.tools import ToolRuntime
 from pydantic import ValidationError
 
 from decepticon.artifacts import (
@@ -23,6 +26,7 @@ from decepticon.artifacts import (
     materialize,
     update_draft,
 )
+from decepticon.middleware.artifact_tools import publish_artifact
 
 ACTOR = ActorContext(actor="parent", role="orchestrator")
 
@@ -228,6 +232,34 @@ def test_backend_exception_is_retryable_materialization_error(tmp_path: Path) ->
     with pytest.raises(MaterializationError, match="fixture upload unavailable"):
         materialize(registry, FailingBackend(root_dir=tmp_path, virtual_mode=True))
     assert not registry.materialized
+
+
+def test_tool_checkpoint_keeps_identity_after_backend_failure(tmp_path: Path) -> None:
+    class FailingOnceBackend(FilesystemBackend):
+        fail_next_upload = True
+
+        def upload_files(self, files):
+            if self.fail_next_upload:
+                self.fail_next_upload = False
+                raise OSError("fixture publication interrupted")
+            return super().upload_files(files)
+
+    backend = FailingOnceBackend(root_dir=tmp_path, virtual_mode=True)
+    registry = committed(initial())
+    runtime = cast(ToolRuntime, SimpleNamespace(
+        state={"workspace_path": "/workspace/engagement"}, tool_call_id="publish",
+    ))
+    pending = publish_artifact(registry, runtime, backend)
+    assert pending.update is not None
+    saved = ArtifactRegistry.model_validate_json(pending.update["artifact_registry"])
+    assert not saved.materialized
+    assert saved.operations == registry.operations
+    assert list_artifacts(saved)[0].document_uuid == list_artifacts(registry)[0].document_uuid
+    completed = publish_artifact(saved, runtime, backend)
+    assert completed.update is not None
+    published = ArtifactRegistry.model_validate_json(completed.update["artifact_registry"])
+    assert published.materialized, completed.update["messages"]
+    assert list_artifacts(published)[0].document_uuid == list_artifacts(registry)[0].document_uuid
 
 
 def test_snapshot_collision_rejected_when_existing_bytes_differ(tmp_path: Path) -> None:
