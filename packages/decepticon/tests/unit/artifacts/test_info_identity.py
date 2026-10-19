@@ -2,6 +2,8 @@ from hashlib import sha256
 from pathlib import Path
 
 import pytest
+from deepagents.backends import FilesystemBackend
+
 from decepticon.artifacts import (
     ActorContext,
     ArtifactDraft,
@@ -17,7 +19,6 @@ from decepticon.artifacts import (
     materialize,
     update_draft,
 )
-from deepagents.backends import FilesystemBackend
 
 
 def test_info_log_identity_survives_edits_and_checkpoint_reload(tmp_path: Path) -> None:

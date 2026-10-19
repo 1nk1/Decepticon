@@ -34,10 +34,10 @@ from decepticon.middleware.search_runtime import (
     _document_error,
     get_search_middleware,
 )
-from decepticon_core.contracts.slots import SLOTS_PER_ROLE
-from decepticon_core.registry.roles import RoleRegistry
 from decepticon.workflows import WorkflowCatalog
 from decepticon.workflows.legacy import legacy_snapshot
+from decepticon_core.contracts.slots import SLOTS_PER_ROLE
+from decepticon_core.registry.roles import RoleRegistry
 
 from .helpers import ToolModel
 from .test_search_evidence import SCOPE, candidate, verify
