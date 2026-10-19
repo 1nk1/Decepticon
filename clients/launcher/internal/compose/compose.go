@@ -19,6 +19,8 @@ type Compose struct {
 	Home        string
 	ComposeFile string
 	EnvFile     string
+	OverlayFile string
+	ExtraEnv    []string
 	// Runtime is the container runtime selected at construction time
 	// (docker / podman / nerdctl). Stored so every call uses the same
 	// binary + socket and we don't re-probe on every invocation.
@@ -104,6 +106,9 @@ func (c *Compose) baseArgs() []string {
 	// use by another project" conflict on the next ops_start.
 	args = append(args, "-p", opscontrol.ComposeProjectName())
 	args = append(args, "-f", c.ComposeFile, "--env-file", c.EnvFile)
+	if c.OverlayFile != "" {
+		args = append(args, "-f", c.OverlayFile)
+	}
 	// ADR-0006 Sprint 1: include the opscontrol overlay only when
 	// the file exists AND the host socket has been bound. Attaching
 	// the overlay without DECEPTICON_OPSCONTROL_SOCK_HOST exported
@@ -173,7 +178,7 @@ func (c *Compose) composeEnv() []string {
 	// containers (testcontainers, kubectl-with-docker-shim) find the
 	// Podman socket. No-op for Docker.
 	env = c.Runtime.Apply(env)
-	return env
+	return append(env, c.ExtraEnv...)
 }
 
 // run executes a compose command via the detected runtime.
