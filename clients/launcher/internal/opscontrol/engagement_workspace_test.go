@@ -51,6 +51,10 @@ func TestEngagementWorkspaceUsesValidatedDesktopChoice(t *testing.T) {
 	if err := RecordEngagementWorkspace("sample-engagement", wanted); err != nil {
 		t.Fatal(err)
 	}
+	wanted, err := filepath.EvalSymlinks(wanted)
+	if err != nil {
+		t.Fatal(err)
+	}
 	got, err := engagementWorkspace("sample-engagement")
 	if err != nil || got != wanted {
 		t.Fatalf("engagementWorkspace() = %q, %v; want %q", got, err, wanted)
