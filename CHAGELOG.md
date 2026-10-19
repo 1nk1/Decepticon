@@ -1,4 +1,4 @@
-# Changelog
+# Decepticon version history
 
 All notable changes to the Decepticon project. Format based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning
@@ -14,6 +14,15 @@ At release, move merged entries into a dated version section and add a compariso
 Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
+
+- Proposed [PR #1009](https://github.com/BitterSecurity/Decepticon/pull/1009): add the Desktop `serve --engagement` adapter for existing local
+  engagements, with native model selection, private runtime configuration and
+  engagement-scoped mounts. Preserve normal CLI startup and existing homes.
+  Support canonical Desktop workspace/engagement document paths alongside legacy
+  CLI folders. Source work only; no package version or release is published.
+
+- Consolidate change tracking in this single `CHAGELOG.md`; remove the former
+  alternate entry point and update contributor/release instructions.
 
 - PR #1013 verification follow-up: format catalog tooling with repository Ruff
   rules and keep safety assertions independent of the growing model count.
@@ -164,7 +173,7 @@ Keep proposed and unmerged changes out of released sections.
   Workflow updates affect new executions; existing checkpoint pins remain stable.
   Optional legacy VR and benchmark contracts retain their
   separately documented integration boundaries. Add root change-tracking
-  instructions and the `Chagelog.md` entry point while preserving this canonical
+  instructions while preserving the canonical CHAGELOG.md
   history and release automation. Included in v1.5.0.
 - Regenerate the checked-in Skillogy graph from the changed skill corpus so
   retrieval metadata and the deterministic CI build gate match the source (#999).
