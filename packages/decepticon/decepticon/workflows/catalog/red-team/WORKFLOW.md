@@ -1,6 +1,7 @@
 ---
 id: red-team
-version: "1"
+version: "2"
+search_goal: verified-high
 description: Objective-led adversary simulation with authorized access paths and cleanup.
 stages:
   - id: scope
@@ -19,19 +20,18 @@ stages:
     specialists: [analyst, cloud_hunter, ad_operator, reverser, mobile_operator, contract_auditor, iot_operator, wireless_operator, supply_chain_operator, postexploit, phisher, ics_operator, forensicator]
     depends_on: [scope]
     required_artifacts:
-      - findings/coverage.md
+      - findings/info_observations-and-negative-results.md
       - findings/objective-results.md
   - id: verify
     specialist: finding_verifier
     depends_on: [prove]
     required_artifacts:
-      - findings/verification-summary.md
+      - plan/artifact-registry.json
   - id: report
     specialist: finding_reporter
     depends_on: [verify]
     required_artifacts:
-      - report/executive-summary.md
-      - report/technical-report.md
+      - report/security-assessment-report.md
 ---
 
 ## Common
@@ -56,15 +56,35 @@ or an explicit negative/blocker. Apply the stage's required artifact paths even
 when a different eligible specialist performs the work. Verification remains a
 separate finding_verifier assignment; the proof producer cannot self-approve.
 
-Create one canonical `findings/FIND-NNN.md` per supported finding with
-`result_kind: vulnerability`, `observation`, or `negative_result` as appropriate.
+The orchestrator uses runtime artifact tools for system UUIDs, names and revisions.
+Specialists without those tools return structured candidate metadata/body and
+exact evidence paths; they do not invent UUIDs or write unregistered findings.
+Only a verifier/reporter edits the committed UUID/path supplied in its assignment.
+The orchestrator registers observations as info_entry and candidates as drafts
+before independent verification. Create individual
+`findings/{severity}_{number}_{title}.md` documents only for vulnerabilities.
+Use `info_entry` artifacts for observations, negatives, hypotheses, blocked and
+untested coverage; they share one information log. HYP/AP/PATH documents keep
+their own UUID identities and typed links.
 Start `verification_status: unverified` and `report_status: draft`. Preserve raw
 positive and negative-control evidence, commands, target/session context and
 limitations. Never promote a scanner hit, a version match or a graph path into
 confirmed impact. Meaningful negative results count as coverage, not vulnerabilities.
-No-findings is a valid outcome. Record blocked and untested coverage separately.
+A negative experiment can complete its OPPLAN objective, but it does not meet
+the search goal. Reuse recon and prior results to generate and test alternative
+hypotheses until independently verified High/Critical or a supported explicit
+stop. Keep mandatory mission/coverage separate from the severity threshold.
 
 ## Agent: decepticon
+
+Use the injected artifact-search-v2 runtime contract. After each task return,
+inspect prior HYP/AP/PATH documents and reviewed research facts, revise the OPPLAN
+and call review_search with the next executable leaf. A final message is rejected
+until finalize_search records the stopping disposition and committed assessment.
+Only the orchestrator writes the registry; specialists return evidence and edit
+only their assigned finding. Commit draft changes at semantic handoffs, not each edit.
+Keep independently verified negatives in the Info ledger without full finding reports.
+
 
 Bind the workspace, read RoE, and create/review the dependency plan using injected
 OPPLAN instructions. Approved direct engagements need not rerun Soundwave;
@@ -90,7 +110,7 @@ report dependencies even when discovery is bypassed.
 Instantiate one verifier objective per candidate finding and a dependent reporter
 objective for the same canonical file. The verification/report stages may need
 multiple such leaf objectives; an empty finding set instead produces an explicit
-coverage artifact. You own findings/verification-summary.md and the aggregate
+coverage artifact. You own plan/artifact-registry.json and the aggregate
 report artifacts listed by the final stage; the reporter edits canonical findings
 only. Summarize each finding verdict with evidence links and explicitly record a
 zero-candidate result. Retain rejected and unverified findings in limitations. Before
@@ -114,7 +134,7 @@ real activity timestamps, observed defender response and cleanup obligations. An
 MTTD or dwell-time metric needs attributable events and aligned clocks; unavailable
 telemetry remains a limitation. At close, account for deployed artifacts, sessions
 and modifications and their removal or authorized retention.
-Synthesize report/executive-summary.md and report/technical-report.md from canonical
+Synthesize report/security-assessment-report.md from canonical
 findings, mission outcomes, tested paths, defender visibility and cleanup state.
 
 When an adversary-emulation profile is explicitly selected, derive the campaign
@@ -190,7 +210,7 @@ Map the mission-relevant surface and prerequisite observations; save recon/SUMMA
 
 Test the authorized mission mechanism. Save proof-of-access only when that is the
 assigned question; otherwise capture its actual success oracle. Save failed attempts,
-boundaries and objective results in findings/coverage.md and findings/objective-results.md. C2 deployment
+boundaries and objective results in findings/info_observations-and-negative-results.md and findings/objective-results.md. C2 deployment
 requires a separately authorized objective and available workload.
 
 ## Agent: postexploit

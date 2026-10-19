@@ -45,6 +45,7 @@ class WorkflowMetadata(BaseModel):
     version: Nonempty
     description: Nonempty
     purpose: Literal["execution", "planning"] = "execution"
+    search_goal: Literal["verified-high"] | None = None
     stages: tuple[WorkflowStage, ...] = ()
 
     @model_validator(mode="after")

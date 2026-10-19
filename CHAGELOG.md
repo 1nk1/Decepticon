@@ -15,6 +15,19 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #1012](https://github.com/BitterSecurity/Decepticon/pull/1012):
+  add UUID artifact revisions, immutable snapshots, a structured Info log and
+  OPPLAN search toward independently verified High/Critical findings. Preserve
+  legacy workflow checkpoints and finding readers. Review follow-up restores
+  committed finding bytes after failed specialists, serializes verifier writers,
+  retains historical Info pins, avoids implicit workflow injection into optional
+  legacy plugin agents and makes backend publication failures retryable.
+  Preserve imported revisions when publication fails, merge parallel task
+  receipts and parallel recovery failures, and regenerate the checked-in skill
+  graph after protocol edits.
+  This source integration does not publish a release or deploy SaaS. Paired SaaS
+  integration: [decepticon-saas#1294](https://github.com/BitterSecurity/decepticon-saas/pull/1294).
+
 - Proposed [PR #1009](https://github.com/BitterSecurity/Decepticon/pull/1009): add the Desktop `serve --engagement` adapter for existing local
   engagements, with native model selection, private runtime configuration and
   engagement-scoped mounts. Preserve normal CLI startup and existing homes.

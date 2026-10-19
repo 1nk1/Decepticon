@@ -425,11 +425,29 @@ def build_middleware(
     }
     factories.update(resolved.middleware_replace)
 
+    from decepticon.middleware.search_runtime import get_search_middleware
     from decepticon.middleware.workflow import WorkflowMiddleware
 
     result: list = []
-    if role in SLOTS_PER_ROLE and role not in {"soundwave", "autohunt", "blue_cell"}:
-        result.append(WorkflowMiddleware(role=role))
+    search_middleware = get_search_middleware(role=role, backend=backend)
+    workflow_role = "decepticon" if search_middleware else role
+    # The optional legacy plugin bundle supplies its own prompts and task
+    # contract. Injecting the default Red workflow into those agents gives
+    # them an unrelated OPPLAN/search policy, especially with v2 defaults.
+    legacy_plugin_roles = {
+        "vulnresearch",
+        "detector",
+        "verifier",
+        "patcher",
+        "scanner",
+        "exploiter",
+    }
+    if (
+        workflow_role in SLOTS_PER_ROLE
+        and workflow_role not in {"soundwave", "autohunt", "blue_cell"} | legacy_plugin_roles
+    ):
+        result.append(WorkflowMiddleware(role=workflow_role))
+    result.extend(search_middleware)
     for slot in MiddlewareSlot:  # canonical enum order
         if slot not in role_slots:
             continue

@@ -28,6 +28,7 @@ def _write_driver(
     create_events_jsonl: bool = False,
     findings_payload: str = "[]",
     objectives_payload: str = "[]",
+    v2_checkpoint_key: str = "",
 ) -> Path:
     """Render a self-contained driver script that installs handlers and self-signals.
 
@@ -65,6 +66,7 @@ def _write_driver(
                     "objective_counter": 1,
                     "threat_profile": "lab",
                     "pending_findings": {findings_payload},
+                    {v2_checkpoint_key!r}: "checkpoint-present",
                 }}
 
 
@@ -506,3 +508,38 @@ class TestPerComponentTimeout:
         assert result.partial_executive_written is True
         assert (tmp_path / "plan" / "opplan.json").exists()
         assert (tmp_path / "report" / "report_partial_executive.md").exists()
+
+
+@pytest.mark.skipif(_WINDOWS, reason="POSIX self-signal test")
+@pytest.mark.parametrize("checkpoint_key", ["search_state", "artifact_registry"])
+def test_v2_shutdown_preserves_canonical_documents_without_legacy_writes(
+    tmp_path: Path, checkpoint_key: str
+) -> None:
+    findings_dir = tmp_path / "findings"
+    findings_dir.mkdir()
+    info = findings_dir / "info_observations-and-negative-results.md"
+    info.write_text("# Canonical information log\n", encoding="utf-8")
+    report_dir = tmp_path / "report"
+    report_dir.mkdir()
+    report = report_dir / "assessment.md"
+    report.write_text("# Canonical report draft\n", encoding="utf-8")
+    script = _write_driver(
+        tmp_path,
+        signal_name="SIGINT",
+        findings_payload=json.dumps(
+            [
+                {"title": "Informational observation", "severity": "info"},
+                {"title": "Candidate finding", "severity": "high"},
+            ]
+        ),
+        v2_checkpoint_key=checkpoint_key,
+    )
+
+    proc = _run_driver(script)
+
+    assert proc.returncode == 130, proc.stderr
+    assert list(findings_dir.iterdir()) == [info]
+    assert info.read_text(encoding="utf-8") == "# Canonical information log\n"
+    assert list(report_dir.iterdir()) == [report]
+    assert report.read_text(encoding="utf-8") == "# Canonical report draft\n"
+    assert (tmp_path / "plan" / "opplan.json").exists()
