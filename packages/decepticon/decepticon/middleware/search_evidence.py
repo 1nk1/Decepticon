@@ -28,10 +28,20 @@ from decepticon.tools.reporting.evidence_contract import (
 from decepticon.tools.reporting.finding_quality import check_finding_content
 
 _METADATA = TypeAdapter(dict[str, JsonValue])
-_SERVER_FIELDS = frozenset({
-    "schema_version", "document_type", "document_uuid", "id", "revision",
-    "content_hash", "title", "slug", "links", "severity",
-})
+_SERVER_FIELDS = frozenset(
+    {
+        "schema_version",
+        "document_type",
+        "document_uuid",
+        "id",
+        "revision",
+        "content_hash",
+        "title",
+        "slug",
+        "links",
+        "severity",
+    }
+)
 _VERIFIERS = frozenset({"verifier", "finding_verifier", "validator", "bugclaw_validator"})
 _REPORTERS = frozenset({"report", "finding_reporter", "report_drafter"})
 
@@ -78,7 +88,10 @@ def import_specialist_edits(
     for artifact in tuple(registry.artifacts.values()):
         if artifact.draft.kind != ArtifactKind.FINDING or not artifact.revisions:
             continue
-        if str(artifact.document_uuid) not in handoff.assignment and artifact.current_path not in handoff.assignment:
+        if (
+            str(artifact.document_uuid) not in handoff.assignment
+            and artifact.current_path not in handoff.assignment
+        ):
             continue
         result = backend.read("/workspace/" + artifact.current_path, limit=10_000)
         if result.error or result.file_data is None:
@@ -96,33 +109,54 @@ def import_specialist_edits(
         metadata = _METADATA.validate_python(parsed)
         if metadata.get("document_uuid") != str(artifact.document_uuid):
             continue
-        draft = ArtifactDraft.model_validate({
-            **artifact.draft.model_dump(mode="json"),
-            "title": metadata.get("title", artifact.draft.title),
-            "severity": metadata.get("severity", artifact.draft.severity),
-            "body": parts[2].strip(),
-            "metadata": {key: value for key, value in metadata.items() if key not in _SERVER_FIELDS},
-        })
+        draft = ArtifactDraft.model_validate(
+            {
+                **artifact.draft.model_dump(mode="json"),
+                "title": metadata.get("title", artifact.draft.title),
+                "severity": metadata.get("severity", artifact.draft.severity),
+                "body": parts[2].strip(),
+                "metadata": {
+                    key: value for key, value in metadata.items() if key not in _SERVER_FIELDS
+                },
+            }
+        )
         role = "reporter" if context.role in _REPORTERS else "finding_verifier"
         if role == "finding_verifier":
-            draft = draft.model_copy(update={"metadata": {
-                **draft.metadata, "verified_evidence_hashes": evidence_hashes(draft, backend),
-                "verified_scope_digest": handoff.scope_digest,
-            }})
+            draft = draft.model_copy(
+                update={
+                    "metadata": {
+                        **draft.metadata,
+                        "verified_evidence_hashes": evidence_hashes(draft, backend),
+                        "verified_scope_digest": handoff.scope_digest,
+                    }
+                }
+            )
         actor = context.model_copy(update={"role": role})
-        registry = update_draft(registry, DraftUpdate(
-            document_uuid=artifact.document_uuid,
-            expected_draft_version=artifact.draft_version, draft=draft,
-        ), actor)
-        registry = commit(registry, CommitRequest(
-            document_uuid=artifact.document_uuid, expected_revision=artifact.revision,
-            operation_key=f"{context.actor}:{artifact.document_uuid}:{hashlib.sha256(raw.encode()).hexdigest()}",
-            reason="Capture independently returned specialist document",
-        ), actor)
+        registry = update_draft(
+            registry,
+            DraftUpdate(
+                document_uuid=artifact.document_uuid,
+                expected_draft_version=artifact.draft_version,
+                draft=draft,
+            ),
+            actor,
+        )
+        registry = commit(
+            registry,
+            CommitRequest(
+                document_uuid=artifact.document_uuid,
+                expected_revision=artifact.revision,
+                operation_key=f"{context.actor}:{artifact.document_uuid}:{hashlib.sha256(raw.encode()).hexdigest()}",
+                reason="Capture independently returned specialist document",
+            ),
+            actor,
+        )
     return registry
 
 
-def qualifying_findings(registry: ArtifactRegistry, backend: BackendProtocol, context: ProofContext) -> tuple[str, ...]:
+def qualifying_findings(
+    registry: ArtifactRegistry, backend: BackendProtocol, context: ProofContext
+) -> tuple[str, ...]:
     matches: list[str] = []
     for artifact in registry.artifacts.values():
         if artifact.draft.kind != ArtifactKind.FINDING or not artifact.revisions:
@@ -132,26 +166,45 @@ def qualifying_findings(registry: ArtifactRegistry, backend: BackendProtocol, co
         verdicts = [version for version in artifact.revisions if version.author.role in _VERIFIERS]
         if not verdicts or verdicts[-1].draft.metadata.get("verification_status") != "verified":
             continue
-        if context.run_id is not None and not verdicts[-1].author.actor.startswith(context.run_id + ":"):
+        if context.run_id is not None and not verdicts[-1].author.actor.startswith(
+            context.run_id + ":"
+        ):
             continue
         verified = verdicts[-1].draft
         if verified.metadata.get("verified_scope_digest") != context.scope_digest:
             continue
-        if not verified.metadata.get("verified_evidence_hashes") or verified.metadata["verified_evidence_hashes"] != evidence_hashes(draft, backend):
+        if not verified.metadata.get("verified_evidence_hashes") or verified.metadata[
+            "verified_evidence_hashes"
+        ] != evidence_hashes(draft, backend):
             continue
-        if draft.metadata.get("verification_status") != "verified" or draft.metadata.get("result_kind") != "vulnerability":
+        if (
+            draft.metadata.get("verification_status") != "verified"
+            or draft.metadata.get("result_kind") != "vulnerability"
+        ):
             continue
-        if draft.severity not in {"high", "critical"} or verified.severity not in {"high", "critical"}:
+        if draft.severity not in {"high", "critical"} or verified.severity not in {
+            "high",
+            "critical",
+        }:
             continue
         if draft.severity == "critical" and verified.severity != "critical":
             continue
-        evidence_fields = ("evidence_pointer", "evidence_manifest", "affected_target", "affected_component")
+        evidence_fields = (
+            "evidence_pointer",
+            "evidence_manifest",
+            "affected_target",
+            "affected_component",
+        )
         if any(draft.metadata.get(key) != verified.metadata.get(key) for key in evidence_fields):
             continue
         score = draft.metadata.get("cvss_score")
         if isinstance(score, bool) or not isinstance(score, (int, float)) or score < 7:
             continue
-        if check_finding_content(artifact.current_path, latest.markdown, evidence_exists=lambda path: _exists(backend, path)):
+        if check_finding_content(
+            artifact.current_path,
+            latest.markdown,
+            evidence_exists=lambda path: _exists(backend, path),
+        ):
             continue
         matches.append(str(artifact.document_uuid))
     return tuple(matches)

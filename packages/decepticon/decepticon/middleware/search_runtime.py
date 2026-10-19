@@ -51,7 +51,22 @@ from decepticon.workflows import WorkflowCatalog, WorkflowSnapshot
 from decepticon_core.contracts.slots import SLOTS_PER_ROLE
 from decepticon_core.registry.roles import RoleRegistry
 
-_MUTATIONS = frozenset({"create_artifact", "edit_artifact", "commit_artifact", "publish_artifacts", "review_search", "finalize_search", "commit_opplan", "update_objective", "record_plan_fact", "revoke_plan_fact", "load_opplan", "bind_workflow_task"})
+_MUTATIONS = frozenset(
+    {
+        "create_artifact",
+        "edit_artifact",
+        "commit_artifact",
+        "publish_artifacts",
+        "review_search",
+        "finalize_search",
+        "commit_opplan",
+        "update_objective",
+        "record_plan_fact",
+        "revoke_plan_fact",
+        "load_opplan",
+        "bind_workflow_task",
+    }
+)
 _POLICY = """<artifact-search-v2>
 The runtime owns document UUIDs, filenames, numbers and committed revisions.
 Use create_artifact/edit_artifact for working drafts, commit_artifact at a plan,
@@ -86,9 +101,20 @@ class SearchRuntimeState(AgentState):
 
 
 def _document_error(messages: list[BaseMessage], call_id: str, detail: str) -> list[BaseMessage]:
-    own = [message for message in messages if isinstance(message, ToolMessage) and message.tool_call_id == call_id]
+    own = [
+        message
+        for message in messages
+        if isinstance(message, ToolMessage) and message.tool_call_id == call_id
+    ]
     retained = [message for message in messages if message not in own]
-    return [*retained, ToolMessage(content="\n".join([*(message.text for message in own), detail]), status="error", tool_call_id=call_id)]
+    return [
+        *retained,
+        ToolMessage(
+            content="\n".join([*(message.text for message in own), detail]),
+            status="error",
+            tool_call_id=call_id,
+        ),
+    ]
 
 
 class SearchRuntimeMiddleware(AgentMiddleware):
@@ -111,54 +137,87 @@ class SearchRuntimeMiddleware(AgentMiddleware):
             elif state.get("objectives"):
                 return {}
             else:
-                workflow = WorkflowCatalog.default().resolve(configurable.get("workflow_id", "red-team"), configurable.get("workflow_version"))
+                workflow = WorkflowCatalog.default().resolve(
+                    configurable.get("workflow_id", "red-team"),
+                    configurable.get("workflow_version"),
+                )
             if workflow.document.metadata.search_goal != "verified-high":
                 return {}
         previous_state = state.get("search_state")
         previous = SearchSession.model_validate_json(previous_state) if previous_state else None
-        run_id = configurable.get("search_run_id") or (previous.run_id if previous and previous.disposition is None else str(uuid4()))
+        run_id = configurable.get("search_run_id") or (
+            previous.run_id if previous and previous.disposition is None else str(uuid4())
+        )
         if previous and previous.run_id == run_id:
             return {}
         session = SearchSession(
-            thread_id=str(configurable.get("thread_id", "")), run_id=str(run_id),
+            thread_id=str(configurable.get("thread_id", "")),
+            run_id=str(run_id),
             started_at=datetime.now(UTC).isoformat(),
             max_dispatches=configurable.get("search_max_dispatches"),
         )
         return {"search_state": session.model_dump_json(), "search_receipt": ""}
 
     def _enabled(self, state: AgentState) -> bool:
-        return bool(state.get("search_state")) and get_config().get("configurable", {}).get("search_policy_version") in {None, 2}
+        return bool(state.get("search_state")) and get_config().get("configurable", {}).get(
+            "search_policy_version"
+        ) in {None, 2}
 
     def _request(self, request: ModelRequest) -> ModelRequest:
         if not self._enabled(request.state):
             names = {tool.name for tool in self.tools}
-            return request.override(tools=[tool for tool in request.tools if (tool.name if isinstance(tool, BaseTool) else tool.get("name")) not in names])
+            return request.override(
+                tools=[
+                    tool
+                    for tool in request.tools
+                    if (tool.name if isinstance(tool, BaseTool) else tool.get("name")) not in names
+                ]
+            )
         blocks = list(request.system_message.content_blocks) if request.system_message else []
-        blocks.append({"type": "text", "text": _POLICY + "\nCurrent search: " + request.state.get("search_state", "")})
+        blocks.append(
+            {
+                "type": "text",
+                "text": _POLICY + "\nCurrent search: " + request.state.get("search_state", ""),
+            }
+        )
         return request.override(system_message=SystemMessage(content_blocks=blocks))
 
-    def wrap_model_call(self, request: ModelRequest, handler: Callable[[ModelRequest], ModelCallResult]) -> ModelCallResult:
+    def wrap_model_call(
+        self, request: ModelRequest, handler: Callable[[ModelRequest], ModelCallResult]
+    ) -> ModelCallResult:
         return handler(self._request(request))
 
-    async def awrap_model_call(self, request: ModelRequest, handler: Callable[[ModelRequest], Awaitable[ModelCallResult]]) -> ModelCallResult:
+    async def awrap_model_call(
+        self, request: ModelRequest, handler: Callable[[ModelRequest], Awaitable[ModelCallResult]]
+    ) -> ModelCallResult:
         return await handler(self._request(request))
 
     @hook_config(can_jump_to=["model"])
     def after_model(self, state: AgentState, runtime: Runtime) -> dict[str, object] | None:
         if not self._enabled(state):
             return None
-        latest = next((message for message in reversed(state["messages"]) if isinstance(message, AIMessage)), None)
+        latest = next(
+            (message for message in reversed(state["messages"]) if isinstance(message, AIMessage)),
+            None,
+        )
         if latest is None or latest.tool_calls:
             return None
         session = SearchSession.model_validate_json(state.get("search_state", ""))
         if session.disposition is not None and state.get("search_receipt"):
             return None
         if session.final_attempts >= 3:
-            raise SearchContractError("Repeated premature closure: OPPLAN search remains unfinished; preserve checkpoint for resumption")
+            raise SearchContractError(
+                "Repeated premature closure: OPPLAN search remains unfinished; preserve checkpoint for resumption"
+            )
         session = session.model_copy(update={"final_attempts": session.final_attempts + 1})
         return {
-            "search_state": session.model_dump_json(), "jump_to": "model",
-            "messages": [HumanMessage(content="The search has no validated terminal receipt. Inspect prior recon, hypothesis/path UUIDs and new results, replan through OPPLAN, then review_search. Continue useful discriminating experiments; finalize_search only when its evidence and stopping conditions hold.")],
+            "search_state": session.model_dump_json(),
+            "jump_to": "model",
+            "messages": [
+                HumanMessage(
+                    content="The search has no validated terminal receipt. Inspect prior recon, hypothesis/path UUIDs and new results, replan through OPPLAN, then review_search. Continue useful discriminating experiments; finalize_search only when its evidence and stopping conditions hold."
+                )
+            ],
         }
 
     @hook_config(can_jump_to=["model"])
@@ -166,24 +225,62 @@ class SearchRuntimeMiddleware(AgentMiddleware):
         return self.after_model(state, runtime)
 
     def _guard(self, request: ToolCallRequest) -> ToolMessage | None:
-        calls = next((message.tool_calls for message in reversed(request.state["messages"]) if isinstance(message, AIMessage)), [])
+        calls = next(
+            (
+                message.tool_calls
+                for message in reversed(request.state["messages"])
+                if isinstance(message, AIMessage)
+            ),
+            [],
+        )
         mutations = [call for call in calls if call["name"] in _MUTATIONS]
         if mutations and (len(mutations) > 1 or any(call["name"] == "task" for call in calls)):
-            return ToolMessage(content="Serialize document/search mutations separately from task dispatch.", tool_call_id=request.tool_call["id"], status="error")
+            return ToolMessage(
+                content="Serialize document/search mutations separately from task dispatch.",
+                tool_call_id=request.tool_call["id"],
+                status="error",
+            )
         if request.tool_call["name"] == "task":
             session = SearchSession.model_validate_json(request.state["search_state"])
             events = current_events(session, request.state.get("search_task_events", {}))
             if set(events) - set(session.reviewed_task_ids):
-                return ToolMessage(content="Review returned results and revise OPPLAN through review_search before the next task.", tool_call_id=request.tool_call["id"], status="error")
+                return ToolMessage(
+                    content="Review returned results and revise OPPLAN through review_search before the next task.",
+                    tool_call_id=request.tool_call["id"],
+                    status="error",
+                )
             count = sum(call["name"] == "task" for call in calls)
-            writers = {"verifier", "finding_verifier", "validator", "bugclaw_validator", "report", "finding_reporter", "report_drafter"}
-            if count > 1 and any(call["name"] == "task" and call["args"].get("subagent_type") in writers for call in calls):
-                return ToolMessage(content="Serialize verifier/reporter tasks because they commit shared document revisions.", tool_call_id=request.tool_call["id"], status="error")
-            if session.disposition or (session.max_dispatches is not None and len(events) + count > session.max_dispatches):
-                return ToolMessage(content="Search is terminal or its runtime dispatch budget is exhausted.", tool_call_id=request.tool_call["id"], status="error")
+            writers = {
+                "verifier",
+                "finding_verifier",
+                "validator",
+                "bugclaw_validator",
+                "report",
+                "finding_reporter",
+                "report_drafter",
+            }
+            if count > 1 and any(
+                call["name"] == "task" and call["args"].get("subagent_type") in writers
+                for call in calls
+            ):
+                return ToolMessage(
+                    content="Serialize verifier/reporter tasks because they commit shared document revisions.",
+                    tool_call_id=request.tool_call["id"],
+                    status="error",
+                )
+            if session.disposition or (
+                session.max_dispatches is not None and len(events) + count > session.max_dispatches
+            ):
+                return ToolMessage(
+                    content="Search is terminal or its runtime dispatch budget is exhausted.",
+                    tool_call_id=request.tool_call["id"],
+                    status="error",
+                )
         return None
 
-    def _returned(self, request: ToolCallRequest, result: ToolMessage | Command[str]) -> ToolMessage | Command[str]:
+    def _returned(
+        self, request: ToolCallRequest, result: ToolMessage | Command[str]
+    ) -> ToolMessage | Command[str]:
         if request.tool_call["name"] != "task":
             return result
         session = SearchSession.model_validate_json(request.state["search_state"])
@@ -195,7 +292,10 @@ class SearchRuntimeMiddleware(AgentMiddleware):
         update.pop("artifact_registry", None)
         if isinstance(result, ToolMessage):
             update["messages"] = [result]
-        failed = any(isinstance(message, ToolMessage) and message.status == "error" for message in update.get("messages", []))
+        failed = any(
+            isinstance(message, ToolMessage) and message.status == "error"
+            for message in update.get("messages", [])
+        )
         role = "" if failed else str(args.get("subagent_type", ""))
         registry = registry_from_state(request.state.get("artifact_registry"))
         try:
@@ -203,42 +303,76 @@ class SearchRuntimeMiddleware(AgentMiddleware):
                 # A failed specialist can leave partial edits in the shared
                 # workspace even though its checkpoint registry is rejected.
                 # Restore committed projections before another task reads them.
-                restored = persist_artifacts(registry, self.backend, request.state.get("workspace_path"))
+                restored = persist_artifacts(
+                    registry, self.backend, request.state.get("workspace_path")
+                )
                 update["artifact_registry"] = restored.model_dump_json()
                 update.pop("search_state", None)
                 update.pop("search_receipt", None)
                 update.pop("search_last_review", None)
-                return Command(update={
-                    **update,
-                    "search_task_events": {session.run_id + ":" + call_id: str(args.get("task_id", ""))},
-                })
-            imported = import_specialist_edits(registry, scoped_backend(self.backend, request.state.get("workspace_path")), SpecialistHandoff(
-                context=ActorContext(actor=session.run_id + ":" + call_id, role=role, objective_id=args.get("task_id")),
-                assignment=json.dumps(args),
-                scope_digest=get_config().get("configurable", {}).get("research_scope_digest"),
-            ))
+                return Command(
+                    update={
+                        **update,
+                        "search_task_events": {
+                            session.run_id + ":" + call_id: str(args.get("task_id", ""))
+                        },
+                    }
+                )
+            imported = import_specialist_edits(
+                registry,
+                scoped_backend(self.backend, request.state.get("workspace_path")),
+                SpecialistHandoff(
+                    context=ActorContext(
+                        actor=session.run_id + ":" + call_id,
+                        role=role,
+                        objective_id=args.get("task_id"),
+                    ),
+                    assignment=json.dumps(args),
+                    scope_digest=get_config().get("configurable", {}).get("research_scope_digest"),
+                ),
+            )
             if imported != registry:
                 update["artifact_registry"] = imported.model_dump_json()
-                imported = persist_artifacts(imported, self.backend, request.state.get("workspace_path"))
+                imported = persist_artifacts(
+                    imported, self.backend, request.state.get("workspace_path")
+                )
                 update["artifact_registry"] = imported.model_dump_json()
         except MaterializationError as error:
             update["artifact_registry"] = registry.model_dump_json()
-            update["messages"] = _document_error(update.get("messages", []), call_id, f"Document publication pending; call publish_artifacts: {error}")
+            update["messages"] = _document_error(
+                update.get("messages", []),
+                call_id,
+                f"Document publication pending; call publish_artifacts: {error}",
+            )
         except (ArtifactError, ValidationError) as error:
-            update["messages"] = _document_error(update.get("messages", []), call_id, f"Specialist result returned; document commit rejected: {error}")
-        update["search_task_events"] = {session.run_id + ":" + call_id: str(args.get("task_id", ""))}
+            update["messages"] = _document_error(
+                update.get("messages", []),
+                call_id,
+                f"Specialist result returned; document commit rejected: {error}",
+            )
+        update["search_task_events"] = {
+            session.run_id + ":" + call_id: str(args.get("task_id", ""))
+        }
         update.pop("search_state", None)
         update.pop("search_receipt", None)
         update.pop("search_last_review", None)
         return Command(update=update)
 
-    def wrap_tool_call(self, request: ToolCallRequest, handler: Callable[[ToolCallRequest], ToolMessage | Command[str]]) -> ToolMessage | Command[str]:
+    def wrap_tool_call(
+        self,
+        request: ToolCallRequest,
+        handler: Callable[[ToolCallRequest], ToolMessage | Command[str]],
+    ) -> ToolMessage | Command[str]:
         if not self._enabled(request.state):
             return handler(request)
         error = self._guard(request)
         return error if error else self._returned(request, handler(request))
 
-    async def awrap_tool_call(self, request: ToolCallRequest, handler: Callable[[ToolCallRequest], Awaitable[ToolMessage | Command[str]]]) -> ToolMessage | Command[str]:
+    async def awrap_tool_call(
+        self,
+        request: ToolCallRequest,
+        handler: Callable[[ToolCallRequest], Awaitable[ToolMessage | Command[str]]],
+    ) -> ToolMessage | Command[str]:
         if not self._enabled(request.state):
             return await handler(request)
         error = self._guard(request)
@@ -248,7 +382,13 @@ class SearchRuntimeMiddleware(AgentMiddleware):
         return await to_thread.run_sync(self._returned, request, result)
 
 
-def get_search_middleware(role: str | None = None, backend: BackendProtocol | None = None, **_deps: JsonValue) -> list[SearchRuntimeMiddleware]:
+def get_search_middleware(
+    role: str | None = None, backend: BackendProtocol | None = None, **_deps: JsonValue
+) -> list[SearchRuntimeMiddleware]:
     specification = RoleRegistry.get(role) if role else None
-    orchestrator = role == "decepticon" or (specification is not None and specification.llm_role_fallback == "decepticon" and specification.slots == SLOTS_PER_ROLE["decepticon"])
+    orchestrator = role == "decepticon" or (
+        specification is not None
+        and specification.llm_role_fallback == "decepticon"
+        and specification.slots == SLOTS_PER_ROLE["decepticon"]
+    )
     return [SearchRuntimeMiddleware(backend)] if orchestrator and backend is not None else []

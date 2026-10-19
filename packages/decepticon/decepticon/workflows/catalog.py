@@ -47,7 +47,11 @@ class WorkflowCatalog:
             for (candidate_id, candidate_version), snapshot in self._snapshots.items()
             if candidate_id == workflow_id and (version is None or version == candidate_version)
         ]
-        if version is None and len(candidates) > 1 and all(item.version.isdecimal() for item in candidates):
+        if (
+            version is None
+            and len(candidates) > 1
+            and all(item.version.isdecimal() for item in candidates)
+        ):
             return max(candidates, key=lambda item: int(item.version))
         if len(candidates) != 1:
             raise WorkflowError(f"unknown or ambiguous workflow: {workflow_id}@{version or '*'}")

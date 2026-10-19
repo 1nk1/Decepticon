@@ -25,15 +25,11 @@ class ToolModel(FakeMessagesListChatModel):
     ) -> ChatResult:
         for message in messages:
             if isinstance(message, ToolMessage) and message.status == "success":
-                issued = re.search(
-                    r"Issued IDs by submitted position: \{([^}]*)\}", message.text
-                )
+                issued = re.search(r"Issued IDs by submitted position: \{([^}]*)\}", message.text)
                 if issued:
                     self.issued_ids.update(
                         (int(position), identifier)
-                        for position, identifier in re.findall(
-                            r"(\d+): '([^']+)'", issued[1]
-                        )
+                        for position, identifier in re.findall(r"(\d+): '([^']+)'", issued[1])
                     )
         result = super()._generate(messages, stop, run_manager, **kwargs)
         for generation in result.generations:

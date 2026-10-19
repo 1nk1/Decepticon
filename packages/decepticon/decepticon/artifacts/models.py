@@ -1,4 +1,5 @@
 """Checkpoint-serializable artifact identities, drafts and immutable revisions."""
+
 from enum import StrEnum
 from typing import Annotated, ClassVar, Literal, assert_never
 from uuid import UUID, uuid4
@@ -24,7 +25,9 @@ class ArtifactKind(StrEnum):
 
 
 class ArtifactLink(FrozenModel):
-    relation: Literal["derives_from", "supports", "refutes", "verifies", "reports", "promoted_to", "related_to"]
+    relation: Literal[
+        "derives_from", "supports", "refutes", "verifies", "reports", "promoted_to", "related_to"
+    ]
     document_uuid: UUID
     revision: int | None = Field(default=None, ge=1)
     content_hash: Annotated[str, Field(pattern=r"^[a-f0-9]{64}$")] | None = None

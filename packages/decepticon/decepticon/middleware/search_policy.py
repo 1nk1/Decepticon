@@ -83,12 +83,14 @@ def review_plan(
     """Acknowledge returned work only against a current, saved OPPLAN revision."""
     if plan_revision < session.reviewed_plan_revision:
         raise SearchContractError("search review cannot use an older OPPLAN")
-    return session.model_copy(update={
-        "reviewed_task_ids": tuple(current_events(session, events)),
-        "reviewed_plan_revision": plan_revision,
-        "plan_revision": plan_revision,
-        "final_attempts": 0,
-    })
+    return session.model_copy(
+        update={
+            "reviewed_task_ids": tuple(current_events(session, events)),
+            "reviewed_plan_revision": plan_revision,
+            "plan_revision": plan_revision,
+            "final_attempts": 0,
+        }
+    )
 
 
 def ready_objectives(
@@ -98,14 +100,17 @@ def ready_objectives(
     by_id = {row.id: row for row in objectives}
     parents = {row.parent_id for row in objectives}
     verified = {
-        str(row["id"]) for row in facts
-        if row.get("verified") is True and row.get("evidence_refs")
+        str(row["id"]) for row in facts if row.get("verified") is True and row.get("evidence_refs")
     }
     return tuple(
-        row.id for row in objectives
+        row.id
+        for row in objectives
         if row.id not in parents
         and row.status in {"pending", "in-progress"}
         and all(key in by_id and by_id[key].status == "completed" for key in row.blocked_by)
-        and all(any(key in by_id and by_id[key].status == "completed" for key in group) for group in row.any_of)
+        and all(
+            any(key in by_id and by_id[key].status == "completed" for key in group)
+            for group in row.any_of
+        )
         and set(row.required_fact_ids) <= verified
     )

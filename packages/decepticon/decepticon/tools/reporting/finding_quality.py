@@ -23,7 +23,9 @@ from decepticon.tools.reporting.cvss import CVSSError, base_score, parse_vector,
 from .evidence_contract import _FrontmatterLoader, evidence_path
 
 _FINDING_PATH = re.compile(r"^findings/(FIND-\d{2,})\.md$")
-_READABLE_PATH = re.compile(r"^findings/(critical|high|medium|low)_(\d{2,})_([a-z0-9]+(?:-[a-z0-9]+)*)\.md$")
+_READABLE_PATH = re.compile(
+    r"^findings/(critical|high|medium|low)_(\d{2,})_([a-z0-9]+(?:-[a-z0-9]+)*)\.md$"
+)
 _VERDICTS = {"verified", "false_positive", "unverified"}
 _KINDS = {"vulnerability", "negative_result", "observation", "hypothesis"}
 
@@ -36,7 +38,9 @@ def check_finding_content(
     match = _FINDING_PATH.fullmatch(path)
     readable = _READABLE_PATH.fullmatch(path)
     if match is None and readable is None:
-        return ["path must be findings/{severity}_{number}_{title}.md or legacy findings/FIND-NNN.md"]
+        return [
+            "path must be findings/{severity}_{number}_{title}.md or legacy findings/FIND-NNN.md"
+        ]
     lines = content.splitlines()
     if not lines or lines[0] != "---":
         return ["finding must have YAML frontmatter"]
@@ -76,9 +80,7 @@ def check_finding_content(
     if kind != "vulnerability" or verdict == "false_positive":
         if score is not None or vector:
             errors.append("negative/false-positive result must not carry a CVSS score")
-    elif score is not None or vector or (
-        verdict == "verified" and report_status == "complete"
-    ):
+    elif score is not None or vector or (verdict == "verified" and report_status == "complete"):
         if (
             not isinstance(vector, str)
             or not vector.startswith("CVSS:3.1/")

@@ -1,4 +1,5 @@
 """Retryable filesystem projections; checkpoint remains the single-writer authority."""
+
 from dataclasses import dataclass
 from hashlib import sha256
 from posixpath import dirname, relpath
@@ -67,7 +68,11 @@ def materialize(registry: ArtifactRegistry, backend: BackendProtocol) -> Artifac
                 target = relpath(revision.relative_path, dirname(alias))
                 _upload(backend, alias, f"Moved to [{artifact.label}]({target}).\n".encode())
     entries = tuple(
-        InformationLogEntry(document_uuid=artifact.document_uuid, revision=artifact.revision, content_hash=artifact.revisions[-1].content_hash)
+        InformationLogEntry(
+            document_uuid=artifact.document_uuid,
+            revision=artifact.revision,
+            content_hash=artifact.revisions[-1].content_hash,
+        )
         for artifact in sorted(registry.artifacts.values(), key=lambda item: item.number)
         if artifact.draft.kind == ArtifactKind.INFO_ENTRY and artifact.revisions
     )
@@ -75,8 +80,11 @@ def materialize(registry: ArtifactRegistry, backend: BackendProtocol) -> Artifac
     if entries:
         markdown = render_info_log(registry)
         projection = InformationLogProjection(
-            document_uuid=registry.information_log_uuid, revision=sum(entry.revision for entry in entries),
-            markdown=markdown, markdown_sha256=sha256(markdown.encode()).hexdigest(), entries=entries,
+            document_uuid=registry.information_log_uuid,
+            revision=sum(entry.revision for entry in entries),
+            markdown=markdown,
+            markdown_sha256=sha256(markdown.encode()).hexdigest(),
+            entries=entries,
         )
         path = f"plan/artifacts/{projection.document_uuid}/{projection.revision:06}.json"
         _snapshot(backend, path, projection.model_dump_json(indent=2).encode())
@@ -88,9 +96,13 @@ def materialize(registry: ArtifactRegistry, backend: BackendProtocol) -> Artifac
         history = (*history, registry.information_log)
     if projection is not None and all(prior.revision != projection.revision for prior in history):
         history = (*history, projection)
-    result = registry.model_copy(update={
-        "materialized": True, "information_log": projection,
-        "information_log_history": history,
-    }, deep=True)
+    result = registry.model_copy(
+        update={
+            "materialized": True,
+            "information_log": projection,
+            "information_log_history": history,
+        },
+        deep=True,
+    )
     _upload(backend, REGISTRY_PATH, result.model_dump_json(indent=2).encode())
     return result

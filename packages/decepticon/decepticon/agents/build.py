@@ -427,8 +427,18 @@ def build_middleware(
     # The optional legacy plugin bundle supplies its own prompts and task
     # contract. Injecting the default Red workflow into those agents gives
     # them an unrelated OPPLAN/search policy, especially with v2 defaults.
-    legacy_plugin_roles = {"vulnresearch", "detector", "verifier", "patcher", "scanner", "exploiter"}
-    if workflow_role in SLOTS_PER_ROLE and workflow_role not in {"soundwave", "autohunt", "blue_cell"} | legacy_plugin_roles:
+    legacy_plugin_roles = {
+        "vulnresearch",
+        "detector",
+        "verifier",
+        "patcher",
+        "scanner",
+        "exploiter",
+    }
+    if (
+        workflow_role in SLOTS_PER_ROLE
+        and workflow_role not in {"soundwave", "autohunt", "blue_cell"} | legacy_plugin_roles
+    ):
         result.append(WorkflowMiddleware(role=workflow_role))
     result.extend(search_middleware)
     for slot in MiddlewareSlot:  # canonical enum order

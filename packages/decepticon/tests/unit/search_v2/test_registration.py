@@ -52,12 +52,20 @@ def test_latest_workflow_automatically_enables_search_gate(tmp_path: Path) -> No
     # Given the real parent assembly with no explicit search policy override.
     backend = FilesystemBackend(root_dir=tmp_path, virtual_mode=True)
     model = ToolModel(responses=[AIMessage(content="Done")])
-    middleware = [item for item in build_middleware(role="decepticon", backend=backend, llm=model, slots=frozenset()) if isinstance(item, (WorkflowMiddleware, SearchRuntimeMiddleware))]
+    middleware = [
+        item
+        for item in build_middleware(
+            role="decepticon", backend=backend, llm=model, slots=frozenset()
+        )
+        if isinstance(item, (WorkflowMiddleware, SearchRuntimeMiddleware))
+    ]
     graph = create_agent(model, middleware=middleware, checkpointer=InMemorySaver())
     config = {"configurable": {"thread_id": "default-v2"}}
     # When a new execution attempts to finish before the search objective is met.
     with pytest.raises(SearchContractError, match="premature closure"):
-        graph.invoke({"messages": [HumanMessage(content="Assess the authorized target")]}, config=config)
+        graph.invoke(
+            {"messages": [HumanMessage(content="Assess the authorized target")]}, config=config
+        )
     # Then the catalog selected version two and the runtime enforced its search goal.
     state = graph.get_state(config).values
     assert WorkflowSnapshot.model_validate_json(state["workflow_snapshot"]).version == "2"
@@ -68,10 +76,19 @@ def test_explicit_version_one_pin_preserves_legacy_execution(tmp_path: Path) -> 
     # Given the real parent assembly with a caller-selected archived workflow pin.
     backend = FilesystemBackend(root_dir=tmp_path, virtual_mode=True)
     model = ToolModel(responses=[AIMessage(content="Bounded response")])
-    middleware = [item for item in build_middleware(role="decepticon", backend=backend, llm=model, slots=frozenset()) if isinstance(item, (WorkflowMiddleware, SearchRuntimeMiddleware))]
+    middleware = [
+        item
+        for item in build_middleware(
+            role="decepticon", backend=backend, llm=model, slots=frozenset()
+        )
+        if isinstance(item, (WorkflowMiddleware, SearchRuntimeMiddleware))
+    ]
     graph = create_agent(model, middleware=middleware)
     # When an explicitly pinned version-one run completes its bounded response.
-    state = graph.invoke({"messages": [HumanMessage(content="Explain the supplied finding")]}, config={"configurable": {"workflow_id": "red-team", "workflow_version": "1"}})
+    state = graph.invoke(
+        {"messages": [HumanMessage(content="Explain the supplied finding")]},
+        config={"configurable": {"workflow_id": "red-team", "workflow_version": "1"}},
+    )
     # Then the original pin stays active without inventing a new search obligation.
     assert WorkflowSnapshot.model_validate_json(state["workflow_snapshot"]).version == "1"
     assert "search_state" not in state

@@ -45,14 +45,30 @@ from .test_search_evidence import SCOPE, candidate, verify
 
 def test_premature_final_response_when_search_is_unfinished(tmp_path: Path) -> None:
     model = ToolModel(responses=[AIMessage(content="finished")])
-    graph = create_agent(model, middleware=[SearchRuntimeMiddleware(FilesystemBackend(root_dir=tmp_path, virtual_mode=True))])
+    graph = create_agent(
+        model,
+        middleware=[
+            SearchRuntimeMiddleware(FilesystemBackend(root_dir=tmp_path, virtual_mode=True))
+        ],
+    )
     with pytest.raises(SearchContractError, match="premature closure"):
-        graph.invoke({"messages": [HumanMessage(content="Find a verified High vulnerability")]}, config={"configurable": {"search_policy_version": 2, "search_run_id": "run-1"}})
+        graph.invoke(
+            {"messages": [HumanMessage(content="Find a verified High vulnerability")]},
+            config={"configurable": {"search_policy_version": 2, "search_run_id": "run-1"}},
+        )
 
 
 def test_bounded_request_when_search_policy_is_legacy(tmp_path: Path) -> None:
-    graph = create_agent(ToolModel(responses=[AIMessage(content="bounded answer")]), middleware=[SearchRuntimeMiddleware(FilesystemBackend(root_dir=tmp_path, virtual_mode=True))])
-    result = graph.invoke({"messages": [HumanMessage(content="Explain this finding")]}, config={"configurable": {"search_policy_version": 1}})
+    graph = create_agent(
+        ToolModel(responses=[AIMessage(content="bounded answer")]),
+        middleware=[
+            SearchRuntimeMiddleware(FilesystemBackend(root_dir=tmp_path, virtual_mode=True))
+        ],
+    )
+    result = graph.invoke(
+        {"messages": [HumanMessage(content="Explain this finding")]},
+        config={"configurable": {"search_policy_version": 1}},
+    )
     assert result["messages"][-1].content == "bounded answer"
     assert "search_state" not in result
 
@@ -63,40 +79,117 @@ def test_old_objective_checkpoint_retains_legacy_search_goal(tmp_path: Path) -> 
     assert legacy.document.metadata.search_goal is None
     graph = create_agent(
         ToolModel(responses=[AIMessage(content="Continue legacy objectives")]),
-        middleware=[SearchRuntimeMiddleware(FilesystemBackend(root_dir=tmp_path, virtual_mode=True))],
+        middleware=[
+            SearchRuntimeMiddleware(FilesystemBackend(root_dir=tmp_path, virtual_mode=True))
+        ],
         state_schema=GoalState,
     )
-    result = graph.invoke({
-        "messages": [HumanMessage(content="Resume the existing objective")],
-        "objectives": [{"id": "OBJ-01", "status": "pending"}],
-        "workflow_snapshot": legacy.model_dump_json(),
-    }, config={"configurable": {"thread_id": "legacy-thread"}})
+    result = graph.invoke(
+        {
+            "messages": [HumanMessage(content="Resume the existing objective")],
+            "objectives": [{"id": "OBJ-01", "status": "pending"}],
+            "workflow_snapshot": legacy.model_dump_json(),
+        },
+        config={"configurable": {"thread_id": "legacy-thread"}},
+    )
     assert result["messages"][-1].content == "Continue legacy objectives"
     assert "search_state" not in result
 
 
 def test_budget_stop_when_report_committed_and_results_reviewed(tmp_path: Path) -> None:
     backend = FilesystemBackend(root_dir=tmp_path, virtual_mode=True)
-    registry = create(ArtifactRegistry(), ArtifactDraft(kind=ArtifactKind.ASSESSMENT_REPORT, title="Assessment", slug="security-assessment-report", body="## Conclusion\nHigh goal not met; runtime dispatch budget exhausted."), "report")
+    registry = create(
+        ArtifactRegistry(),
+        ArtifactDraft(
+            kind=ArtifactKind.ASSESSMENT_REPORT,
+            title="Assessment",
+            slug="security-assessment-report",
+            body="## Conclusion\nHigh goal not met; runtime dispatch budget exhausted.",
+        ),
+        "report",
+    )
     report = list_artifacts(registry)[0]
-    registry = commit(registry, CommitRequest(document_uuid=report.document_uuid, expected_revision=0, operation_key="report-commit", reason="budget stop"), ActorContext(actor="system", role="decepticon"))
+    registry = commit(
+        registry,
+        CommitRequest(
+            document_uuid=report.document_uuid,
+            expected_revision=0,
+            operation_key="report-commit",
+            reason="budget stop",
+        ),
+        ActorContext(actor="system", role="decepticon"),
+    )
     registry = persist_artifacts(registry, backend, "/workspace/engagement")
     responses = [
         AIMessage(content="premature"),
-        AIMessage(content="", tool_calls=[{"id": "review", "name": "review_search", "args": {"request": {"plan_revision": 0, "rationale": "One returned experiment consumed the dispatch budget; no pending objectives."}}}]),
-        AIMessage(content="", tool_calls=[{"id": "finalize", "name": "finalize_search", "args": {"request": {"disposition": "budget_exhausted", "report_document_uuid": str(report.document_uuid), "plan_revision": 0, "reason": "Runtime dispatch limit reached without a High finding"}}}]),
+        AIMessage(
+            content="",
+            tool_calls=[
+                {
+                    "id": "review",
+                    "name": "review_search",
+                    "args": {
+                        "request": {
+                            "plan_revision": 0,
+                            "rationale": "One returned experiment consumed the dispatch budget; no pending objectives.",
+                        }
+                    },
+                }
+            ],
+        ),
+        AIMessage(
+            content="",
+            tool_calls=[
+                {
+                    "id": "finalize",
+                    "name": "finalize_search",
+                    "args": {
+                        "request": {
+                            "disposition": "budget_exhausted",
+                            "report_document_uuid": str(report.document_uuid),
+                            "plan_revision": 0,
+                            "reason": "Runtime dispatch limit reached without a High finding",
+                        }
+                    },
+                }
+            ],
+        ),
         AIMessage(content="Budget exhausted; High goal unmet."),
     ]
-    graph = create_agent(ToolModel(responses=responses), middleware=[SearchRuntimeMiddleware(backend)], checkpointer=InMemorySaver())
-    config = {"recursion_limit": 16, "configurable": {"thread_id": "thread-1", "search_policy_version": 2, "search_run_id": "run-1"}}
-    session = SearchSession(thread_id="thread-1", run_id="run-1", started_at="2026-10-18T00:00:00Z", max_dispatches=1)
-    graph.update_state(config, {"artifact_registry": registry.model_dump_json(), "search_state": session.model_dump_json(), "search_task_events": {"run-1:experiment": "OBJ-01"}}, as_node="tools")
+    graph = create_agent(
+        ToolModel(responses=responses),
+        middleware=[SearchRuntimeMiddleware(backend)],
+        checkpointer=InMemorySaver(),
+    )
+    config = {
+        "recursion_limit": 16,
+        "configurable": {
+            "thread_id": "thread-1",
+            "search_policy_version": 2,
+            "search_run_id": "run-1",
+        },
+    }
+    session = SearchSession(
+        thread_id="thread-1", run_id="run-1", started_at="2026-10-18T00:00:00Z", max_dispatches=1
+    )
+    graph.update_state(
+        config,
+        {
+            "artifact_registry": registry.model_dump_json(),
+            "search_state": session.model_dump_json(),
+            "search_task_events": {"run-1:experiment": "OBJ-01"},
+        },
+        as_node="tools",
+    )
     assert json.loads(graph.get_state(config).values["artifact_registry"])["materialized"] is True
     result = graph.invoke({"messages": [HumanMessage(content="Continue search")]}, config=config)
     receipt = json.loads(result["search_receipt"])
     assert receipt["disposition"] == "budget_exhausted"
     assert receipt["goal_finding_uuids"] == []
-    assert receipt["report_sha256"] == registry.artifacts[str(report.document_uuid)].revisions[-1].markdown_sha256
+    assert (
+        receipt["report_sha256"]
+        == registry.artifacts[str(report.document_uuid)].revisions[-1].markdown_sha256
+    )
     assert json.loads(result["search_state"])["status"] == "terminal"
 
 
@@ -118,35 +211,102 @@ def test_goal_receipt_requires_current_independent_verdict(tmp_path: Path, run_i
     registry, scoped = candidate(tmp_path)
     registry = verify(registry, scoped)
     finding = list_artifacts(registry)[0]
-    registry = create(registry, ArtifactDraft(
-        kind=ArtifactKind.ASSESSMENT_REPORT, title="Assessment", slug="security-assessment-report",
-        body="## Summary\nIndependent High finding and completed fixture mission.",
-        links=(ArtifactLink(relation="reports", document_uuid=finding.document_uuid, revision=finding.revision, content_hash=finding.revisions[-1].content_hash),),
-    ), "assessment")
+    registry = create(
+        registry,
+        ArtifactDraft(
+            kind=ArtifactKind.ASSESSMENT_REPORT,
+            title="Assessment",
+            slug="security-assessment-report",
+            body="## Summary\nIndependent High finding and completed fixture mission.",
+            links=(
+                ArtifactLink(
+                    relation="reports",
+                    document_uuid=finding.document_uuid,
+                    revision=finding.revision,
+                    content_hash=finding.revisions[-1].content_hash,
+                ),
+            ),
+        ),
+        "assessment",
+    )
     report = list_artifacts(registry, ArtifactKind.ASSESSMENT_REPORT)[0]
-    registry = commit(registry, CommitRequest(document_uuid=report.document_uuid, expected_revision=0, operation_key="freeze-report", reason="final report"), ActorContext(actor="orchestrator", role="decepticon"))
+    registry = commit(
+        registry,
+        CommitRequest(
+            document_uuid=report.document_uuid,
+            expected_revision=0,
+            operation_key="freeze-report",
+            reason="final report",
+        ),
+        ActorContext(actor="orchestrator", role="decepticon"),
+    )
     backend = FilesystemBackend(root_dir=tmp_path, virtual_mode=True)
     registry = persist_artifacts(registry, backend, "/workspace/engagement")
     responses = [
-        AIMessage(content="", tool_calls=[{"id": "finalize", "name": "finalize_search", "args": {"request": {"disposition": "goal_met", "report_document_uuid": str(report.document_uuid), "plan_revision": 0, "reason": "Scoped independent proof and mandatory work complete"}}}]),
+        AIMessage(
+            content="",
+            tool_calls=[
+                {
+                    "id": "finalize",
+                    "name": "finalize_search",
+                    "args": {
+                        "request": {
+                            "disposition": "goal_met",
+                            "report_document_uuid": str(report.document_uuid),
+                            "plan_revision": 0,
+                            "reason": "Scoped independent proof and mandatory work complete",
+                        }
+                    },
+                }
+            ],
+        ),
         *[AIMessage(content="Assessment complete") for _ in range(4)],
     ]
-    graph = create_agent(ToolModel(responses=responses), middleware=[SearchRuntimeMiddleware(backend)], state_schema=GoalState, checkpointer=InMemorySaver())
-    config = {"recursion_limit": 20, "configurable": {"thread_id": "goal-thread", "search_policy_version": 2, "search_run_id": run_id, "research_scope_digest": SCOPE}}
-    session = SearchSession(thread_id="goal-thread", run_id=run_id, started_at="2026-10-18T00:00:00Z")
-    graph.update_state(config, {
-        "artifact_registry": registry.model_dump_json(), "search_state": session.model_dump_json(),
-        "workspace_path": "/workspace/engagement", "objectives": [{"id": "OBJ-01", "status": "completed"}],
-    }, as_node="tools")
+    graph = create_agent(
+        ToolModel(responses=responses),
+        middleware=[SearchRuntimeMiddleware(backend)],
+        state_schema=GoalState,
+        checkpointer=InMemorySaver(),
+    )
+    config = {
+        "recursion_limit": 20,
+        "configurable": {
+            "thread_id": "goal-thread",
+            "search_policy_version": 2,
+            "search_run_id": run_id,
+            "research_scope_digest": SCOPE,
+        },
+    }
+    session = SearchSession(
+        thread_id="goal-thread", run_id=run_id, started_at="2026-10-18T00:00:00Z"
+    )
+    graph.update_state(
+        config,
+        {
+            "artifact_registry": registry.model_dump_json(),
+            "search_state": session.model_dump_json(),
+            "workspace_path": "/workspace/engagement",
+            "objectives": [{"id": "OBJ-01", "status": "completed"}],
+        },
+        as_node="tools",
+    )
     if run_id == "run":
-        result = graph.invoke({"messages": [HumanMessage(content="Finalize the reviewed search")]}, config=config)
+        result = graph.invoke(
+            {"messages": [HumanMessage(content="Finalize the reviewed search")]}, config=config
+        )
         receipt = json.loads(result["search_receipt"])
         assert receipt["disposition"] == "goal_met"
         assert receipt["goal_finding_uuids"] == [str(finding.document_uuid)]
-        assert receipt["report_sha256"] == registry.artifacts[str(report.document_uuid)].revisions[-1].markdown_sha256
+        assert (
+            receipt["report_sha256"]
+            == registry.artifacts[str(report.document_uuid)].revisions[-1].markdown_sha256
+        )
     else:
         with pytest.raises(SearchContractError, match="premature closure"):
-            graph.invoke({"messages": [HumanMessage(content="Reuse the old report in a new search")]}, config=config)
+            graph.invoke(
+                {"messages": [HumanMessage(content="Reuse the old report in a new search")]},
+                config=config,
+            )
         assert not graph.get_state(config).values.get("search_receipt")
 
 
@@ -156,15 +316,67 @@ def test_failed_verifier_return_cannot_commit_partial_document_edits(tmp_path: P
 
     @tool(description="Fixture verifier that fails after writing a partial draft")
     def task(subagent_type: str, description: str, runtime: ToolRuntime) -> Command[str]:
-        scoped.edit("/workspace/" + finding.current_path, '"verification_status": "unverified"', '"verification_status": "verified"')
-        return Command(update={"messages": [ToolMessage(content="Verifier failed before completing proof", status="error", tool_call_id=runtime.tool_call_id or "")]})
+        scoped.edit(
+            "/workspace/" + finding.current_path,
+            '"verification_status": "unverified"',
+            '"verification_status": "verified"',
+        )
+        return Command(
+            update={
+                "messages": [
+                    ToolMessage(
+                        content="Verifier failed before completing proof",
+                        status="error",
+                        tool_call_id=runtime.tool_call_id or "",
+                    )
+                ]
+            }
+        )
 
-    responses = [AIMessage(content="", tool_calls=[{"id": "failed-verifier", "name": "task", "args": {"subagent_type": "finding_verifier", "description": finding.current_path}}]), *[AIMessage(content="Cannot finalize") for _ in range(4)]]
+    responses = [
+        AIMessage(
+            content="",
+            tool_calls=[
+                {
+                    "id": "failed-verifier",
+                    "name": "task",
+                    "args": {
+                        "subagent_type": "finding_verifier",
+                        "description": finding.current_path,
+                    },
+                }
+            ],
+        ),
+        *[AIMessage(content="Cannot finalize") for _ in range(4)],
+    ]
     backend = FilesystemBackend(root_dir=tmp_path, virtual_mode=True)
-    graph = create_agent(ToolModel(responses=responses), tools=[task], middleware=[SearchRuntimeMiddleware(backend)], state_schema=GoalState, checkpointer=InMemorySaver())
-    config = {"recursion_limit": 20, "configurable": {"thread_id": "failed-thread", "search_policy_version": 2, "search_run_id": "run"}}
-    session = SearchSession(thread_id="failed-thread", run_id="run", started_at="2026-10-18T00:00:00Z")
-    graph.update_state(config, {"artifact_registry": registry.model_dump_json(), "search_state": session.model_dump_json(), "workspace_path": "/workspace/engagement"}, as_node="tools")
+    graph = create_agent(
+        ToolModel(responses=responses),
+        tools=[task],
+        middleware=[SearchRuntimeMiddleware(backend)],
+        state_schema=GoalState,
+        checkpointer=InMemorySaver(),
+    )
+    config = {
+        "recursion_limit": 20,
+        "configurable": {
+            "thread_id": "failed-thread",
+            "search_policy_version": 2,
+            "search_run_id": "run",
+        },
+    }
+    session = SearchSession(
+        thread_id="failed-thread", run_id="run", started_at="2026-10-18T00:00:00Z"
+    )
+    graph.update_state(
+        config,
+        {
+            "artifact_registry": registry.model_dump_json(),
+            "search_state": session.model_dump_json(),
+            "workspace_path": "/workspace/engagement",
+        },
+        as_node="tools",
+    )
     with pytest.raises(SearchContractError, match="premature closure"):
         graph.invoke({"messages": [HumanMessage(content="Verify the candidate")]}, config=config)
     state = graph.get_state(config).values
@@ -185,16 +397,51 @@ def test_plan_mutation_and_finalization_cannot_share_a_tool_batch(tmp_path: Path
         mutations.append("committed")
         return "committed"
 
-    response = AIMessage(content="", tool_calls=[
-        {"id": "plan", "name": "commit_opplan", "args": {}},
-        {"id": "finalize", "name": "finalize_search", "args": {"request": {"disposition": "blocked", "report_document_uuid": "a6fa49f6-9d1c-4d1b-875f-5270df9e32a7", "plan_revision": 0, "reason": "Blocked"}}},
-    ])
-    graph = create_agent(ToolModel(responses=[response, *[AIMessage(content="Finished") for _ in range(4)]]), tools=[commit_opplan], middleware=[SearchRuntimeMiddleware(FilesystemBackend(root_dir=tmp_path, virtual_mode=True))], checkpointer=InMemorySaver())
-    config = {"recursion_limit": 20, "configurable": {"thread_id": "batch-thread", "search_policy_version": 2, "search_run_id": "batch-run"}}
+    response = AIMessage(
+        content="",
+        tool_calls=[
+            {"id": "plan", "name": "commit_opplan", "args": {}},
+            {
+                "id": "finalize",
+                "name": "finalize_search",
+                "args": {
+                    "request": {
+                        "disposition": "blocked",
+                        "report_document_uuid": "a6fa49f6-9d1c-4d1b-875f-5270df9e32a7",
+                        "plan_revision": 0,
+                        "reason": "Blocked",
+                    }
+                },
+            },
+        ],
+    )
+    graph = create_agent(
+        ToolModel(responses=[response, *[AIMessage(content="Finished") for _ in range(4)]]),
+        tools=[commit_opplan],
+        middleware=[
+            SearchRuntimeMiddleware(FilesystemBackend(root_dir=tmp_path, virtual_mode=True))
+        ],
+        checkpointer=InMemorySaver(),
+    )
+    config = {
+        "recursion_limit": 20,
+        "configurable": {
+            "thread_id": "batch-thread",
+            "search_policy_version": 2,
+            "search_run_id": "batch-run",
+        },
+    }
     with pytest.raises(SearchContractError, match="premature closure"):
-        graph.invoke({"messages": [HumanMessage(content="Close search while changing OPPLAN")]}, config=config)
+        graph.invoke(
+            {"messages": [HumanMessage(content="Close search while changing OPPLAN")]},
+            config=config,
+        )
     assert mutations == []
-    errors = [message for message in graph.get_state(config).values["messages"] if isinstance(message, ToolMessage)]
+    errors = [
+        message
+        for message in graph.get_state(config).values["messages"]
+        if isinstance(message, ToolMessage)
+    ]
     assert len(errors) == 2
     assert all(message.status == "error" and "Serialize" in message.text for message in errors)
 
@@ -207,31 +454,59 @@ def test_bugclaw_validator_cannot_write_alongside_another_task(tmp_path: Path) -
         executed.append(subagent_type)
         return description
 
-    response = AIMessage(content="", tool_calls=[
-        {"id": "validator", "name": "task", "args": {"subagent_type": "bugclaw_validator", "description": "Check finding"}},
-        {"id": "other", "name": "task", "args": {"subagent_type": "recon", "description": "Inspect scope"}},
-    ])
+    response = AIMessage(
+        content="",
+        tool_calls=[
+            {
+                "id": "validator",
+                "name": "task",
+                "args": {"subagent_type": "bugclaw_validator", "description": "Check finding"},
+            },
+            {
+                "id": "other",
+                "name": "task",
+                "args": {"subagent_type": "recon", "description": "Inspect scope"},
+            },
+        ],
+    )
     graph = create_agent(
         ToolModel(responses=[response, *[AIMessage(content="Continue") for _ in range(4)]]),
         tools=[task],
-        middleware=[SearchRuntimeMiddleware(FilesystemBackend(root_dir=tmp_path, virtual_mode=True))],
+        middleware=[
+            SearchRuntimeMiddleware(FilesystemBackend(root_dir=tmp_path, virtual_mode=True))
+        ],
         checkpointer=InMemorySaver(),
     )
-    config = {"recursion_limit": 20, "configurable": {
-        "thread_id": "validator-thread", "search_policy_version": 2, "search_run_id": "run",
-    }}
+    config = {
+        "recursion_limit": 20,
+        "configurable": {
+            "thread_id": "validator-thread",
+            "search_policy_version": 2,
+            "search_run_id": "run",
+        },
+    }
     with pytest.raises(SearchContractError, match="premature closure"):
         graph.invoke({"messages": [HumanMessage(content="Review the candidate")]}, config=config)
     assert executed == []
-    errors = [message for message in graph.get_state(config).values["messages"] if isinstance(message, ToolMessage)]
+    errors = [
+        message
+        for message in graph.get_state(config).values["messages"]
+        if isinstance(message, ToolMessage)
+    ]
     assert len(errors) == 2
     assert all(message.status == "error" and "Serialize" in message.text for message in errors)
 
 
 def test_registered_orchestrator_extension_gets_search_contract(tmp_path: Path) -> None:
     backend = FilesystemBackend(root_dir=tmp_path, virtual_mode=True)
-    RoleRegistry.register("fixture-search-orchestrator", slots=SLOTS_PER_ROLE["decepticon"], llm_role_fallback="decepticon")
-    RoleRegistry.register("fixture-search-specialist", slots=frozenset(), llm_role_fallback="decepticon")
+    RoleRegistry.register(
+        "fixture-search-orchestrator",
+        slots=SLOTS_PER_ROLE["decepticon"],
+        llm_role_fallback="decepticon",
+    )
+    RoleRegistry.register(
+        "fixture-search-specialist", slots=frozenset(), llm_role_fallback="decepticon"
+    )
     try:
         assert len(get_search_middleware(role="fixture-search-orchestrator", backend=backend)) == 1
         assert get_search_middleware(role="fixture-search-specialist", backend=backend) == []
@@ -244,9 +519,15 @@ def test_registered_orchestrator_extension_gets_search_contract(tmp_path: Path) 
 def test_document_import_error_preserves_one_result_per_tool_call() -> None:
     original = ToolMessage(content="Verifier returned evidence", tool_call_id="verify")
     other = ToolMessage(content="Parallel recon returned", tool_call_id="recon")
-    messages = _document_error([original, other], "verify", "Document publication pending; call publish_artifacts")
+    messages = _document_error(
+        [original, other], "verify", "Document publication pending; call publish_artifacts"
+    )
     assert messages[0] is other
-    own = [message for message in messages if isinstance(message, ToolMessage) and message.tool_call_id == "verify"]
+    own = [
+        message
+        for message in messages
+        if isinstance(message, ToolMessage) and message.tool_call_id == "verify"
+    ]
     assert len(own) == 1
     assert own[0].status == "error"
     assert "Verifier returned evidence" in own[0].text

@@ -32,7 +32,18 @@ ACTOR = ActorContext(actor="parent", role="orchestrator")
 
 
 def draft() -> ArtifactDraft:
-    return ArtifactDraft(kind=ArtifactKind.FINDING, title="테넌트 문서 읽기", slug="cross-tenant-document-read", severity="high", body="# Finding", metadata={"cvss_score": 8.1, "verification_status": "verified", "evidence": ["evidence/response.http"]})
+    return ArtifactDraft(
+        kind=ArtifactKind.FINDING,
+        title="테넌트 문서 읽기",
+        slug="cross-tenant-document-read",
+        severity="high",
+        body="# Finding",
+        metadata={
+            "cvss_score": 8.1,
+            "verification_status": "verified",
+            "evidence": ["evidence/response.http"],
+        },
+    )
 
 
 def initial() -> ArtifactRegistry:
@@ -41,7 +52,16 @@ def initial() -> ArtifactRegistry:
 
 def committed(registry: ArtifactRegistry) -> ArtifactRegistry:
     artifact = list_artifacts(registry)[0]
-    return commit(registry, CommitRequest(document_uuid=artifact.document_uuid, expected_revision=artifact.revision, operation_key=f"commit-{artifact.revision}", reason="handoff"), ACTOR)
+    return commit(
+        registry,
+        CommitRequest(
+            document_uuid=artifact.document_uuid,
+            expected_revision=artifact.revision,
+            operation_key=f"commit-{artifact.revision}",
+            reason="handoff",
+        ),
+        ACTOR,
+    )
 
 
 def test_multiple_draft_edits_make_one_snapshot_when_committed(tmp_path: Path) -> None:
@@ -50,7 +70,15 @@ def test_multiple_draft_edits_make_one_snapshot_when_committed(tmp_path: Path) -
     identity = list_artifacts(registry)[0].document_uuid
     for number in range(5):
         artifact = get_artifact(registry, identity)
-        registry = update_draft(registry, DraftUpdate(document_uuid=identity, expected_draft_version=artifact.draft_version, draft=artifact.draft.model_copy(update={"body": f"revision body {number}"})), ACTOR)
+        registry = update_draft(
+            registry,
+            DraftUpdate(
+                document_uuid=identity,
+                expected_draft_version=artifact.draft_version,
+                draft=artifact.draft.model_copy(update={"body": f"revision body {number}"}),
+            ),
+            ACTOR,
+        )
     backend = FilesystemBackend(root_dir=tmp_path, virtual_mode=True)
     # When one semantic milestone is committed and materialized.
     result = materialize(committed(registry), backend)
@@ -63,7 +91,10 @@ def test_multiple_draft_edits_make_one_snapshot_when_committed(tmp_path: Path) -
     assert "테넌트 문서 읽기" in content and '"cvss_score": 8.1' in content
     assert artifact.current_path == "findings/high_01_cross-tenant-document-read.md"
     assert sha256(content.encode()).hexdigest() == artifact.revisions[-1].markdown_sha256
-    assert ArtifactRegistry.model_validate_json((tmp_path / "plan/artifact-registry.json").read_text()) == result
+    assert (
+        ArtifactRegistry.model_validate_json((tmp_path / "plan/artifact-registry.json").read_text())
+        == result
+    )
 
 
 def test_noop_and_idempotent_commit_when_retried() -> None:
@@ -71,7 +102,16 @@ def test_noop_and_idempotent_commit_when_retried() -> None:
     registry = committed(initial())
     artifact = list_artifacts(registry)[0]
     # When the original commit and then unchanged content are committed.
-    retry = commit(registry, CommitRequest(document_uuid=artifact.document_uuid, expected_revision=0, operation_key="commit-0", reason="handoff"), ACTOR)
+    retry = commit(
+        registry,
+        CommitRequest(
+            document_uuid=artifact.document_uuid,
+            expected_revision=0,
+            operation_key="commit-0",
+            reason="handoff",
+        ),
+        ACTOR,
+    )
     result = committed(retry)
     # Then no extra semantic revisions or UUIDs are allocated.
     assert list_artifacts(result)[0].revision == 1
@@ -86,9 +126,24 @@ def test_stale_requests_are_rejected_when_revision_advanced() -> None:
     artifact = list_artifacts(registry)[0]
     # When outdated revision or draft counters are submitted.
     with pytest.raises(ArtifactError, match="Stale committed"):
-        commit(registry, CommitRequest(document_uuid=artifact.document_uuid, expected_revision=0, operation_key="stale", reason="handoff"), ACTOR)
+        commit(
+            registry,
+            CommitRequest(
+                document_uuid=artifact.document_uuid,
+                expected_revision=0,
+                operation_key="stale",
+                reason="handoff",
+            ),
+            ACTOR,
+        )
     with pytest.raises(ArtifactError, match="Stale draft"):
-        update_draft(registry, DraftUpdate(document_uuid=artifact.document_uuid, expected_draft_version=2, draft=draft()), ACTOR)
+        update_draft(
+            registry,
+            DraftUpdate(
+                document_uuid=artifact.document_uuid, expected_draft_version=2, draft=draft()
+            ),
+            ACTOR,
+        )
     # Then the original remains unchanged.
     assert list_artifacts(registry)[0].revision == 1
 
@@ -100,8 +155,14 @@ def test_rename_preserves_prior_snapshot_when_new_revision_committed(tmp_path: P
     artifact = list_artifacts(registry)[0]
     snapshot = tmp_path / f"plan/artifacts/{artifact.document_uuid}/000001.json"
     original = snapshot.read_bytes()
-    changed = artifact.draft.model_copy(update={"severity": "medium", "slug": "tenant-document-disclosure"})
-    registry = update_draft(registry, DraftUpdate(document_uuid=artifact.document_uuid, expected_draft_version=1, draft=changed), ACTOR)
+    changed = artifact.draft.model_copy(
+        update={"severity": "medium", "slug": "tenant-document-disclosure"}
+    )
+    registry = update_draft(
+        registry,
+        DraftUpdate(document_uuid=artifact.document_uuid, expected_draft_version=1, draft=changed),
+        ACTOR,
+    )
     # When renamed and committed.
     result = materialize(committed(registry), backend)
     # Then identity/history remain stable and old view is an alias.
@@ -110,21 +171,39 @@ def test_rename_preserves_prior_snapshot_when_new_revision_committed(tmp_path: P
     assert current.revision == 2 and current.label == "FIND-01"
     assert snapshot.read_bytes() == original
     assert current.revisions[-1].previous_hash == artifact.content_hash
-    assert (tmp_path / artifact.current_path).read_text() == "Moved to [FIND-01](medium_01_tenant-document-disclosure.md).\n"
+    assert (
+        tmp_path / artifact.current_path
+    ).read_text() == "Moved to [FIND-01](medium_01_tenant-document-disclosure.md).\n"
 
 
 def test_uuid_links_validate_when_pinned() -> None:
     # Given a committed reference target.
     registry = committed(initial())
     target = list_artifacts(registry)[0]
-    link = ArtifactLink(relation="supports", document_uuid=target.document_uuid, revision=1, content_hash=target.content_hash)
-    hypothesis = ArtifactDraft(kind=ArtifactKind.HYPOTHESIS, title="Tenant boundary", slug="tenant-boundary-check", body="Evidence", links=(link,))
+    link = ArtifactLink(
+        relation="supports",
+        document_uuid=target.document_uuid,
+        revision=1,
+        content_hash=target.content_hash,
+    )
+    hypothesis = ArtifactDraft(
+        kind=ArtifactKind.HYPOTHESIS,
+        title="Tenant boundary",
+        slug="tenant-boundary-check",
+        body="Evidence",
+        links=(link,),
+    )
     # When linking by immutable revision/hash.
     result = create(registry, hypothesis, "hypothesis")
     # Then the system allocates a separate UUID and rejects dangling/corrupt links.
-    assert list_artifacts(result)[1].current_path == "plan/hypotheses/HYP_01_tenant-boundary-check.md"
+    assert (
+        list_artifacts(result)[1].current_path == "plan/hypotheses/HYP_01_tenant-boundary-check.md"
+    )
     assert list_artifacts(result)[1].document_uuid != target.document_uuid
-    for bad_link in (link.model_copy(update={"document_uuid": uuid4()}), link.model_copy(update={"content_hash": "0" * 64})):
+    for bad_link in (
+        link.model_copy(update={"document_uuid": uuid4()}),
+        link.model_copy(update={"content_hash": "0" * 64}),
+    ):
         with pytest.raises(ArtifactError):
             create(registry, hypothesis.model_copy(update={"links": (bad_link,)}), "bad")
 
@@ -143,10 +222,18 @@ def test_reporter_preserves_verdict_when_updating_content() -> None:
     # Given an independent verification verdict.
     registry = committed(initial())
     artifact = list_artifacts(registry)[0]
-    replacement = draft().model_copy(update={"body": "Report presentation", "metadata": {"verification_status": "unverified"}})
+    replacement = draft().model_copy(
+        update={"body": "Report presentation", "metadata": {"verification_status": "unverified"}}
+    )
     reporter = ActorContext(actor="report", role="finding_reporter")
     # When the reporter updates the document.
-    result = update_draft(registry, DraftUpdate(document_uuid=artifact.document_uuid, expected_draft_version=1, draft=replacement), reporter)
+    result = update_draft(
+        registry,
+        DraftUpdate(
+            document_uuid=artifact.document_uuid, expected_draft_version=1, draft=replacement
+        ),
+        reporter,
+    )
     # Then the independent verdict remains intact.
     assert list_artifacts(result)[0].draft.metadata["verification_status"] == "verified"
 
@@ -155,10 +242,25 @@ def test_info_entries_share_one_view_when_materialized(tmp_path: Path) -> None:
     # Given two structured info entries with distinct identities.
     registry = ArtifactRegistry()
     for number in range(2):
-        entry = ArtifactDraft(kind=ArtifactKind.INFO_ENTRY, title=f"Control {number}", slug=f"control-result-{number}", body="Blocked", metadata={"kind": "negative_result", "target": "tenant"})
+        entry = ArtifactDraft(
+            kind=ArtifactKind.INFO_ENTRY,
+            title=f"Control {number}",
+            slug=f"control-result-{number}",
+            body="Blocked",
+            metadata={"kind": "negative_result", "target": "tenant"},
+        )
         registry = create(registry, entry, f"info-{number}")
         artifact = list_artifacts(registry)[-1]
-        registry = commit(registry, CommitRequest(document_uuid=artifact.document_uuid, expected_revision=0, operation_key=f"info-commit-{number}", reason="result"), ACTOR)
+        registry = commit(
+            registry,
+            CommitRequest(
+                document_uuid=artifact.document_uuid,
+                expected_revision=0,
+                operation_key=f"info-commit-{number}",
+                reason="result",
+            ),
+            ACTOR,
+        )
     # When materialized.
     materialize(registry, FilesystemBackend(root_dir=tmp_path, virtual_mode=True))
     # Then one log retains structured entries and stable labels.
@@ -170,42 +272,73 @@ def test_info_entries_share_one_view_when_materialized(tmp_path: Path) -> None:
 def test_report_may_pin_an_earlier_immutable_information_log(tmp_path: Path) -> None:
     backend = FilesystemBackend(root_dir=tmp_path, virtual_mode=True)
     entry = ArtifactDraft(
-        kind=ArtifactKind.INFO_ENTRY, title="Control", slug="control-result",
-        body="First observation", metadata={"kind": "negative_result"},
+        kind=ArtifactKind.INFO_ENTRY,
+        title="Control",
+        slug="control-result",
+        body="First observation",
+        metadata={"kind": "negative_result"},
     )
     registry = create(ArtifactRegistry(), entry, "first-info")
     info = list_artifacts(registry)[0]
-    registry = commit(registry, CommitRequest(
-        document_uuid=info.document_uuid, expected_revision=0,
-        operation_key="first-info-commit", reason="observed",
-    ), ACTOR)
+    registry = commit(
+        registry,
+        CommitRequest(
+            document_uuid=info.document_uuid,
+            expected_revision=0,
+            operation_key="first-info-commit",
+            reason="observed",
+        ),
+        ACTOR,
+    )
     registry = materialize(registry, backend)
     first = registry.information_log
     assert first is not None
-    registry = update_draft(registry, DraftUpdate(
-        document_uuid=info.document_uuid, expected_draft_version=1,
-        draft=entry.model_copy(update={"body": "Second observation"}),
-    ), ACTOR)
-    registry = commit(registry, CommitRequest(
-        document_uuid=info.document_uuid, expected_revision=1,
-        operation_key="second-info-commit", reason="follow-up",
-    ), ACTOR)
-    registry = ArtifactRegistry.model_validate_json(materialize(registry, backend).model_dump_json())
+    registry = update_draft(
+        registry,
+        DraftUpdate(
+            document_uuid=info.document_uuid,
+            expected_draft_version=1,
+            draft=entry.model_copy(update={"body": "Second observation"}),
+        ),
+        ACTOR,
+    )
+    registry = commit(
+        registry,
+        CommitRequest(
+            document_uuid=info.document_uuid,
+            expected_revision=1,
+            operation_key="second-info-commit",
+            reason="follow-up",
+        ),
+        ACTOR,
+    )
+    registry = ArtifactRegistry.model_validate_json(
+        materialize(registry, backend).model_dump_json()
+    )
     assert registry.information_log is not None
     assert registry.information_log.revision > first.revision
     pinned = ArtifactLink(
-        relation="reports", document_uuid=registry.information_log_uuid,
-        revision=first.revision, content_hash=first.markdown_sha256,
+        relation="reports",
+        document_uuid=registry.information_log_uuid,
+        revision=first.revision,
+        content_hash=first.markdown_sha256,
     )
     report = ArtifactDraft(
-        kind=ArtifactKind.ASSESSMENT_REPORT, title="Assessment", slug="security-assessment-report",
-        body="Earlier observation remains cited", links=(pinned,),
+        kind=ArtifactKind.ASSESSMENT_REPORT,
+        title="Assessment",
+        slug="security-assessment-report",
+        body="Earlier observation remains cited",
+        links=(pinned,),
     )
     assert create(registry, report, "report").artifacts
     with pytest.raises(ArtifactError, match="Pinned information log"):
-        create(registry, report.model_copy(update={"links": (
-            pinned.model_copy(update={"content_hash": "0" * 64}),
-        )}), "bad-report")
+        create(
+            registry,
+            report.model_copy(
+                update={"links": (pinned.model_copy(update={"content_hash": "0" * 64}),)}
+            ),
+            "bad-report",
+        )
 
 
 def test_failed_materialization_is_retryable_when_view_parent_is_file(tmp_path: Path) -> None:
@@ -246,9 +379,13 @@ def test_tool_checkpoint_keeps_identity_after_backend_failure(tmp_path: Path) ->
 
     backend = FailingOnceBackend(root_dir=tmp_path, virtual_mode=True)
     registry = committed(initial())
-    runtime = cast(ToolRuntime, SimpleNamespace(
-        state={"workspace_path": "/workspace/engagement"}, tool_call_id="publish",
-    ))
+    runtime = cast(
+        ToolRuntime,
+        SimpleNamespace(
+            state={"workspace_path": "/workspace/engagement"},
+            tool_call_id="publish",
+        ),
+    )
     pending = publish_artifact(registry, runtime, backend)
     assert pending.update is not None
     saved = ArtifactRegistry.model_validate_json(pending.update["artifact_registry"])
@@ -293,8 +430,18 @@ def test_renaming_back_preserves_current_view_when_alias_matches(tmp_path: Path)
     artifact = list_artifacts(registry)[0]
     for severity in ("medium", "high"):
         current = list_artifacts(registry)[0]
-        replacement = ArtifactDraft.model_validate({**current.draft.model_dump(), "severity": severity})
-        registry = update_draft(registry, DraftUpdate(document_uuid=current.document_uuid, expected_draft_version=current.draft_version, draft=replacement), ACTOR)
+        replacement = ArtifactDraft.model_validate(
+            {**current.draft.model_dump(), "severity": severity}
+        )
+        registry = update_draft(
+            registry,
+            DraftUpdate(
+                document_uuid=current.document_uuid,
+                expected_draft_version=current.draft_version,
+                draft=replacement,
+            ),
+            ACTOR,
+        )
         registry = committed(registry)
     # When all views and aliases are materialized.
     materialize(registry, FilesystemBackend(root_dir=tmp_path, virtual_mode=True))

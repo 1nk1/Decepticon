@@ -526,10 +526,12 @@ def test_v2_shutdown_preserves_canonical_documents_without_legacy_writes(
     script = _write_driver(
         tmp_path,
         signal_name="SIGINT",
-        findings_payload=json.dumps([
-            {"title": "Informational observation", "severity": "info"},
-            {"title": "Candidate finding", "severity": "high"},
-        ]),
+        findings_payload=json.dumps(
+            [
+                {"title": "Informational observation", "severity": "info"},
+                {"title": "Candidate finding", "severity": "high"},
+            ]
+        ),
         v2_checkpoint_key=checkpoint_key,
     )
 
