@@ -104,3 +104,20 @@ wire protocol. They do not prove an installed browser, network containment,
 native screenshot or Windows forwarding. Task21 supplies that engine and
 Task30 qualifies the launcher/runtime pair before pinning. Native acceptance
 must remain nonzero until those real host scenarios run.
+
+Run the real browser fixture with Playwright 1.60.0 and its Chromium revision
+1223 available (the binding is a test-only dependency):
+
+```sh
+NATIVE_BROWSER_EVIDENCE_DIR=.omo/evidence/oss-browser-adapter \
+  uv run --with playwright==1.60.0 pytest -q \
+  packages/decepticon/tests/integration/test_browser_native.py \
+  packages/decepticon/tests/unit/tools/test_browser_native_startup.py \
+  packages/decepticon/tests/unit/tools/test_browser.py \
+  packages/decepticon/tests/unit/tools/test_browser_cleanup.py \
+  packages/decepticon/tests/unit/middleware/test_roe.py \
+  packages/decepticon/tests/unit/middleware/test_hitl.py
+```
+
+All three browser-dependent slow tests must run, not skip, for qualification.
+The normal fast CI lane excludes them; protocol/startup negatives still run.

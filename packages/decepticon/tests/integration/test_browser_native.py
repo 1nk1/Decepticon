@@ -65,7 +65,10 @@ async def exercise(origin: str, output: Path) -> list[dict]:
     return results
 
 
+@pytest.mark.slow
 def test_real_browser_action_native_and_default_golden(tmp_path: Path) -> None:
+    pytest.importorskip("playwright.async_api")
+
     async def scenario():
         _reset_session_manager_for_tests()
         host = BrowserHostFixture()
@@ -172,7 +175,10 @@ def test_foreign_registration_is_denied_before_action(tmp_path: Path, field: str
     asyncio.run(scenario())
 
 
+@pytest.mark.slow
 def test_native_cancel_propagates_and_stops_owned_action(tmp_path: Path) -> None:
+    pytest.importorskip("playwright.async_api")
+
     async def scenario():
         _reset_session_manager_for_tests()
         host = BrowserHostFixture()
@@ -195,7 +201,10 @@ def test_native_cancel_propagates_and_stops_owned_action(tmp_path: Path) -> None
     asyncio.run(scenario())
 
 
+@pytest.mark.slow
 def test_default_cancel_propagates_during_real_navigation(tmp_path: Path) -> None:
+    pytest.importorskip("playwright.async_api")
+
     async def scenario():
         _reset_session_manager_for_tests()
         host = BrowserHostFixture()
