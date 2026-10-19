@@ -15,6 +15,7 @@ from pydantic import JsonValue
 from decepticon.artifacts import (
     ActorContext,
     ArtifactDraft,
+    ArtifactError,
     ArtifactKind,
     ArtifactLink,
     ArtifactRegistry,
@@ -432,6 +433,70 @@ def test_imported_verifier_revision_survives_publication_failure(
     saved = ArtifactRegistry.model_validate_json(result.update["artifact_registry"])
     assert saved == imported
     assert result.update["messages"][0].status == "error"
+
+
+def test_failed_nonwriter_restores_document_without_registry_write(tmp_path: Path) -> None:
+    registry, scoped = candidate(tmp_path)
+    finding = list_artifacts(registry)[0]
+    scoped.edit(
+        "/workspace/" + finding.current_path,
+        '"verification_status": "unverified"',
+        '"verification_status": "verified"',
+    )
+    session = SearchSession(thread_id="recon", run_id="run", started_at="2026-10-18T00:00:00Z")
+    request = SimpleNamespace(
+        tool_call={"name": "task", "id": "recon", "args": {"subagent_type": "recon"}},
+        state={
+            "search_state": session.model_dump_json(),
+            "artifact_registry": registry.model_dump_json(),
+            "workspace_path": "/workspace/engagement",
+        },
+    )
+    result = SearchRuntimeMiddleware(
+        FilesystemBackend(root_dir=tmp_path, virtual_mode=True)
+    )._returned(request, ToolMessage(content="failed", status="error", tool_call_id="recon"))
+    assert isinstance(result, Command)
+    assert result.update is not None
+    assert "artifact_registry" not in result.update
+    view = scoped.read("/workspace/" + finding.current_path)
+    assert view.file_data is not None
+    assert view.file_data["content"] == finding.revisions[-1].markdown
+
+
+def test_rejected_specialist_import_restores_document(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    registry, scoped = candidate(tmp_path)
+    finding = list_artifacts(registry)[0]
+    scoped.edit(
+        "/workspace/" + finding.current_path,
+        '"verification_status": "unverified"',
+        '"verification_status": "verified"',
+    )
+    monkeypatch.setattr(runtime_module, "get_config", lambda: {"configurable": {}})
+
+    def reject_import(*_args: object) -> ArtifactRegistry:
+        raise ArtifactError("unbound specialist edit")
+
+    monkeypatch.setattr(runtime_module, "import_specialist_edits", reject_import)
+    session = SearchSession(thread_id="verify", run_id="run", started_at="2026-10-18T00:00:00Z")
+    request = SimpleNamespace(
+        tool_call={"name": "task", "id": "verify", "args": {"subagent_type": "finding_verifier"}},
+        state={
+            "search_state": session.model_dump_json(),
+            "artifact_registry": registry.model_dump_json(),
+            "workspace_path": "/workspace/engagement",
+        },
+    )
+    result = SearchRuntimeMiddleware(
+        FilesystemBackend(root_dir=tmp_path, virtual_mode=True)
+    )._returned(request, ToolMessage(content="done", tool_call_id="verify"))
+    assert isinstance(result, Command)
+    assert result.update is not None
+    assert result.update["messages"][0].status == "error"
+    view = scoped.read("/workspace/" + finding.current_path)
+    assert view.file_data is not None
+    assert view.file_data["content"] == finding.revisions[-1].markdown
 
 
 def test_failed_writer_restoration_blocks_dispatch_until_retry(

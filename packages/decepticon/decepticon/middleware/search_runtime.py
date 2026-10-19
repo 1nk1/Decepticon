@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
+from threading import Lock
 from typing import Annotated, NotRequired
 from uuid import uuid4
 
@@ -29,7 +30,7 @@ from langgraph.runtime import Runtime
 from langgraph.types import Command
 from pydantic import JsonValue, ValidationError
 
-from decepticon.artifacts import ActorContext, ArtifactError, MaterializationError
+from decepticon.artifacts import ActorContext, ArtifactError, ArtifactRegistry, MaterializationError
 from decepticon.middleware.artifact_tools import (
     build_artifact_tools,
     persist_artifacts,
@@ -134,7 +135,12 @@ class SearchRuntimeMiddleware(AgentMiddleware):
     def __init__(self, backend: BackendProtocol) -> None:
         super().__init__()
         self.backend = backend
+        self._materialize_lock = Lock()
         self.tools = [*build_artifact_tools(backend), *build_search_tools(backend)]
+
+    def _materialize(self, registry: ArtifactRegistry, workspace: str | None) -> ArtifactRegistry:
+        with self._materialize_lock:
+            return persist_artifacts(registry, self.backend, workspace)
 
     def before_agent(self, state: AgentState, runtime: Runtime) -> dict[str, object]:
         configurable = get_config().get("configurable", {})
@@ -312,13 +318,15 @@ class SearchRuntimeMiddleware(AgentMiddleware):
         registry = registry_from_state(request.state.get("artifact_registry"))
         try:
             if failed:
-                # Only document writers can alter canonical artifact views.
-                # Non-writer tasks may fail in parallel and must not write the
-                # registry state field, which has no merge reducer.
+                # Restore canonical files even if a failed non-writer edited
+                # them. Only document writers update the registry state;
+                # non-writer tasks may fail in parallel.
+                restored = (
+                    self._materialize(registry, request.state.get("workspace_path"))
+                    if registry.artifacts
+                    else registry
+                )
                 if specialist_role in _DOCUMENT_WRITERS:
-                    restored = persist_artifacts(
-                        registry, self.backend, request.state.get("workspace_path")
-                    )
                     update["artifact_registry"] = restored.model_dump_json()
                 update.pop("search_state", None)
                 update.pop("search_receipt", None)
@@ -346,9 +354,7 @@ class SearchRuntimeMiddleware(AgentMiddleware):
             )
             if imported != registry:
                 update["artifact_registry"] = imported.model_dump_json()
-                imported = persist_artifacts(
-                    imported, self.backend, request.state.get("workspace_path")
-                )
+                imported = self._materialize(imported, request.state.get("workspace_path"))
                 update["artifact_registry"] = imported.model_dump_json()
         except MaterializationError as error:
             # Keep a successfully imported specialist revision for retry.
@@ -365,10 +371,23 @@ class SearchRuntimeMiddleware(AgentMiddleware):
                 f"Document publication pending; call publish_artifacts: {error}",
             )
         except (ArtifactError, ValidationError) as error:
+            detail = f"Specialist result returned; document commit rejected: {error}"
+            try:
+                restored = (
+                    self._materialize(registry, request.state.get("workspace_path"))
+                    if registry.artifacts
+                    else registry
+                )
+                if specialist_role in _DOCUMENT_WRITERS:
+                    update["artifact_registry"] = restored.model_dump_json()
+            except MaterializationError as restore_error:
+                pending = registry.model_copy(update={"materialized": False})
+                update["artifact_registry"] = pending.model_dump_json()
+                detail += f"; restoration pending; call publish_artifacts: {restore_error}"
             update["messages"] = _document_error(
                 update.get("messages", []),
                 call_id,
-                f"Specialist result returned; document commit rejected: {error}",
+                detail,
             )
         update["search_task_events"] = {
             session.run_id + ":" + call_id: str(args.get("task_id", ""))
