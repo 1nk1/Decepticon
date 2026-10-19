@@ -9,25 +9,43 @@ design spec, §13.4).
 Before opening or updating a PR, record its changes and PR link under
 **Unreleased**. An open linked PR means proposed work; a merged linked PR means
 integrated but unreleased work. Only dated release sections describe shipped work.
-Maintain this single root `CHAGELOG.md` history. At release,
-move merged entries into a dated version section and add a comparison link.
+Maintain this single root `CHAGELOG.md`, preserving the full version history.
+At release, move merged entries into a dated version section and add a comparison link.
 Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- [#1012](https://github.com/BitterSecurity/Decepticon/pull/1012), proposed findings-search v2 implementation: system-issued document UUIDs,
-  explicit draft/committed revisions and immutable snapshots, a structured Info
-  log and unified assessment report, and runtime-gated search replanning. Existing
-  workflow pins and legacy finding readers remain compatible; new full-search
-  runs adopt the new policy. This source change is not an OSS release or SaaS
-  deployment. Paired SaaS integration: [decepticon-saas#1294](https://github.com/BitterSecurity/decepticon-saas/pull/1294).
-  Review follow-up: restore committed finding bytes after failed specialist work,
-  serialize all verifier writers, preserve legacy checkpoint search behavior and
-  historical Info pins, and keep backend publication failures retryable. Collect
-  artifact regressions in the normal CI test tree.
-- Consolidate all version history into root `CHAGELOG.md`, preserving the former
-  canonical history and publication notes; update contributor/release references.
-  Documentation maintenance only; no version bump.
+- Proposed [PR #1012](https://github.com/BitterSecurity/Decepticon/pull/1012):
+  add UUID artifact revisions, immutable snapshots, a structured Info log and
+  OPPLAN search toward independently verified High/Critical findings. Preserve
+  legacy workflow checkpoints and finding readers. Review follow-up restores
+  committed finding bytes after failed specialists, serializes verifier writers,
+  retains historical Info pins and makes backend publication failures retryable.
+  This source integration does not publish a release or deploy SaaS. Paired SaaS
+  integration: [decepticon-saas#1294](https://github.com/BitterSecurity/decepticon-saas/pull/1294).
+
+- PR #1013 verification follow-up: format catalog tooling with repository Ruff
+  rules and keep safety assertions independent of the growing model count.
+
+- Proposed [PR #1013](https://github.com/BitterSecurity/Decepticon/pull/1013):
+  refresh the shared public catalog from reviewed SaaS main pricing/model data,
+  retaining context-tier prices and provenance. Include four public models and
+  admit their metadata in the locally reviewed generator. Existing credentials,
+  defaults and explicit local compatibility overrides remain; this does not
+  publish an OSS version or prove provider availability.
+
+- Proposed [PR #1011](https://github.com/BitterSecurity/Decepticon/pull/1011):
+  own a shared public LiteLLM model catalog and deterministic route/CLI generation
+  for OSS and the pinned SaaS consumer. Retain existing route semantics,
+  credential references and local OAuth behavior; admit new providers explicitly.
+  No runtime network dependency, version bump or release. See
+  [catalog maintenance](model-catalog/README.md).
+
+
+- Consolidate version history into the single root `CHAGELOG.md`, preserving
+  existing history and updating contributor guidance, links and tooling.
+  Documentation only; no runtime or upgrade changes.
+  [PR #1010](https://github.com/BitterSecurity/Decepticon/pull/1010).
 
 - Distinguish host-side LangGraph HTTP connectivity, status errors, malformed
   assistant catalogs and missing `graph_id: decepticon` registration in startup
@@ -155,7 +173,7 @@ Keep proposed and unmerged changes out of released sections.
   Workflow updates affect new executions; existing checkpoint pins remain stable.
   Optional legacy VR and benchmark contracts retain their
   separately documented integration boundaries. Add root change-tracking
-  instructions and the `CHAGELOG.md` entry point while preserving this canonical
+  instructions and the `Chagelog.md` entry point while preserving this canonical
   history and release automation. Included in v1.5.0.
 - Regenerate the checked-in Skillogy graph from the changed skill corpus so
   retrieval metadata and the deterministic CI build gate match the source (#999).
@@ -1333,47 +1351,6 @@ The following legacy import paths keep working but emit a
 - PyPI Trusted Publisher OIDC configuration for the three-wheel
   atomic release.
 - Downstream plugin package lockstep migration.
-
-
-## Preserved publication notes
-
-The following prior entry-point notes are retained as historical context. Current
-pending work and release records remain in the sections above.
-
-> # Decepticon change history
->
-> [CHAGELOG.md](CHAGELOG.md) is the canonical version history and release-automation
-> source. This entry point intentionally does not duplicate it. OSS versions and
-> production/SaaS identifiers remain independent.
->
-> ## Released
->
-> [v1.5.2 — 2026-10-18](https://github.com/BitterSecurity/Decepticon/releases/tag/v1.5.2)
-> is published. The [canonical v1.5.2 history](CHAGELOG.md#152--2026-10-18) records
-> name + target URL creation, automatic RoE/direct approval and immediate Red
-> execution with optional Plan from [PR #1005](https://github.com/BitterSecurity/Decepticon/pull/1005),
-> and shipped CLI image metadata verification from
-> [PR #1006](https://github.com/BitterSecurity/Decepticon/pull/1006).
-> Existing scopes and data are preserved; see the compatibility notes.
->
-> v1.5.1 final publication was withheld after candidate verification. Its immutable
-> tag and existing packages remain; it is not recorded as a published final.
-> Earlier releases remain in the canonical history. Maintainers follow the
-> [OSS version and release policy](RELEASE.md).
->
-> ## Unreleased
->
-> Proposed [PR #1008](https://github.com/BitterSecurity/Decepticon/pull/1008)
-> corrects host/assistant readiness diagnostics, exact graph matching and startup
-> deadline enforcement, and shares these checks with doctor. Existing settings and
-> volumes are preserved. The external host networking report in
-> [issue #1004](https://github.com/BitterSecurity/Decepticon/issues/1004) still requires
-> affected-host confirmation; this change does not claim to repair Docker routing.
->
-> [PR #1007](https://github.com/BitterSecurity/Decepticon/pull/1007) records the actual
-> v1.5.2 publication in the canonical history. This post-tag documentation change
-> has no runtime effect and does not create another product version. Linked PR state
-> distinguishes proposed from merged work; dated sections describe shipped changes.
 
 [Unreleased]: https://github.com/BitterSecurity/Decepticon/compare/v1.5.2...HEAD
 [1.5.2]: https://github.com/BitterSecurity/Decepticon/compare/v1.5.0...v1.5.2

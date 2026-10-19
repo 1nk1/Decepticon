@@ -1,0 +1,2250 @@
+{
+  "product": "oss",
+  "outputs": {
+    "config/litellm.yaml": {
+      "providers": {
+        "anthropic": {
+          "api_key": "os.environ/ANTHROPIC_API_KEY"
+        },
+        "bedrock": {},
+        "openai": {
+          "api_key": "os.environ/OPENAI_API_KEY"
+        },
+        "voyage": {
+          "api_key": "os.environ/VOYAGE_API_KEY"
+        },
+        "gemini": {
+          "api_key": "os.environ/GEMINI_API_KEY"
+        },
+        "minimax": {
+          "api_key": "os.environ/MINIMAX_API_KEY"
+        },
+        "deepseek": {
+          "api_key": "os.environ/DEEPSEEK_API_KEY"
+        },
+        "xai": {
+          "api_key": "os.environ/XAI_API_KEY"
+        },
+        "mistral": {
+          "api_key": "os.environ/MISTRAL_API_KEY"
+        },
+        "openrouter": {
+          "api_key": "os.environ/OPENROUTER_API_KEY"
+        },
+        "cerebras": {
+          "api_key": "os.environ/CEREBRAS_API_KEY"
+        },
+        "nvidia_nim": {
+          "api_key": "os.environ/NVIDIA_API_KEY"
+        },
+        "opencode": {
+          "api_key": "os.environ/OPENCODE_API_KEY"
+        },
+        "vercel": {
+          "api_key": "os.environ/VERCEL_AI_GATEWAY_API_KEY"
+        },
+        "hf": {
+          "api_key": "os.environ/HF_TOKEN"
+        },
+        "venice": {
+          "api_key": "os.environ/VENICE_API_KEY"
+        },
+        "nanogpt": {
+          "api_key": "os.environ/NANOGPT_API_KEY"
+        },
+        "synthetic": {
+          "api_key": "os.environ/SYNTHETIC_API_KEY"
+        },
+        "zenmux": {
+          "api_key": "os.environ/ZENMUX_API_KEY"
+        },
+        "qianfan": {
+          "api_key": "os.environ/QIANFAN_API_KEY"
+        },
+        "cfgateway": {
+          "api_key": "os.environ/CLOUDFLARE_AI_GATEWAY_API_KEY"
+        },
+        "kimi": {
+          "api_key": "os.environ/KIMI_API_KEY"
+        },
+        "cheaperinference": {
+          "api_key": "os.environ/CHEAPER_INFERENCE_API_KEY"
+        }
+      },
+      "exclude": [
+        "anthropic/claude-opus-5",
+        "anthropic/claude-sonnet-5",
+        "openai/gpt-5.4-mini",
+        "openai/gpt-5.6-sol",
+        "openai/gpt-5.6-terra",
+        "openai/gpt-5.6-luna",
+        "gemini/gemini-3.7-flash",
+        "gemini/gemini-3.6-flash",
+        "gemini/gemini-3.5-flash-lite",
+        "minimax/MiniMax-M2.7",
+        "minimax/MiniMax-M2.5",
+        "minimax/MiniMax-M2.5-lightning",
+        "deepseek/deepseek-flash",
+        "xai/grok-4.5",
+        "mistral/mistral-medium-3-5",
+        "mistral/mistral-large-2512",
+        "mistral/mistral-small-2603",
+        "openrouter/*",
+        "openrouter/anthropic/claude-opus-5.5",
+        "openrouter/anthropic/claude-sonnet-5.5",
+        "openrouter/openai/gpt-6.1-sol",
+        "openrouter/google/gemini-3.8-flash",
+        "openrouter/deepseek/deepseek-v4.1-flash",
+        "openrouter/anthropic/claude-opus-5",
+        "openrouter/anthropic/claude-sonnet-5",
+        "nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b",
+        "nvidia_nim/nvidia/nemotron-3-super-120b-a12b",
+        "nvidia_nim/nvidia/nemotron-3-nano-30b-a3b",
+        "nvidia_nim/nvidia/nemotron-3.5-lightning-30b-a3b",
+        "moonshot/kimi-k3",
+        "moonshot/kimi-k2.7-code",
+        "moonshot/kimi-k2.6",
+        "zai/glm-5.3",
+        "zai/glm-5.3-flash",
+        "zai/glm-5.3-flashx",
+        "zai/glm-5.2",
+        "zai/glm-5-turbo",
+        "zai/glm-4.7-flashx",
+        "groq/openai/gpt-oss-20b",
+        "groq/openai/gpt-oss-120b",
+        "cerebras/qwen-3.8-27b",
+        "cerebras/gpt-oss-120b",
+        "together_ai/MiniMaxAI/MiniMax-M3",
+        "together_ai/zai-org/GLM-5.3",
+        "together_ai/moonshotai/Kimi-K3",
+        "fireworks_ai/accounts/fireworks/models/deepseek-v4p1-flash",
+        "fireworks_ai/accounts/fireworks/models/glm-5p3",
+        "fireworks_ai/accounts/fireworks/models/deepseek-v4-flash-0731",
+        "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash",
+        "deepinfra/zai-org/GLM-5.3-Flash",
+        "deepinfra/deepseek-ai/DeepSeek-V4-Flash-0731",
+        "sambanova/MiniMax-M2.7",
+        "dashscope/qwen3.8-max",
+        "dashscope/qwen3.8-flash",
+        "dashscope/qwen3.7-plus",
+        "dashscope/qwen-plus",
+        "upstage/solar-pro4",
+        "cohere/command-a-plus-05-2026",
+        "huggingface/openai/gpt-oss-120b",
+        "nebius/Qwen/Qwen3-235B-A22B-Instruct-2507",
+        "novita/zai-org/glm-5.3-flash",
+        "siliconflow/deepseek-ai/DeepSeek-V4.1-Flash",
+        "siliconflow/deepseek-ai/DeepSeek-V3",
+        "requesty/anthropic/claude-sonnet-5",
+        "vercel/anthropic/claude-opus-5",
+        "vercel/openai/gpt-5.4",
+        "vercel/google/gemini-3.7-flash",
+        "vercel/moonshotai/kimi-k3",
+        "kilo/anthropic/claude-sonnet-5",
+        "kilo/anthropic/claude-opus-5",
+        "kilo/anthropic/claude-haiku-4.5",
+        "kilo/openai/gpt-5.4",
+        "kilo/google/gemini-3.7-flash",
+        "kilo/moonshotai/kimi-k3",
+        "opencode_zen/kimi-k3",
+        "opencode_zen/minimax-m3",
+        "opencode_zen/glm-5.3",
+        "opencode_zen/glm-5.3-flash",
+        "opencode_zen/deepseek-v4-pro",
+        "opencode_zen/deepseek-v4-flash",
+        "kimi_code/k3",
+        "kimi_code/k3-256k",
+        "kimi_code/kimi-for-coding",
+        "kimi_code/kimi-for-coding-highspeed",
+        "minimax_plan/MiniMax-M3",
+        "minimax_plan/MiniMax-M2.7",
+        "vercel/anthropic/claude-sonnet-5.5",
+        "vercel/openai/gpt-6.1-sol",
+        "vercel/anthropic/claude-sonnet-5",
+        "chutes/moonshotai/Kimi-K3-TEE",
+        "chutes/zai-org/GLM-5.2-TEE",
+        "chutes/deepseek-ai/DeepSeek-V4-Flash-0731-TEE",
+        "synthetic/hf:moonshotai/Kimi-K3",
+        "synthetic/hf:deepseek-ai/DeepSeek-V4.1-Flash",
+        "synthetic/hf:zai-org/GLM-5.3-Flash",
+        "ollama_cloud/kimi-k3",
+        "ollama_cloud/glm-5.3",
+        "ollama_cloud/deepseek-v4.1-flash",
+        "ollama_cloud/minimax-m3",
+        "openrouter/openai/gpt-5.6-sol",
+        "openrouter/openai/gpt-5.6-terra",
+        "openrouter/openai/gpt-5.6-luna",
+        "openrouter/google/gemini-3.7-flash",
+        "openrouter/google/gemini-3.6-flash",
+        "openrouter/google/gemini-3.5-flash-lite",
+        "openrouter/moonshotai/kimi-k3",
+        "openrouter/moonshotai/kimi-k2.7-code",
+        "openrouter/moonshotai/kimi-k2.6",
+        "openrouter/x-ai/grok-4.5",
+        "openrouter/x-ai/grok-4.3",
+        "openrouter/minimax/minimax-m2.7",
+        "openrouter/mistralai/mistral-medium-3-5",
+        "openrouter/mistralai/mistral-large-2512",
+        "openrouter/mistralai/mistral-small-2603",
+        "openrouter/z-ai/glm-5.2",
+        "openrouter/z-ai/glm-5-turbo"
+      ],
+      "routes": [
+        {
+          "id": "anthropic/claude-fable-5-1",
+          "patch": {}
+        },
+        {
+          "id": "anthropic/claude-opus-5-5",
+          "patch": {}
+        },
+        {
+          "id": "anthropic/claude-sonnet-5-5",
+          "patch": {}
+        },
+        {
+          "id": "anthropic/claude-opus-4-8",
+          "patch": {}
+        },
+        {
+          "id": "anthropic/claude-opus-4-7",
+          "patch": {}
+        },
+        {
+          "id": "anthropic/claude-sonnet-4-6",
+          "patch": {}
+        },
+        {
+          "id": "anthropic/claude-haiku-4-5",
+          "patch": {}
+        },
+        {
+          "id": "bedrock/anthropic.claude-opus-4-7",
+          "patch": {}
+        },
+        {
+          "id": "bedrock/anthropic.claude-sonnet-4-6",
+          "patch": {}
+        },
+        {
+          "id": "bedrock/anthropic.claude-haiku-4-5-20251001-v1:0",
+          "patch": {}
+        },
+        {
+          "id": "openai/gpt-6-astra",
+          "patch": {}
+        },
+        {
+          "id": "openai/gpt-6.1-sol",
+          "patch": {}
+        },
+        {
+          "id": "openai/gpt-6-sol",
+          "patch": {}
+        },
+        {
+          "id": "openai/gpt-6-luna",
+          "patch": {}
+        },
+        {
+          "id": "openai/gpt-5.5",
+          "patch": {}
+        },
+        {
+          "id": "openai/gpt-5.4",
+          "patch": {}
+        },
+        {
+          "id": "openai/gpt-5-nano",
+          "patch": {}
+        },
+        {
+          "id": "openai/gpt-5.3-codex",
+          "patch": {}
+        },
+        {
+          "id": "openai/text-embedding-3-small",
+          "patch": {}
+        },
+        {
+          "id": "voyage/voyage-3",
+          "patch": {}
+        },
+        {
+          "id": "gemini/gemini-embedding-001",
+          "patch": {}
+        },
+        {
+          "id": "gemini/gemini-3.8-flash",
+          "patch": {}
+        },
+        {
+          "id": "gemini/gemini-2.5-pro",
+          "patch": {}
+        },
+        {
+          "id": "gemini/gemini-2.5-flash",
+          "patch": {}
+        },
+        {
+          "id": "gemini/gemini-2.5-flash-lite",
+          "patch": {}
+        },
+        {
+          "id": "gemini/gemini-3.5-flash",
+          "patch": {}
+        },
+        {
+          "id": "gemini/gemini-3.1-flash-lite",
+          "patch": {}
+        },
+        {
+          "id": "minimax/MiniMax-M3",
+          "patch": {}
+        },
+        {
+          "id": "minimax/MiniMax-M2.7-highspeed",
+          "patch": {}
+        },
+        {
+          "private": {
+            "model_name": "auth/claude-opus-4-8",
+            "litellm_params": {
+              "model": "auth/claude-opus-4-8",
+              "additional_drop_params": [
+                "temperature"
+              ],
+              "max_tokens": 128000
+            },
+            "model_info": {
+              "input_cost_per_token": 5e-06,
+              "output_cost_per_token": 2.5e-05
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "auth/claude-opus-4-7",
+            "litellm_params": {
+              "model": "auth/claude-opus-4-7",
+              "additional_drop_params": [
+                "temperature"
+              ],
+              "max_tokens": 128000
+            },
+            "model_info": {
+              "input_cost_per_token": 5e-06,
+              "output_cost_per_token": 2.5e-05
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "auth/claude-sonnet-4-6",
+            "litellm_params": {
+              "model": "auth/claude-sonnet-4-6",
+              "max_tokens": 64000
+            },
+            "model_info": {
+              "input_cost_per_token": 3e-06,
+              "output_cost_per_token": 1.5e-05
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "auth/claude-haiku-4-5",
+            "litellm_params": {
+              "model": "auth/claude-haiku-4-5",
+              "max_tokens": 64000
+            },
+            "model_info": {
+              "input_cost_per_token": 1e-06,
+              "output_cost_per_token": 5e-06
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "auth/claude-opus-5",
+            "litellm_params": {
+              "model": "auth/claude-opus-5",
+              "additional_drop_params": [
+                "temperature"
+              ]
+            },
+            "model_info": {
+              "input_cost_per_token": 5e-06,
+              "output_cost_per_token": 2.5e-05,
+              "cache_read_input_token_cost": 5e-07,
+              "cache_creation_input_token_cost": 6.25e-06,
+              "supports_prompt_caching": true
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "auth/claude-sonnet-5",
+            "litellm_params": {
+              "model": "auth/claude-sonnet-5"
+            },
+            "model_info": {
+              "input_cost_per_token": 2e-06,
+              "output_cost_per_token": 1e-05,
+              "cache_read_input_token_cost": 2e-07,
+              "cache_creation_input_token_cost": 2.5e-06,
+              "supports_prompt_caching": true
+            }
+          }
+        },
+        {
+          "id": "deepseek/deepseek-v4-pro",
+          "patch": {}
+        },
+        {
+          "id": "deepseek/deepseek-v4-flash",
+          "patch": {}
+        },
+        {
+          "id": "deepseek/deepseek-chat",
+          "patch": {}
+        },
+        {
+          "id": "deepseek/deepseek-reasoner",
+          "patch": {}
+        },
+        {
+          "id": "xai/grok-4.7",
+          "patch": {}
+        },
+        {
+          "id": "xai/grok-4.3",
+          "patch": {}
+        },
+        {
+          "id": "xai/grok-4-1-fast-reasoning",
+          "patch": {}
+        },
+        {
+          "id": "mistral/mistral-large-latest",
+          "patch": {}
+        },
+        {
+          "id": "mistral/codestral-latest",
+          "patch": {}
+        },
+        {
+          "id": "openrouter/anthropic/claude-opus-4-8",
+          "patch": {}
+        },
+        {
+          "id": "openrouter/anthropic/claude-opus-4-7",
+          "patch": {}
+        },
+        {
+          "id": "openrouter/anthropic/claude-sonnet-4-6",
+          "patch": {}
+        },
+        {
+          "id": "openrouter/anthropic/claude-haiku-4-5",
+          "patch": {}
+        },
+        {
+          "id": "cerebras/llama3.1-8b",
+          "patch": {}
+        },
+        {
+          "id": "openai/mimo-vl",
+          "patch": {
+            "litellm_params": {
+              "api_key": "os.environ/XIAOMI_MIMO_API_KEY"
+            }
+          }
+        },
+        {
+          "id": "openai/mimo-rl",
+          "patch": {
+            "litellm_params": {
+              "api_key": "os.environ/XIAOMI_MIMO_API_KEY"
+            }
+          }
+        },
+        {
+          "id": "openai/mimo-7b",
+          "patch": {
+            "litellm_params": {
+              "api_key": "os.environ/XIAOMI_MIMO_API_KEY"
+            }
+          }
+        },
+        {
+          "id": "nvidia_nim/meta/llama-3.3-70b-instruct",
+          "patch": {}
+        },
+        {
+          "id": "nvidia_nim/nvidia/llama-3.1-nemotron-70b-instruct",
+          "patch": {}
+        },
+        {
+          "id": "nvidia_nim/meta/llama-3.2-3b-instruct",
+          "patch": {}
+        },
+        {
+          "id": "opencode/claude-opus-4-6",
+          "patch": {}
+        },
+        {
+          "id": "opencode/gpt-5.4",
+          "patch": {}
+        },
+        {
+          "id": "opencode/glm-5-free",
+          "patch": {}
+        },
+        {
+          "id": "vercel/anthropic/claude-opus-4.6",
+          "patch": {}
+        },
+        {
+          "id": "vercel/anthropic/claude-sonnet-4.6",
+          "patch": {}
+        },
+        {
+          "id": "vercel/anthropic/claude-haiku-4.5",
+          "patch": {}
+        },
+        {
+          "id": "hf/deepseek-ai/DeepSeek-V3.1",
+          "patch": {}
+        },
+        {
+          "id": "hf/meta-llama/Llama-3.3-70B-Instruct-Turbo",
+          "patch": {}
+        },
+        {
+          "id": "hf/openai/gpt-oss-120b",
+          "patch": {}
+        },
+        {
+          "id": "venice/claude-opus-4-6",
+          "patch": {}
+        },
+        {
+          "id": "venice/claude-sonnet-4-6",
+          "patch": {}
+        },
+        {
+          "id": "venice/deepseek-v4-flash",
+          "patch": {}
+        },
+        {
+          "id": "nanogpt/anthropic/claude-opus-4.6",
+          "patch": {}
+        },
+        {
+          "id": "nanogpt/anthropic/claude-sonnet-4.6",
+          "patch": {}
+        },
+        {
+          "id": "nanogpt/anthropic/claude-haiku-4.5",
+          "patch": {}
+        },
+        {
+          "id": "synthetic/hf:deepseek-ai/DeepSeek-V3.2",
+          "patch": {}
+        },
+        {
+          "id": "synthetic/hf:meta-llama/Llama-3.3-70B-Instruct",
+          "patch": {}
+        },
+        {
+          "id": "synthetic/hf:openai/gpt-oss-120b",
+          "patch": {}
+        },
+        {
+          "id": "zenmux/anthropic/claude-opus-4.6",
+          "patch": {}
+        },
+        {
+          "id": "zenmux/anthropic/claude-sonnet-4.6",
+          "patch": {}
+        },
+        {
+          "id": "zenmux/anthropic/claude-haiku-4.5",
+          "patch": {}
+        },
+        {
+          "id": "qianfan/ernie-4.5-turbo-128k",
+          "patch": {}
+        },
+        {
+          "id": "qianfan/ernie-4.5-turbo-32k",
+          "patch": {}
+        },
+        {
+          "id": "qianfan/ernie-speed-pro-128k",
+          "patch": {}
+        },
+        {
+          "id": "cfgateway/anthropic/claude-opus-4-6",
+          "patch": {}
+        },
+        {
+          "id": "cfgateway/anthropic/claude-sonnet-4-6",
+          "patch": {}
+        },
+        {
+          "id": "cfgateway/anthropic/claude-haiku-4-5",
+          "patch": {}
+        },
+        {
+          "id": "kimi/k3",
+          "patch": {}
+        },
+        {
+          "id": "kimi/kimi-for-coding",
+          "patch": {}
+        },
+        {
+          "id": "kimi/kimi-for-coding-highspeed",
+          "patch": {}
+        },
+        {
+          "id": "cheaperinference/claude-sonnet-5",
+          "patch": {}
+        },
+        {
+          "id": "cheaperinference/gpt-5.4",
+          "patch": {}
+        },
+        {
+          "id": "cheaperinference/gpt-5.4-mini",
+          "patch": {}
+        }
+      ],
+      "settings": {
+        "litellm_settings": {
+          "num_retries": 3,
+          "retry_after": 30
+        },
+        "router_settings": {
+          "fallbacks": [
+            {
+              "anthropic/claude-opus-4-8": [
+                "anthropic/claude-opus-4-7"
+              ]
+            },
+            {
+              "anthropic/claude-opus-4-7": [
+                "anthropic/claude-sonnet-4-6"
+              ]
+            },
+            {
+              "anthropic/claude-sonnet-4-6": [
+                "anthropic/claude-haiku-4-5"
+              ]
+            },
+            {
+              "auth/claude-opus-4-8": [
+                "auth/claude-opus-4-7"
+              ]
+            },
+            {
+              "auth/claude-opus-4-7": [
+                "auth/claude-sonnet-4-6"
+              ]
+            },
+            {
+              "auth/claude-sonnet-4-6": [
+                "auth/claude-haiku-4-5"
+              ]
+            },
+            {
+              "auth/claude-haiku-4-5": [
+                "anthropic/claude-haiku-4-5"
+              ]
+            },
+            {
+              "openrouter/anthropic/claude-opus-4-8": [
+                "openrouter/anthropic/claude-opus-4-7"
+              ]
+            },
+            {
+              "openrouter/anthropic/claude-opus-4-7": [
+                "openrouter/anthropic/claude-sonnet-4-6"
+              ]
+            },
+            {
+              "openrouter/anthropic/claude-sonnet-4-6": [
+                "openrouter/anthropic/claude-haiku-4-5"
+              ]
+            },
+            {
+              "openai/gpt-5.5": [
+                "openai/gpt-5.4"
+              ]
+            },
+            {
+              "openai/gpt-5.4": [
+                "openai/gpt-5-nano"
+              ]
+            },
+            {
+              "gemini/gemini-2.5-pro": [
+                "gemini/gemini-2.5-flash"
+              ]
+            },
+            {
+              "gemini/gemini-2.5-flash": [
+                "gemini/gemini-2.5-flash-lite"
+              ]
+            },
+            {
+              "gemini/gemini-3.5-flash": [
+                "gemini/gemini-3.1-flash-lite"
+              ]
+            },
+            {
+              "minimax/MiniMax-M3": [
+                "minimax/MiniMax-M2.7-highspeed"
+              ]
+            },
+            {
+              "deepseek/deepseek-v4-pro": [
+                "deepseek/deepseek-v4-flash"
+              ]
+            },
+            {
+              "deepseek/deepseek-v4-flash": [
+                "deepseek/deepseek-chat"
+              ]
+            },
+            {
+              "deepseek/deepseek-chat": [
+                "deepseek/deepseek-reasoner"
+              ]
+            },
+            {
+              "xai/grok-4.3": [
+                "xai/grok-4-1-fast-reasoning"
+              ]
+            },
+            {
+              "mistral/mistral-large-latest": [
+                "mistral/codestral-latest"
+              ]
+            },
+            {
+              "nvidia_nim/meta/llama-3.3-70b-instruct": [
+                "nvidia_nim/nvidia/llama-3.1-nemotron-70b-instruct"
+              ]
+            },
+            {
+              "nvidia_nim/nvidia/llama-3.1-nemotron-70b-instruct": [
+                "nvidia_nim/meta/llama-3.2-3b-instruct"
+              ]
+            },
+            {
+              "openai/mimo-vl": [
+                "openai/mimo-rl"
+              ]
+            },
+            {
+              "openai/mimo-rl": [
+                "openai/mimo-7b"
+              ]
+            },
+            {
+              "opencode/claude-opus-4-6": [
+                "opencode/gpt-5.4"
+              ]
+            },
+            {
+              "opencode/gpt-5.4": [
+                "opencode/glm-5-free"
+              ]
+            },
+            {
+              "vercel/anthropic/claude-opus-4.6": [
+                "vercel/anthropic/claude-sonnet-4.6"
+              ]
+            },
+            {
+              "vercel/anthropic/claude-sonnet-4.6": [
+                "vercel/anthropic/claude-haiku-4.5"
+              ]
+            },
+            {
+              "hf/deepseek-ai/DeepSeek-V3.1": [
+                "hf/meta-llama/Llama-3.3-70B-Instruct-Turbo"
+              ]
+            },
+            {
+              "hf/meta-llama/Llama-3.3-70B-Instruct-Turbo": [
+                "hf/openai/gpt-oss-120b"
+              ]
+            },
+            {
+              "venice/claude-opus-4-6": [
+                "venice/claude-sonnet-4-6"
+              ]
+            },
+            {
+              "venice/claude-sonnet-4-6": [
+                "venice/deepseek-v4-flash"
+              ]
+            },
+            {
+              "nanogpt/anthropic/claude-opus-4.6": [
+                "nanogpt/anthropic/claude-sonnet-4.6"
+              ]
+            },
+            {
+              "nanogpt/anthropic/claude-sonnet-4.6": [
+                "nanogpt/anthropic/claude-haiku-4.5"
+              ]
+            },
+            {
+              "synthetic/hf:deepseek-ai/DeepSeek-V3.2": [
+                "synthetic/hf:meta-llama/Llama-3.3-70B-Instruct"
+              ]
+            },
+            {
+              "synthetic/hf:meta-llama/Llama-3.3-70B-Instruct": [
+                "synthetic/hf:openai/gpt-oss-120b"
+              ]
+            },
+            {
+              "zenmux/anthropic/claude-opus-4.6": [
+                "zenmux/anthropic/claude-sonnet-4.6"
+              ]
+            },
+            {
+              "zenmux/anthropic/claude-sonnet-4.6": [
+                "zenmux/anthropic/claude-haiku-4.5"
+              ]
+            },
+            {
+              "qianfan/ernie-4.5-turbo-128k": [
+                "qianfan/ernie-4.5-turbo-32k"
+              ]
+            },
+            {
+              "qianfan/ernie-4.5-turbo-32k": [
+                "qianfan/ernie-speed-pro-128k"
+              ]
+            },
+            {
+              "cfgateway/anthropic/claude-opus-4-6": [
+                "cfgateway/anthropic/claude-sonnet-4-6"
+              ]
+            },
+            {
+              "cfgateway/anthropic/claude-sonnet-4-6": [
+                "cfgateway/anthropic/claude-haiku-4-5"
+              ]
+            }
+          ],
+          "routing_strategy": "simple-shuffle",
+          "num_retries": 5,
+          "timeout": 300,
+          "retry_after": 30,
+          "allowed_fails": 3,
+          "cooldown_time": 60
+        },
+        "general_settings": {
+          "master_key": "os.environ/LITELLM_MASTER_KEY",
+          "database_url": "os.environ/DATABASE_URL",
+          "store_model_in_db": false
+        }
+      },
+      "format": "yaml"
+    },
+    "config/litellm_prod_catalog.json": {
+      "providers": {
+        "anthropic": {
+          "api_key": "os.environ/ANTHROPIC_API_KEY"
+        },
+        "openai": {
+          "api_key": "os.environ/OPENAI_API_KEY"
+        },
+        "gemini": {
+          "api_key": "os.environ/GEMINI_API_KEY"
+        },
+        "minimax": {
+          "api_key": "os.environ/MINIMAX_API_KEY"
+        },
+        "deepseek": {
+          "api_key": "os.environ/DEEPSEEK_API_KEY"
+        },
+        "xai": {
+          "api_key": "os.environ/XAI_API_KEY"
+        },
+        "mistral": {
+          "api_key": "os.environ/MISTRAL_API_KEY"
+        },
+        "openrouter": {
+          "api_key": "os.environ/OPENROUTER_API_KEY"
+        },
+        "nvidia_nim": {
+          "api_key": "os.environ/NVIDIA_API_KEY"
+        },
+        "moonshot": {
+          "api_key": "os.environ/MOONSHOT_API_KEY"
+        },
+        "zai": {
+          "api_key": "os.environ/ZAI_API_KEY"
+        },
+        "groq": {
+          "api_key": "os.environ/GROQ_API_KEY"
+        },
+        "cerebras": {
+          "api_key": "os.environ/CEREBRAS_API_KEY"
+        },
+        "together_ai": {
+          "api_key": "os.environ/TOGETHER_API_KEY"
+        },
+        "fireworks_ai": {
+          "api_key": "os.environ/FIREWORKS_API_KEY"
+        },
+        "deepinfra": {
+          "api_key": "os.environ/DEEPINFRA_API_KEY"
+        },
+        "sambanova": {
+          "api_key": "os.environ/SAMBANOVA_API_KEY"
+        },
+        "dashscope": {
+          "api_key": "os.environ/DASHSCOPE_API_KEY"
+        },
+        "upstage": {
+          "api_key": "os.environ/UPSTAGE_API_KEY"
+        },
+        "cohere": {
+          "api_key": "os.environ/COHERE_API_KEY"
+        },
+        "huggingface": {
+          "api_key": "os.environ/HF_TOKEN"
+        },
+        "nebius": {
+          "api_key": "os.environ/NEBIUS_API_KEY"
+        },
+        "novita": {
+          "api_key": "os.environ/NOVITA_API_KEY"
+        },
+        "siliconflow": {
+          "api_key": "os.environ/SILICONFLOW_API_KEY"
+        },
+        "requesty": {
+          "api_key": "os.environ/REQUESTY_API_KEY"
+        },
+        "vercel": {
+          "api_key": "os.environ/VERCEL_AI_GATEWAY_API_KEY"
+        },
+        "kilo": {
+          "api_key": "os.environ/KILO_API_KEY"
+        },
+        "opencode_zen": {
+          "api_key": "os.environ/OPENCODE_API_KEY"
+        },
+        "kimi_code": {
+          "api_key": "os.environ/KIMI_API_KEY"
+        },
+        "minimax_plan": {
+          "api_key": "os.environ/MINIMAX_API_KEY"
+        },
+        "chutes": {
+          "api_key": "os.environ/CHUTES_API_KEY"
+        },
+        "synthetic": {
+          "api_key": "os.environ/SYNTHETIC_API_KEY"
+        },
+        "ollama_cloud": {
+          "api_key": "os.environ/OLLAMA_CLOUD_API_KEY"
+        }
+      },
+      "exclude": [
+        "anthropic/claude-fable-5-1",
+        "anthropic/claude-opus-5-5",
+        "anthropic/claude-sonnet-5-5",
+        "anthropic/claude-opus-4-8",
+        "anthropic/claude-opus-4-7",
+        "anthropic/claude-sonnet-4-6",
+        "anthropic/claude-haiku-4-5",
+        "bedrock/anthropic.claude-opus-4-7",
+        "bedrock/anthropic.claude-sonnet-4-6",
+        "bedrock/anthropic.claude-haiku-4-5-20251001-v1:0",
+        "openai/gpt-6-astra",
+        "openai/gpt-6.1-sol",
+        "openai/gpt-6-sol",
+        "openai/gpt-6-luna",
+        "openai/gpt-5.5",
+        "openai/gpt-5.4",
+        "openai/gpt-5-nano",
+        "openai/gpt-5.3-codex",
+        "openai/text-embedding-3-small",
+        "voyage/voyage-3",
+        "gemini/gemini-embedding-001",
+        "gemini/gemini-3.8-flash",
+        "gemini/gemini-2.5-pro",
+        "gemini/gemini-2.5-flash",
+        "gemini/gemini-2.5-flash-lite",
+        "gemini/gemini-3.5-flash",
+        "gemini/gemini-3.1-flash-lite",
+        "minimax/MiniMax-M3",
+        "minimax/MiniMax-M2.7-highspeed",
+        "deepseek/deepseek-v4-pro",
+        "deepseek/deepseek-v4-flash",
+        "deepseek/deepseek-chat",
+        "deepseek/deepseek-reasoner",
+        "xai/grok-4.7",
+        "xai/grok-4.3",
+        "xai/grok-4-1-fast-reasoning",
+        "mistral/mistral-large-latest",
+        "mistral/codestral-latest",
+        "openrouter/anthropic/claude-opus-4-8",
+        "openrouter/anthropic/claude-opus-4-7",
+        "openrouter/anthropic/claude-sonnet-4-6",
+        "openrouter/anthropic/claude-haiku-4-5",
+        "cerebras/llama3.1-8b",
+        "openai/mimo-vl",
+        "openai/mimo-rl",
+        "openai/mimo-7b",
+        "nvidia_nim/meta/llama-3.3-70b-instruct",
+        "nvidia_nim/nvidia/llama-3.1-nemotron-70b-instruct",
+        "nvidia_nim/meta/llama-3.2-3b-instruct",
+        "opencode/claude-opus-4-6",
+        "opencode/gpt-5.4",
+        "opencode/glm-5-free",
+        "vercel/anthropic/claude-opus-4.6",
+        "vercel/anthropic/claude-sonnet-4.6",
+        "vercel/anthropic/claude-haiku-4.5",
+        "hf/deepseek-ai/DeepSeek-V3.1",
+        "hf/meta-llama/Llama-3.3-70B-Instruct-Turbo",
+        "hf/openai/gpt-oss-120b",
+        "venice/claude-opus-4-6",
+        "venice/claude-sonnet-4-6",
+        "venice/deepseek-v4-flash",
+        "nanogpt/anthropic/claude-opus-4.6",
+        "nanogpt/anthropic/claude-sonnet-4.6",
+        "nanogpt/anthropic/claude-haiku-4.5",
+        "synthetic/hf:deepseek-ai/DeepSeek-V3.2",
+        "synthetic/hf:meta-llama/Llama-3.3-70B-Instruct",
+        "synthetic/hf:openai/gpt-oss-120b",
+        "zenmux/anthropic/claude-opus-4.6",
+        "zenmux/anthropic/claude-sonnet-4.6",
+        "zenmux/anthropic/claude-haiku-4.5",
+        "qianfan/ernie-4.5-turbo-128k",
+        "qianfan/ernie-4.5-turbo-32k",
+        "qianfan/ernie-speed-pro-128k",
+        "cfgateway/anthropic/claude-opus-4-6",
+        "cfgateway/anthropic/claude-sonnet-4-6",
+        "cfgateway/anthropic/claude-haiku-4-5",
+        "kimi/k3",
+        "kimi/kimi-for-coding",
+        "kimi/kimi-for-coding-highspeed",
+        "cheaperinference/claude-sonnet-5",
+        "cheaperinference/gpt-5.4",
+        "cheaperinference/gpt-5.4-mini",
+        "openrouter/openai/gpt-5.6-sol",
+        "openrouter/openai/gpt-5.6-terra",
+        "openrouter/openai/gpt-5.6-luna",
+        "openrouter/google/gemini-3.7-flash",
+        "openrouter/google/gemini-3.6-flash",
+        "openrouter/google/gemini-3.5-flash-lite",
+        "openrouter/moonshotai/kimi-k3",
+        "openrouter/moonshotai/kimi-k2.7-code",
+        "openrouter/moonshotai/kimi-k2.6",
+        "openrouter/x-ai/grok-4.5",
+        "openrouter/x-ai/grok-4.3",
+        "openrouter/minimax/minimax-m2.7",
+        "openrouter/mistralai/mistral-medium-3-5",
+        "openrouter/mistralai/mistral-large-2512",
+        "openrouter/mistralai/mistral-small-2603",
+        "openrouter/z-ai/glm-5.2",
+        "openrouter/z-ai/glm-5-turbo"
+      ],
+      "routes": [
+        {
+          "id": "anthropic/claude-opus-5",
+          "patch": {}
+        },
+        {
+          "id": "anthropic/claude-sonnet-5",
+          "patch": {}
+        },
+        {
+          "id": "openai/gpt-5.4-mini",
+          "patch": {}
+        },
+        {
+          "id": "openai/gpt-5.6-sol",
+          "patch": {}
+        },
+        {
+          "id": "openai/gpt-5.6-terra",
+          "patch": {}
+        },
+        {
+          "id": "openai/gpt-5.6-luna",
+          "patch": {}
+        },
+        {
+          "id": "gemini/gemini-3.7-flash",
+          "patch": {}
+        },
+        {
+          "id": "gemini/gemini-3.6-flash",
+          "patch": {}
+        },
+        {
+          "id": "gemini/gemini-3.5-flash-lite",
+          "patch": {}
+        },
+        {
+          "id": "minimax/MiniMax-M2.7",
+          "patch": {}
+        },
+        {
+          "id": "minimax/MiniMax-M2.5",
+          "patch": {}
+        },
+        {
+          "id": "minimax/MiniMax-M2.5-lightning",
+          "patch": {}
+        },
+        {
+          "id": "deepseek/deepseek-flash",
+          "patch": {}
+        },
+        {
+          "id": "xai/grok-4.5",
+          "patch": {}
+        },
+        {
+          "id": "mistral/mistral-medium-3-5",
+          "patch": {}
+        },
+        {
+          "id": "mistral/mistral-large-2512",
+          "patch": {}
+        },
+        {
+          "id": "mistral/mistral-small-2603",
+          "patch": {}
+        },
+        {
+          "id": "openrouter/*",
+          "patch": {}
+        },
+        {
+          "id": "openrouter/anthropic/claude-opus-5.5",
+          "patch": {}
+        },
+        {
+          "id": "openrouter/anthropic/claude-sonnet-5.5",
+          "patch": {}
+        },
+        {
+          "id": "openrouter/openai/gpt-6.1-sol",
+          "patch": {}
+        },
+        {
+          "id": "openrouter/google/gemini-3.8-flash",
+          "patch": {}
+        },
+        {
+          "id": "openrouter/deepseek/deepseek-v4.1-flash",
+          "patch": {}
+        },
+        {
+          "id": "openrouter/anthropic/claude-opus-5",
+          "patch": {}
+        },
+        {
+          "id": "openrouter/anthropic/claude-sonnet-5",
+          "patch": {}
+        },
+        {
+          "id": "nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b",
+          "patch": {}
+        },
+        {
+          "id": "nvidia_nim/nvidia/nemotron-3-super-120b-a12b",
+          "patch": {}
+        },
+        {
+          "id": "nvidia_nim/nvidia/nemotron-3-nano-30b-a3b",
+          "patch": {}
+        },
+        {
+          "id": "nvidia_nim/nvidia/nemotron-3.5-lightning-30b-a3b",
+          "patch": {}
+        },
+        {
+          "id": "moonshot/kimi-k3",
+          "patch": {}
+        },
+        {
+          "id": "moonshot/kimi-k2.7-code",
+          "patch": {}
+        },
+        {
+          "id": "moonshot/kimi-k2.6",
+          "patch": {}
+        },
+        {
+          "id": "zai/glm-5.3",
+          "patch": {}
+        },
+        {
+          "id": "zai/glm-5.3-flash",
+          "patch": {}
+        },
+        {
+          "id": "zai/glm-5.3-flashx",
+          "patch": {}
+        },
+        {
+          "id": "zai/glm-5.2",
+          "patch": {}
+        },
+        {
+          "id": "zai/glm-5-turbo",
+          "patch": {}
+        },
+        {
+          "id": "zai/glm-4.7-flashx",
+          "patch": {}
+        },
+        {
+          "private": {
+            "model_name": "runyour/gemini-3.5-flash",
+            "litellm_params": {
+              "model": "openai/gemini/gemini-3.5-flash",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": 1.5e-06,
+              "output_cost_per_token": "9e-06",
+              "cache_read_input_token_cost": 1.5e-06,
+              "cache_creation_input_token_cost": 1.5e-06
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/kimi-k3",
+            "litellm_params": {
+              "model": "openai/moonshot/kimi-k3",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY",
+              "additional_drop_params": [
+                "temperature"
+              ]
+            },
+            "model_info": {
+              "input_cost_per_token": "3e-06",
+              "output_cost_per_token": 1.5e-05,
+              "cache_read_input_token_cost": "3e-06",
+              "cache_creation_input_token_cost": "3e-06"
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/deepseek-v4-pro",
+            "litellm_params": {
+              "model": "openai/deepseek/deepseek-v4-pro",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": 1.32e-06,
+              "output_cost_per_token": 3.96e-06,
+              "cache_read_input_token_cost": 1.32e-06,
+              "cache_creation_input_token_cost": 1.32e-06
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/qwen3.7-max",
+            "litellm_params": {
+              "model": "openai/qwen/qwen3.7-max",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": 2.5e-06,
+              "output_cost_per_token": 7.5e-06,
+              "cache_read_input_token_cost": 2.5e-06,
+              "cache_creation_input_token_cost": 2.5e-06
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/grok-4.5",
+            "litellm_params": {
+              "model": "openai/xai/grok-4.5",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": "2e-06",
+              "output_cost_per_token": "6e-06",
+              "cache_read_input_token_cost": "2e-06",
+              "cache_creation_input_token_cost": "2e-06"
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/claude-fable-5",
+            "litellm_params": {
+              "model": "openai/anthropic/claude-fable-5",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": "1e-05",
+              "output_cost_per_token": "5e-05",
+              "cache_read_input_token_cost": "1e-05",
+              "cache_creation_input_token_cost": "1e-05"
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/gpt-5.4-nano",
+            "litellm_params": {
+              "model": "openai/openai/gpt-5.4-nano",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": "2e-07",
+              "output_cost_per_token": 1.2533333333333333e-06,
+              "cache_read_input_token_cost": "2e-07",
+              "cache_creation_input_token_cost": "2e-07"
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/deepseek-v4-flash",
+            "litellm_params": {
+              "model": "openai/deepseek/deepseek-v4-flash",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": 4.4e-07,
+              "output_cost_per_token": 1.32e-06,
+              "cache_read_input_token_cost": 4.4e-07,
+              "cache_creation_input_token_cost": 4.4e-07
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/qwen3.7-plus",
+            "litellm_params": {
+              "model": "openai/qwen/qwen3.7-plus",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": "4e-07",
+              "output_cost_per_token": 1.6e-06,
+              "cache_read_input_token_cost": "4e-07",
+              "cache_creation_input_token_cost": "4e-07"
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/grok-4-20",
+            "litellm_params": {
+              "model": "openai/xai/grok-4.20-reasoning",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": 1.25e-06,
+              "output_cost_per_token": 2.5e-06,
+              "cache_read_input_token_cost": 1.25e-06,
+              "cache_creation_input_token_cost": 1.25e-06
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/solar-pro3",
+            "litellm_params": {
+              "model": "openai/upstage/solar-pro3",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": 1.5e-07,
+              "output_cost_per_token": "6e-7",
+              "cache_read_input_token_cost": 1.5e-07,
+              "cache_creation_input_token_cost": 1.5e-07
+            }
+          }
+        },
+        {
+          "id": "groq/openai/gpt-oss-20b",
+          "patch": {}
+        },
+        {
+          "id": "groq/openai/gpt-oss-120b",
+          "patch": {}
+        },
+        {
+          "id": "cerebras/qwen-3.8-27b",
+          "patch": {}
+        },
+        {
+          "id": "cerebras/gpt-oss-120b",
+          "patch": {}
+        },
+        {
+          "id": "together_ai/MiniMaxAI/MiniMax-M3",
+          "patch": {}
+        },
+        {
+          "id": "together_ai/zai-org/GLM-5.3",
+          "patch": {}
+        },
+        {
+          "id": "together_ai/moonshotai/Kimi-K3",
+          "patch": {}
+        },
+        {
+          "id": "fireworks_ai/accounts/fireworks/models/deepseek-v4p1-flash",
+          "patch": {}
+        },
+        {
+          "id": "fireworks_ai/accounts/fireworks/models/glm-5p3",
+          "patch": {}
+        },
+        {
+          "id": "fireworks_ai/accounts/fireworks/models/deepseek-v4-flash-0731",
+          "patch": {}
+        },
+        {
+          "id": "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash",
+          "patch": {}
+        },
+        {
+          "id": "deepinfra/zai-org/GLM-5.3-Flash",
+          "patch": {}
+        },
+        {
+          "id": "deepinfra/deepseek-ai/DeepSeek-V4-Flash-0731",
+          "patch": {}
+        },
+        {
+          "id": "sambanova/MiniMax-M2.7",
+          "patch": {}
+        },
+        {
+          "id": "dashscope/qwen3.8-max",
+          "patch": {}
+        },
+        {
+          "id": "dashscope/qwen3.8-flash",
+          "patch": {}
+        },
+        {
+          "id": "dashscope/qwen3.7-plus",
+          "patch": {}
+        },
+        {
+          "id": "dashscope/qwen-plus",
+          "patch": {}
+        },
+        {
+          "id": "upstage/solar-pro4",
+          "patch": {}
+        },
+        {
+          "id": "cohere/command-a-plus-05-2026",
+          "patch": {}
+        },
+        {
+          "id": "huggingface/openai/gpt-oss-120b",
+          "patch": {}
+        },
+        {
+          "id": "nebius/Qwen/Qwen3-235B-A22B-Instruct-2507",
+          "patch": {}
+        },
+        {
+          "id": "novita/zai-org/glm-5.3-flash",
+          "patch": {}
+        },
+        {
+          "id": "siliconflow/deepseek-ai/DeepSeek-V4.1-Flash",
+          "patch": {}
+        },
+        {
+          "id": "siliconflow/deepseek-ai/DeepSeek-V3",
+          "patch": {}
+        },
+        {
+          "id": "requesty/anthropic/claude-sonnet-5",
+          "patch": {}
+        },
+        {
+          "id": "vercel/anthropic/claude-opus-5",
+          "patch": {}
+        },
+        {
+          "id": "vercel/openai/gpt-5.4",
+          "patch": {}
+        },
+        {
+          "id": "vercel/google/gemini-3.7-flash",
+          "patch": {}
+        },
+        {
+          "id": "vercel/moonshotai/kimi-k3",
+          "patch": {}
+        },
+        {
+          "id": "kilo/anthropic/claude-sonnet-5",
+          "patch": {}
+        },
+        {
+          "id": "kilo/anthropic/claude-opus-5",
+          "patch": {}
+        },
+        {
+          "id": "kilo/anthropic/claude-haiku-4.5",
+          "patch": {}
+        },
+        {
+          "id": "kilo/openai/gpt-5.4",
+          "patch": {}
+        },
+        {
+          "id": "kilo/google/gemini-3.7-flash",
+          "patch": {}
+        },
+        {
+          "id": "kilo/moonshotai/kimi-k3",
+          "patch": {}
+        },
+        {
+          "id": "opencode_zen/kimi-k3",
+          "patch": {}
+        },
+        {
+          "id": "opencode_zen/minimax-m3",
+          "patch": {}
+        },
+        {
+          "id": "opencode_zen/glm-5.3",
+          "patch": {}
+        },
+        {
+          "id": "opencode_zen/glm-5.3-flash",
+          "patch": {}
+        },
+        {
+          "id": "opencode_zen/deepseek-v4-pro",
+          "patch": {}
+        },
+        {
+          "id": "opencode_zen/deepseek-v4-flash",
+          "patch": {}
+        },
+        {
+          "id": "kimi_code/k3",
+          "patch": {}
+        },
+        {
+          "id": "kimi_code/k3-256k",
+          "patch": {}
+        },
+        {
+          "id": "kimi_code/kimi-for-coding",
+          "patch": {}
+        },
+        {
+          "id": "kimi_code/kimi-for-coding-highspeed",
+          "patch": {}
+        },
+        {
+          "id": "minimax_plan/MiniMax-M3",
+          "patch": {}
+        },
+        {
+          "id": "minimax_plan/MiniMax-M2.7",
+          "patch": {}
+        },
+        {
+          "id": "vercel/anthropic/claude-sonnet-5.5",
+          "patch": {}
+        },
+        {
+          "id": "vercel/openai/gpt-6.1-sol",
+          "patch": {}
+        },
+        {
+          "id": "vercel/anthropic/claude-sonnet-5",
+          "patch": {}
+        },
+        {
+          "private": {
+            "model_name": "runyour/gpt-5.5",
+            "litellm_params": {
+              "model": "openai/openai/gpt-5.5",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": "5e-06",
+              "output_cost_per_token": "3e-05",
+              "cache_read_input_token_cost": "5e-06",
+              "cache_creation_input_token_cost": "5e-06"
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/gpt-5.4",
+            "litellm_params": {
+              "model": "openai/openai/gpt-5.4",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": 2.5e-06,
+              "output_cost_per_token": 1.5e-05,
+              "cache_read_input_token_cost": 2.5e-06,
+              "cache_creation_input_token_cost": 2.5e-06
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/gpt-5.4-mini",
+            "litellm_params": {
+              "model": "openai/openai/gpt-5.4-mini",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": 7.5e-07,
+              "output_cost_per_token": 4.5e-06,
+              "cache_read_input_token_cost": 7.5e-07,
+              "cache_creation_input_token_cost": 7.5e-07
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/claude-opus-5",
+            "litellm_params": {
+              "model": "openai/anthropic/claude-opus-5",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": "5e-06",
+              "output_cost_per_token": 2.5e-05,
+              "cache_read_input_token_cost": "5e-06",
+              "cache_creation_input_token_cost": "5e-06"
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/claude-sonnet-5",
+            "litellm_params": {
+              "model": "openai/anthropic/claude-sonnet-5",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": "2e-06",
+              "output_cost_per_token": "1e-05",
+              "cache_read_input_token_cost": "2e-06",
+              "cache_creation_input_token_cost": "2e-06"
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/claude-haiku-4-5",
+            "litellm_params": {
+              "model": "openai/anthropic/claude-haiku-4-5",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": "1e-06",
+              "output_cost_per_token": "5e-06",
+              "cache_read_input_token_cost": "1e-06",
+              "cache_creation_input_token_cost": "1e-06"
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/gemini-3.7-flash",
+            "litellm_params": {
+              "model": "openai/gemini/gemini-3.7-flash",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": 7.077533333329999e-07,
+              "output_cost_per_token": 3.5387533333330003e-06,
+              "cache_read_input_token_cost": 7.077533333329999e-07,
+              "cache_creation_input_token_cost": 7.077533333329999e-07
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/gemini-3.6-flash",
+            "litellm_params": {
+              "model": "openai/gemini/gemini-3.6-flash",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": 6.964e-07,
+              "output_cost_per_token": 3.4820000000000003e-06,
+              "cache_read_input_token_cost": 6.964e-07,
+              "cache_creation_input_token_cost": 6.964e-07
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/kimi-k2.7-code",
+            "litellm_params": {
+              "model": "openai/moonshot/kimi-k2.7-code",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": 9.499999999999999e-07,
+              "output_cost_per_token": "4e-06",
+              "cache_read_input_token_cost": 9.499999999999999e-07,
+              "cache_creation_input_token_cost": 9.499999999999999e-07
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/qwen3.8-max",
+            "litellm_params": {
+              "model": "openai/qwen/qwen3.8-max",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": "2e-06",
+              "output_cost_per_token": "6e-06",
+              "cache_read_input_token_cost": "2e-06",
+              "cache_creation_input_token_cost": "2e-06"
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/qwen3.7-flash",
+            "litellm_params": {
+              "model": "openai/qwen/qwen3.7-flash",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": 2.0000000000000002e-07,
+              "output_cost_per_token": 8.000000000000001e-07,
+              "cache_read_input_token_cost": 2.0000000000000002e-07,
+              "cache_creation_input_token_cost": 2.0000000000000002e-07
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/grok-4.3",
+            "litellm_params": {
+              "model": "openai/xai/grok-4.3",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": 1.25e-06,
+              "output_cost_per_token": 2.5e-06,
+              "cache_read_input_token_cost": 1.25e-06,
+              "cache_creation_input_token_cost": 1.25e-06
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/solar-pro4",
+            "litellm_params": {
+              "model": "openai/upstage/solar-pro4",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": "3e-8",
+              "output_cost_per_token": 1.2e-07,
+              "cache_read_input_token_cost": "3e-8",
+              "cache_creation_input_token_cost": "3e-8"
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/glm-5-turbo",
+            "litellm_params": {
+              "model": "openai/zai/glm-5.2",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": 1.4e-06,
+              "output_cost_per_token": 4.4e-06,
+              "cache_read_input_token_cost": 1.4e-06,
+              "cache_creation_input_token_cost": 1.4e-06
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/glm-5.2",
+            "litellm_params": {
+              "model": "openai/zai/glm-5.2",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": 1.4e-06,
+              "output_cost_per_token": 4.4e-06,
+              "cache_read_input_token_cost": 1.4e-06,
+              "cache_creation_input_token_cost": 1.4e-06
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/minimax-m3",
+            "litellm_params": {
+              "model": "openai/minimax/minimax-m3",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": "3e-7",
+              "output_cost_per_token": 1.2e-06,
+              "cache_read_input_token_cost": "3e-7",
+              "cache_creation_input_token_cost": "3e-7"
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/minimax-m2.7",
+            "litellm_params": {
+              "model": "openai/minimax/minimax-m2.7",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": "3e-7",
+              "output_cost_per_token": 1.2e-06,
+              "cache_read_input_token_cost": "3e-7",
+              "cache_creation_input_token_cost": "3e-7"
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/mimo-v2.5-pro",
+            "litellm_params": {
+              "model": "openai/xiaomi/mimo-v2.5-pro",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": 4.35e-07,
+              "output_cost_per_token": 8.7e-07,
+              "cache_read_input_token_cost": 4.35e-07,
+              "cache_creation_input_token_cost": 4.35e-07
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/mimo-v2.5",
+            "litellm_params": {
+              "model": "openai/xiaomi/mimo-v2.5",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": 1.4e-07,
+              "output_cost_per_token": 2.8e-07,
+              "cache_read_input_token_cost": 1.4e-07,
+              "cache_creation_input_token_cost": 1.4e-07
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/glm-5.3",
+            "litellm_params": {
+              "model": "openai/zai/glm-5.3",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": 1.4e-06,
+              "output_cost_per_token": 4.4e-06,
+              "cache_read_input_token_cost": 1.4e-06,
+              "cache_creation_input_token_cost": 1.4e-06
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/qwen3.8-flash",
+            "litellm_params": {
+              "model": "openai/qwen/qwen3.8-flash",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": 1.5e-07,
+              "output_cost_per_token": 4.6999999999999995e-07,
+              "cache_read_input_token_cost": 1.5e-07,
+              "cache_creation_input_token_cost": 1.5e-07
+            }
+          }
+        },
+        {
+          "private": {
+            "model_name": "runyour/nemotron-3-ultra-550b-a55b",
+            "litellm_params": {
+              "model": "openai/nvidia/nemotron-3-ultra-550b-a55b",
+              "api_base": "os.environ/RUNYOUR_API_BASE",
+              "api_key": "os.environ/RUNYOUR_API_KEY"
+            },
+            "model_info": {
+              "input_cost_per_token": 0,
+              "output_cost_per_token": 0,
+              "cache_read_input_token_cost": 0,
+              "cache_creation_input_token_cost": 0
+            }
+          }
+        },
+        {
+          "id": "chutes/moonshotai/Kimi-K3-TEE",
+          "patch": {}
+        },
+        {
+          "id": "chutes/zai-org/GLM-5.2-TEE",
+          "patch": {}
+        },
+        {
+          "id": "chutes/deepseek-ai/DeepSeek-V4-Flash-0731-TEE",
+          "patch": {}
+        },
+        {
+          "id": "synthetic/hf:moonshotai/Kimi-K3",
+          "patch": {}
+        },
+        {
+          "id": "synthetic/hf:deepseek-ai/DeepSeek-V4.1-Flash",
+          "patch": {}
+        },
+        {
+          "id": "synthetic/hf:zai-org/GLM-5.3-Flash",
+          "patch": {}
+        },
+        {
+          "id": "ollama_cloud/kimi-k3",
+          "patch": {}
+        },
+        {
+          "id": "ollama_cloud/glm-5.3",
+          "patch": {}
+        },
+        {
+          "id": "ollama_cloud/deepseek-v4.1-flash",
+          "patch": {}
+        },
+        {
+          "id": "ollama_cloud/minimax-m3",
+          "patch": {}
+        }
+      ],
+      "settings": {},
+      "format": "optional"
+    }
+  },
+  "cli": {
+    "path": "clients/cli/src/commands/currentProdModels.ts",
+    "groups": {
+      "Current prod / anthropic": [
+        "anthropic/claude-fable-5-1",
+        "anthropic/claude-opus-5-5",
+        "anthropic/claude-opus-5",
+        "anthropic/claude-sonnet-5-5",
+        "anthropic/claude-sonnet-5",
+        "anthropic/claude-haiku-4-5"
+      ],
+      "Current prod / auth": [
+        "auth/claude-opus-5",
+        "auth/claude-opus-4-8",
+        "auth/claude-opus-4-7",
+        "auth/claude-sonnet-4-6",
+        "auth/claude-sonnet-5",
+        "auth/claude-haiku-4-5",
+        "auth/gpt-6-astra",
+        "auth/gpt-6.1-sol",
+        "auth/gpt-6-luna",
+        "auth/gpt-5.6-sol",
+        "auth/gpt-5.6-terra",
+        "auth/gpt-5.6-luna"
+      ],
+      "Current prod / cerebras": [
+        "cerebras/qwen-3.8-27b",
+        "cerebras/gpt-oss-120b"
+      ],
+      "Current prod / chutes": [
+        "chutes/moonshotai/Kimi-K3-TEE",
+        "chutes/zai-org/GLM-5.2-TEE",
+        "chutes/deepseek-ai/DeepSeek-V4-Flash-0731-TEE"
+      ],
+      "Current prod / cohere": [
+        "cohere/command-a-plus-05-2026"
+      ],
+      "Current prod / dashscope": [
+        "dashscope/qwen3.8-max",
+        "dashscope/qwen3.8-flash",
+        "dashscope/qwen3.7-plus",
+        "dashscope/qwen-plus"
+      ],
+      "Current prod / deepinfra": [
+        "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash",
+        "deepinfra/zai-org/GLM-5.3-Flash",
+        "deepinfra/deepseek-ai/DeepSeek-V4-Flash-0731"
+      ],
+      "Current prod / deepseek": [
+        "deepseek/deepseek-flash",
+        "deepseek/deepseek-v4-pro",
+        "deepseek/deepseek-v4-flash",
+        "deepseek/deepseek-chat",
+        "deepseek/deepseek-reasoner"
+      ],
+      "Current prod / fireworks_ai": [
+        "fireworks_ai/accounts/fireworks/models/deepseek-v4p1-flash",
+        "fireworks_ai/accounts/fireworks/models/glm-5p3",
+        "fireworks_ai/accounts/fireworks/models/deepseek-v4-flash-0731"
+      ],
+      "Current prod / gemini": [
+        "gemini/gemini-3.8-flash",
+        "gemini/gemini-3.7-flash",
+        "gemini/gemini-3.6-flash",
+        "gemini/gemini-3.5-flash",
+        "gemini/gemini-3.5-flash-lite",
+        "gemini/gemini-2.5-pro",
+        "gemini/gemini-2.5-flash",
+        "gemini/gemini-2.5-flash-lite"
+      ],
+      "Current prod / groq": [
+        "groq/openai/gpt-oss-20b",
+        "groq/openai/gpt-oss-120b"
+      ],
+      "Current prod / huggingface": [
+        "huggingface/openai/gpt-oss-120b"
+      ],
+      "Current prod / kilo": [
+        "kilo/anthropic/claude-sonnet-5",
+        "kilo/anthropic/claude-opus-5",
+        "kilo/anthropic/claude-haiku-4.5",
+        "kilo/openai/gpt-5.4",
+        "kilo/google/gemini-3.7-flash",
+        "kilo/moonshotai/kimi-k3"
+      ],
+      "Current prod / kimi_code": [
+        "kimi_code/k3",
+        "kimi_code/k3-256k",
+        "kimi_code/kimi-for-coding",
+        "kimi_code/kimi-for-coding-highspeed"
+      ],
+      "Current prod / minimax": [
+        "minimax/MiniMax-M3",
+        "minimax/MiniMax-M2.7",
+        "minimax/MiniMax-M2.7-highspeed",
+        "minimax/MiniMax-M2.5",
+        "minimax/MiniMax-M2.5-lightning"
+      ],
+      "Current prod / minimax_plan": [
+        "minimax_plan/MiniMax-M3",
+        "minimax_plan/MiniMax-M2.7"
+      ],
+      "Current prod / mistral": [
+        "mistral/mistral-medium-3-5",
+        "mistral/mistral-large-2512",
+        "mistral/mistral-small-2603",
+        "mistral/mistral-large-latest",
+        "mistral/codestral-latest"
+      ],
+      "Current prod / moonshot": [
+        "moonshot/kimi-k3",
+        "moonshot/kimi-k2.7-code",
+        "moonshot/kimi-k2.6"
+      ],
+      "Current prod / nebius": [
+        "nebius/Qwen/Qwen3-235B-A22B-Instruct-2507"
+      ],
+      "Current prod / novita": [
+        "novita/zai-org/glm-5.3-flash"
+      ],
+      "Current prod / nvidia_nim": [
+        "nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b",
+        "nvidia_nim/nvidia/nemotron-3-super-120b-a12b",
+        "nvidia_nim/nvidia/nemotron-3-nano-30b-a3b",
+        "nvidia_nim/nvidia/nemotron-3.5-lightning-30b-a3b",
+        "nvidia_nim/meta/llama-3.3-70b-instruct",
+        "nvidia_nim/nvidia/llama-3.1-nemotron-70b-instruct",
+        "nvidia_nim/meta/llama-3.2-3b-instruct"
+      ],
+      "Current prod / ollama_cloud": [
+        "ollama_cloud/kimi-k3",
+        "ollama_cloud/glm-5.3",
+        "ollama_cloud/deepseek-v4.1-flash",
+        "ollama_cloud/minimax-m3"
+      ],
+      "Current prod / openai": [
+        "openai/gpt-6-astra",
+        "openai/gpt-6.1-sol",
+        "openai/gpt-6-sol",
+        "openai/gpt-6-luna",
+        "openai/gpt-5.4",
+        "openai/gpt-5.4-mini",
+        "openai/gpt-5.6-sol",
+        "openai/gpt-5.6-terra",
+        "openai/gpt-5.6-luna"
+      ],
+      "Current prod / opencode_zen": [
+        "opencode_zen/kimi-k3",
+        "opencode_zen/minimax-m3",
+        "opencode_zen/glm-5.3",
+        "opencode_zen/glm-5.3-flash",
+        "opencode_zen/deepseek-v4-pro",
+        "opencode_zen/deepseek-v4-flash"
+      ],
+      "Current prod / openrouter": [
+        "openrouter/anthropic/claude-opus-5.5",
+        "openrouter/anthropic/claude-sonnet-5.5",
+        "openrouter/openai/gpt-6.1-sol",
+        "openrouter/google/gemini-3.8-flash",
+        "openrouter/deepseek/deepseek-v4.1-flash",
+        "openrouter/anthropic/claude-opus-5",
+        "openrouter/anthropic/claude-sonnet-5",
+        "openrouter/anthropic/claude-opus-4-8",
+        "openrouter/anthropic/claude-opus-4-7",
+        "openrouter/anthropic/claude-sonnet-4-6",
+        "openrouter/anthropic/claude-haiku-4-5"
+      ],
+      "Current prod / requesty": [
+        "requesty/anthropic/claude-sonnet-5"
+      ],
+      "Current prod / runyour": [
+        "runyour/gemini-3.5-flash",
+        "runyour/kimi-k3",
+        "runyour/deepseek-v4-pro",
+        "runyour/qwen3.7-max",
+        "runyour/grok-4.5",
+        "runyour/claude-fable-5",
+        "runyour/gpt-5.4-nano",
+        "runyour/deepseek-v4-flash",
+        "runyour/qwen3.7-plus",
+        "runyour/grok-4-20",
+        "runyour/solar-pro3",
+        "runyour/gpt-5.5",
+        "runyour/gpt-5.4",
+        "runyour/gpt-5.4-mini",
+        "runyour/claude-opus-5",
+        "runyour/claude-sonnet-5",
+        "runyour/claude-haiku-4-5",
+        "runyour/gemini-3.7-flash",
+        "runyour/gemini-3.6-flash",
+        "runyour/kimi-k2.7-code",
+        "runyour/qwen3.8-max",
+        "runyour/qwen3.7-flash",
+        "runyour/grok-4.3",
+        "runyour/solar-pro4",
+        "runyour/glm-5-turbo",
+        "runyour/glm-5.2",
+        "runyour/minimax-m3",
+        "runyour/minimax-m2.7",
+        "runyour/mimo-v2.5-pro",
+        "runyour/mimo-v2.5",
+        "runyour/glm-5.3",
+        "runyour/qwen3.8-flash",
+        "runyour/nemotron-3-ultra-550b-a55b"
+      ],
+      "Current prod / sambanova": [
+        "sambanova/MiniMax-M2.7"
+      ],
+      "Current prod / siliconflow": [
+        "siliconflow/deepseek-ai/DeepSeek-V4.1-Flash",
+        "siliconflow/deepseek-ai/DeepSeek-V3"
+      ],
+      "Current prod / synthetic": [
+        "synthetic/hf:moonshotai/Kimi-K3",
+        "synthetic/hf:deepseek-ai/DeepSeek-V4.1-Flash",
+        "synthetic/hf:zai-org/GLM-5.3-Flash"
+      ],
+      "Current prod / together_ai": [
+        "together_ai/MiniMaxAI/MiniMax-M3",
+        "together_ai/zai-org/GLM-5.3",
+        "together_ai/moonshotai/Kimi-K3"
+      ],
+      "Current prod / upstage": [
+        "upstage/solar-pro4"
+      ],
+      "Current prod / vercel": [
+        "vercel/anthropic/claude-opus-5",
+        "vercel/anthropic/claude-haiku-4.5",
+        "vercel/openai/gpt-5.4",
+        "vercel/google/gemini-3.7-flash",
+        "vercel/moonshotai/kimi-k3",
+        "vercel/anthropic/claude-sonnet-5.5",
+        "vercel/openai/gpt-6.1-sol",
+        "vercel/anthropic/claude-sonnet-5"
+      ],
+      "Current prod / xai": [
+        "xai/grok-4.7",
+        "xai/grok-4.5",
+        "xai/grok-4.3",
+        "xai/grok-4-1-fast-reasoning"
+      ],
+      "Current prod / zai": [
+        "zai/glm-5.3",
+        "zai/glm-5.3-flash",
+        "zai/glm-5.3-flashx",
+        "zai/glm-5.2",
+        "zai/glm-5-turbo",
+        "zai/glm-4.7-flashx"
+      ]
+    }
+  }
+}
