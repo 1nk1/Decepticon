@@ -67,6 +67,17 @@ _MUTATIONS = frozenset(
         "bind_workflow_task",
     }
 )
+_DOCUMENT_WRITERS = frozenset(
+    {
+        "verifier",
+        "finding_verifier",
+        "validator",
+        "bugclaw_validator",
+        "report",
+        "finding_reporter",
+        "report_drafter",
+    }
+)
 _POLICY = """<artifact-search-v2>
 The runtime owns document UUIDs, filenames, numbers and committed revisions.
 Use create_artifact/edit_artifact for working drafts, commit_artifact at a plan,
@@ -97,7 +108,7 @@ class SearchRuntimeState(AgentState):
     search_state: NotRequired[Annotated[str, OmitFromInput]]
     search_receipt: NotRequired[Annotated[str, OmitFromInput]]
     search_last_review: NotRequired[Annotated[str, OmitFromInput]]
-    search_task_events: NotRequired[Annotated[dict[str, str], merge_search_events, OmitFromInput]]
+    search_task_events: Annotated[NotRequired[dict[str, str]], OmitFromInput, merge_search_events]
 
 
 def _document_error(messages: list[BaseMessage], call_id: str, detail: str) -> list[BaseMessage]:
@@ -242,6 +253,15 @@ class SearchRuntimeMiddleware(AgentMiddleware):
             )
         if request.tool_call["name"] == "task":
             session = SearchSession.model_validate_json(request.state["search_state"])
+            registry_raw = request.state.get("artifact_registry")
+            if registry_raw:
+                registry = registry_from_state(registry_raw)
+                if registry.artifacts and not registry.materialized:
+                    return ToolMessage(
+                        content="Document publication pending; retry publish_artifacts before task dispatch.",
+                        tool_call_id=request.tool_call["id"],
+                        status="error",
+                    )
             events = current_events(session, request.state.get("search_task_events", {}))
             if set(events) - set(session.reviewed_task_ids):
                 return ToolMessage(
@@ -250,17 +270,8 @@ class SearchRuntimeMiddleware(AgentMiddleware):
                     status="error",
                 )
             count = sum(call["name"] == "task" for call in calls)
-            writers = {
-                "verifier",
-                "finding_verifier",
-                "validator",
-                "bugclaw_validator",
-                "report",
-                "finding_reporter",
-                "report_drafter",
-            }
             if count > 1 and any(
-                call["name"] == "task" and call["args"].get("subagent_type") in writers
+                call["name"] == "task" and call["args"].get("subagent_type") in _DOCUMENT_WRITERS
                 for call in calls
             ):
                 return ToolMessage(
@@ -296,17 +307,19 @@ class SearchRuntimeMiddleware(AgentMiddleware):
             isinstance(message, ToolMessage) and message.status == "error"
             for message in update.get("messages", [])
         )
-        role = "" if failed else str(args.get("subagent_type", ""))
+        specialist_role = str(args.get("subagent_type", ""))
+        role = "" if failed else specialist_role
         registry = registry_from_state(request.state.get("artifact_registry"))
         try:
             if failed:
-                # A failed specialist can leave partial edits in the shared
-                # workspace even though its checkpoint registry is rejected.
-                # Restore committed projections before another task reads them.
-                restored = persist_artifacts(
-                    registry, self.backend, request.state.get("workspace_path")
-                )
-                update["artifact_registry"] = restored.model_dump_json()
+                # Only document writers can alter canonical artifact views.
+                # Non-writer tasks may fail in parallel and must not write the
+                # registry state field, which has no merge reducer.
+                if specialist_role in _DOCUMENT_WRITERS:
+                    restored = persist_artifacts(
+                        registry, self.backend, request.state.get("workspace_path")
+                    )
+                    update["artifact_registry"] = restored.model_dump_json()
                 update.pop("search_state", None)
                 update.pop("search_receipt", None)
                 update.pop("search_last_review", None)
@@ -338,7 +351,14 @@ class SearchRuntimeMiddleware(AgentMiddleware):
                 )
                 update["artifact_registry"] = imported.model_dump_json()
         except MaterializationError as error:
-            update["artifact_registry"] = registry.model_dump_json()
+            # Keep a successfully imported specialist revision for retry.
+            # Failed-return restoration has no imported state and falls back
+            # to the original checkpoint registry instead.
+            if "artifact_registry" not in update:
+                pending = (
+                    registry.model_copy(update={"materialized": False}) if failed else registry
+                )
+                update["artifact_registry"] = pending.model_dump_json()
             update["messages"] = _document_error(
                 update.get("messages", []),
                 call_id,

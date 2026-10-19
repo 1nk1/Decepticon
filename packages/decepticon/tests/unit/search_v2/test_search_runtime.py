@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from types import SimpleNamespace
 from typing import NotRequired
 
 import pytest
@@ -18,10 +19,12 @@ from decepticon.artifacts import (
     ArtifactLink,
     ArtifactRegistry,
     CommitRequest,
+    MaterializationError,
     commit,
     create,
     list_artifacts,
 )
+from decepticon.middleware import search_runtime as runtime_module
 from decepticon.middleware.artifact_tools import persist_artifacts
 from decepticon.middleware.search_policy import (
     SearchContractError,
@@ -387,6 +390,171 @@ def test_failed_verifier_return_cannot_commit_partial_document_edits(tmp_path: P
     restored = scoped.read("/workspace/" + finding.current_path)
     assert restored.file_data is not None
     assert restored.file_data["content"] == finding.revisions[-1].markdown
+
+
+def test_imported_verifier_revision_survives_publication_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    registry, scoped = candidate(tmp_path)
+    imported = verify(registry, scoped)
+    assert list_artifacts(imported)[0].revision > list_artifacts(registry)[0].revision
+    monkeypatch.setattr(runtime_module, "get_config", lambda: {"configurable": {}})
+    monkeypatch.setattr(runtime_module, "import_specialist_edits", lambda *_args: imported)
+
+    def fail_publication(*_args: object) -> ArtifactRegistry:
+        raise MaterializationError("findings/view.md", "fixture backend unavailable")
+
+    monkeypatch.setattr(runtime_module, "persist_artifacts", fail_publication)
+    session = SearchSession(thread_id="retry", run_id="run", started_at="2026-10-18T00:00:00Z")
+    request = SimpleNamespace(
+        tool_call={
+            "name": "task",
+            "id": "verifier",
+            "args": {
+                "subagent_type": "finding_verifier",
+                "task_id": "OBJ-01",
+            },
+        },
+        state={
+            "search_state": session.model_dump_json(),
+            "artifact_registry": registry.model_dump_json(),
+            "workspace_path": "/workspace/engagement",
+        },
+    )
+    result = SearchRuntimeMiddleware(
+        FilesystemBackend(
+            root_dir=tmp_path,
+            virtual_mode=True,
+        )
+    )._returned(request, ToolMessage(content="done", tool_call_id="verifier"))
+    assert isinstance(result, Command)
+    assert result.update is not None
+    saved = ArtifactRegistry.model_validate_json(result.update["artifact_registry"])
+    assert saved == imported
+    assert result.update["messages"][0].status == "error"
+
+
+def test_failed_writer_restoration_blocks_dispatch_until_retry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    registry, scoped = candidate(tmp_path)
+    finding = list_artifacts(registry)[0]
+    scoped.edit(
+        "/workspace/" + finding.current_path,
+        '"verification_status": "unverified"',
+        '"verification_status": "verified"',
+    )
+    backend = FilesystemBackend(root_dir=tmp_path, virtual_mode=True)
+    middleware = SearchRuntimeMiddleware(backend)
+    session = SearchSession(thread_id="retry", run_id="run", started_at="2026-10-18T00:00:00Z")
+
+    def fail_restoration(*_args: object) -> ArtifactRegistry:
+        raise MaterializationError(finding.current_path, "fixture backend unavailable")
+
+    monkeypatch.setattr(runtime_module, "persist_artifacts", fail_restoration)
+    request = SimpleNamespace(
+        tool_call={
+            "name": "task",
+            "id": "failed",
+            "args": {
+                "subagent_type": "finding_verifier",
+                "task_id": "OBJ-01",
+            },
+        },
+        state={
+            "search_state": session.model_dump_json(),
+            "artifact_registry": registry.model_dump_json(),
+            "workspace_path": "/workspace/engagement",
+        },
+    )
+    returned = middleware._returned(
+        request,
+        ToolMessage(
+            content="verifier failed",
+            status="error",
+            tool_call_id="failed",
+        ),
+    )
+    assert isinstance(returned, Command) and returned.update is not None
+    pending = ArtifactRegistry.model_validate_json(returned.update["artifact_registry"])
+    assert not pending.materialized
+    next_call = {
+        "id": "next",
+        "name": "task",
+        "args": {
+            "subagent_type": "finding_verifier",
+            "description": finding.current_path,
+        },
+    }
+    next_state = {
+        "search_state": session.model_dump_json(),
+        "artifact_registry": pending.model_dump_json(),
+        "messages": [AIMessage(content="", tool_calls=[next_call])],
+    }
+    blocked = middleware._guard(SimpleNamespace(tool_call=next_call, state=next_state))
+    assert isinstance(blocked, ToolMessage)
+    assert blocked.status == "error" and "publish_artifacts" in blocked.text
+    restored = persist_artifacts(pending, backend, "/workspace/engagement")
+    assert restored.materialized
+    next_state["artifact_registry"] = restored.model_dump_json()
+    assert middleware._guard(SimpleNamespace(tool_call=next_call, state=next_state)) is None
+    view = scoped.read("/workspace/" + finding.current_path)
+    assert view.file_data is not None
+    assert view.file_data["content"] == finding.revisions[-1].markdown
+
+
+def test_parallel_failed_recon_tasks_do_not_write_registry(tmp_path: Path) -> None:
+    @tool(description="Fixture recon task that fails")
+    def task(subagent_type: str, description: str, runtime: ToolRuntime) -> Command[str]:
+        return Command(
+            update={
+                "messages": [
+                    ToolMessage(
+                        content=description,
+                        status="error",
+                        tool_call_id=runtime.tool_call_id or "",
+                    )
+                ]
+            }
+        )
+
+    response = AIMessage(
+        content="",
+        tool_calls=[
+            {
+                "id": "recon-one",
+                "name": "task",
+                "args": {"subagent_type": "recon", "description": "first"},
+            },
+            {
+                "id": "recon-two",
+                "name": "task",
+                "args": {"subagent_type": "recon", "description": "second"},
+            },
+        ],
+    )
+    graph = create_agent(
+        ToolModel(responses=[response, *[AIMessage(content="Continue") for _ in range(4)]]),
+        tools=[task],
+        state_schema=SearchRuntimeState,
+        middleware=[
+            SearchRuntimeMiddleware(FilesystemBackend(root_dir=tmp_path, virtual_mode=True))
+        ],
+        checkpointer=InMemorySaver(),
+    )
+    config = {
+        "recursion_limit": 20,
+        "configurable": {
+            "thread_id": "recon-thread",
+            "search_policy_version": 2,
+            "search_run_id": "run",
+        },
+    }
+    with pytest.raises(SearchContractError, match="premature closure"):
+        graph.invoke({"messages": [HumanMessage(content="Review the target")]}, config=config)
+    state = graph.get_state(config).values
+    assert state["search_task_events"] == {"run:recon-one": "", "run:recon-two": ""}
+    assert "artifact_registry" not in state
 
 
 def test_plan_mutation_and_finalization_cannot_share_a_tool_batch(tmp_path: Path) -> None:
