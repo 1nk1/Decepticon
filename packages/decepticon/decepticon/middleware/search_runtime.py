@@ -324,7 +324,12 @@ class SearchRuntimeMiddleware(AgentMiddleware):
             if isinstance(result, Command) and result.update:
                 update = dict(result.update)
                 raw = update.get("artifact_registry")
-                if raw and registry_from_state(raw).materialized:
+                messages = update.get("messages", [])
+                succeeded = bool(messages) and all(
+                    isinstance(message, ToolMessage) and message.status == "success"
+                    for message in messages
+                )
+                if succeeded and raw and registry_from_state(raw).materialized:
                     cleared = {
                         key: True
                         for key, resolved in request.state.get("search_recovery_events", {}).items()

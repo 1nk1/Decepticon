@@ -25,6 +25,7 @@ from decepticon.artifacts import (
     create,
     list_artifacts,
 )
+from decepticon.middleware import artifact_tools as artifact_tools_module
 from decepticon.middleware import search_runtime as runtime_module
 from decepticon.middleware.artifact_tools import persist_artifacts
 from decepticon.middleware.search_policy import (
@@ -700,17 +701,32 @@ def test_parallel_failed_recon_restoration_errors_merge_receipts(
     blocked = middleware._guard(SimpleNamespace(tool_call=next_call, state=state))
     assert isinstance(blocked, ToolMessage)
     assert "publish_artifacts" in blocked.text
+    publish_request = SimpleNamespace(tool_call={"name": "publish_artifacts"}, state=state)
+    publish_runtime = SimpleNamespace(state=state, tool_call_id="publish")
+    monkeypatch.setattr(artifact_tools_module, "persist_artifacts", unavailable)
+    failed_retry = artifact_tools_module.publish_artifact(registry, publish_runtime, backend)
+    assert failed_retry.update is not None
+    assert failed_retry.update["messages"][0].status == "error"
+    still_pending = middleware._returned(publish_request, failed_retry)
+    assert isinstance(still_pending, Command) and still_pending.update is not None
+    assert "search_recovery_events" not in still_pending.update
+    state["artifact_registry"] = still_pending.update["artifact_registry"]
+    blocked = middleware._guard(SimpleNamespace(tool_call=next_call, state=state))
+    assert isinstance(blocked, ToolMessage)
+    assert "publish_artifacts" in blocked.text
     monkeypatch.setattr(runtime_module, "persist_artifacts", persist_artifacts)
-    published = persist_artifacts(registry, backend, "/workspace/engagement")
-    cleared = middleware._returned(
-        SimpleNamespace(tool_call={"name": "publish_artifacts"}, state=state),
-        Command(update={"artifact_registry": published.model_dump_json()}),
-    )
+    monkeypatch.setattr(artifact_tools_module, "persist_artifacts", persist_artifacts)
+    successful_retry = artifact_tools_module.publish_artifact(registry, publish_runtime, backend)
+    cleared = middleware._returned(publish_request, successful_retry)
     assert isinstance(cleared, Command) and cleared.update is not None
     assert cleared.update["search_recovery_events"] == {
         "run:recon-one": True,
         "run:recon-two": True,
     }
+    state["search_recovery_events"].update(cleared.update["search_recovery_events"])
+    state["artifact_registry"] = cleared.update["artifact_registry"]
+    after_recovery = middleware._guard(SimpleNamespace(tool_call=next_call, state=state))
+    assert after_recovery is None or "Document restoration pending" not in after_recovery.text
 
 
 def test_plan_mutation_and_finalization_cannot_share_a_tool_batch(tmp_path: Path) -> None:
