@@ -15,13 +15,14 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed Desktop owned-browser-v1 adapter: trusted per-run browser injection,
+- Proposed [PR #1015](https://github.com/BitterSecurity/Decepticon/pull/1015):
+  Desktop owned-browser-v1 adapter with trusted per-run browser injection,
   authenticated capability/identity negotiation, protected launcher socket mounts,
   bounded cancellation and fail-closed protocol errors preserve the existing
   `browser_action` schema and default Playwright behavior. Depends explicitly on
   the reviewed PR #1009 revision `0e364229`; native engine containment, actual
   graph run registration and Windows forwarding still require qualification.
-  Draft PR link will be recorded after creation; no SaaS pin or release changes.
+  No SaaS pin or release changes.
 
 - Proposed [PR #1009](https://github.com/BitterSecurity/Decepticon/pull/1009): add the Desktop `serve --engagement` adapter for existing local
   engagements, with native model selection, private runtime configuration and
