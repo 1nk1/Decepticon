@@ -24,8 +24,9 @@ Keep proposed and unmerged changes out of released sections.
   actual Kimi/Minimax credential names; retain Windows platform-specific file
   permission checks alongside private configuration handling. Keep Desktop
   selection on one model without inherited cloud fallbacks, preserve the
-  validated workspace path for spawned workloads, and detect managed-service
-  run-directory mismatches before startup.
+  validated workspace path for spawned workloads, detect managed-service
+  run-directory mismatches before startup, and apply updated service settings
+  during explicit reinstall.
 
 - Consolidate change tracking in this single `CHAGELOG.md`; remove the former
   alternate entry point and update contributor/release instructions.

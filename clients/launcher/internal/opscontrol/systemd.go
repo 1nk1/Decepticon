@@ -99,6 +99,10 @@ func (s *SystemdManager) Install(spec InstallSpec) error {
 	if spec.BinaryPath == "" || spec.HomePath == "" {
 		return errors.New("opscontrol: InstallSpec requires BinaryPath and HomePath")
 	}
+	wasActive, err := s.Active()
+	if err != nil {
+		return err
+	}
 	unitDir, err := os.UserHomeDir()
 	if err != nil {
 		return fmt.Errorf("opscontrol: resolve user home: %w", err)
@@ -138,6 +142,13 @@ func (s *SystemdManager) Install(spec InstallSpec) error {
 	}
 	if out, err := exec.Command(systemctlBinary, "--user", "enable", "--now", s.UnitName+".service").CombinedOutput(); err != nil {
 		return fmt.Errorf("opscontrol: enable --now: %w: %s", err, strings.TrimSpace(string(out)))
+	}
+	// enable --now does not restart an already active service. A repeat
+	// explicit install must load the new unit environment and socket path.
+	if wasActive {
+		if out, err := exec.Command(systemctlBinary, "--user", "restart", s.UnitName+".service").CombinedOutput(); err != nil {
+			return fmt.Errorf("opscontrol: restart updated service: %w: %s", err, strings.TrimSpace(string(out)))
+		}
 	}
 	return nil
 }

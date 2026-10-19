@@ -90,7 +90,7 @@ func RecordEngagementWorkspace(slug, workspace string) error {
 	if !engagementSlug.MatchString(slug) {
 		return fmt.Errorf("invalid engagement slug %q", slug)
 	}
-	resolved, err := validateEngagementWorkspace(slug, workspace)
+	resolved, err := validateEngagementWorkspace(slug, workspace, true)
 	if err != nil {
 		return err
 	}
@@ -123,20 +123,20 @@ func engagementWorkspace(slug string) (string, error) {
 	}
 	choiceFile := filepath.Join(runDir(), "engagement-workspaces", slug)
 	if body, err := os.ReadFile(choiceFile); err == nil {
-		return validateEngagementWorkspace(slug, string(body))
+		return validateEngagementWorkspace(slug, string(body), true)
 	} else if !os.IsNotExist(err) {
 		return "", fmt.Errorf("read engagement workspace choice: %w", err)
 	}
-	return validateEngagementWorkspace(slug, filepath.Join(config.DecepticonHome(), "workspace", slug))
+	return validateEngagementWorkspace(slug, filepath.Join(config.DecepticonHome(), "workspace", slug), false)
 }
 
-func validateEngagementWorkspace(slug, workspace string) (string, error) {
+func validateEngagementWorkspace(slug, workspace string, recordedChoice bool) (string, error) {
 	if !filepath.IsAbs(workspace) {
 		return "", fmt.Errorf("engagement workspace must be absolute")
 	}
-	root, err := filepath.EvalSymlinks(filepath.Join(config.DecepticonHome(), "workspace"))
+	root, err := filepath.EvalSymlinks(config.DecepticonHome())
 	if err != nil {
-		return "", fmt.Errorf("resolve workspace root: %w", err)
+		return "", fmt.Errorf("resolve engagement home: %w", err)
 	}
 	path, err := filepath.EvalSymlinks(workspace)
 	if err != nil {
@@ -144,8 +144,17 @@ func validateEngagementWorkspace(slug, workspace string) (string, error) {
 	}
 	relative, err := filepath.Rel(root, path)
 	parts := strings.Split(relative, string(os.PathSeparator))
-	if err != nil || len(parts) < 1 || len(parts) > 2 || parts[len(parts)-1] != slug || relative == "." || strings.HasPrefix(relative, "..") {
-		return "", fmt.Errorf("engagement workspace escaped workspace root")
+	if err != nil || len(parts) != 2 || relative == "." || strings.HasPrefix(relative, "..") {
+		return "", fmt.Errorf("engagement workspace escaped engagement home")
+	}
+	if !recordedChoice && relative != filepath.Join("workspace", slug) {
+		return "", fmt.Errorf("legacy engagement workspace does not match engagement slug")
+	}
+	for _, candidate := range []string{filepath.Dir(workspace), workspace} {
+		info, err := os.Lstat(candidate)
+		if err != nil || info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+			return "", fmt.Errorf("engagement workspace parent is not a regular directory")
+		}
 	}
 	info, err := os.Stat(path)
 	if err != nil || !info.IsDir() {
