@@ -161,6 +161,11 @@ func (l *LaunchdManager) renderPlist(spec InstallSpec) string {
         <key>DECEPTICON_STACK_NAME</key>
         <string>%s</string>`, spec.StackName)
 	}
+	if spec.RunDir != "" {
+		stackEntry += fmt.Sprintf(`
+        <key>DECEPTICON_OPSCONTROL_RUN_DIR</key>
+        <string>%s</string>`, spec.RunDir)
+	}
 	return fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">

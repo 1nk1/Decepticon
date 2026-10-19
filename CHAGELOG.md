@@ -22,7 +22,10 @@ Keep proposed and unmerged changes out of released sections.
   CLI folders. Source work only; no package version or release is published.
   Review fix: route the selected model into every agent role and use the catalog's
   actual Kimi/Minimax credential names; retain Windows platform-specific file
-  permission checks alongside private configuration handling.
+  permission checks alongside private configuration handling. Keep Desktop
+  selection on one model without inherited cloud fallbacks, preserve the
+  validated workspace path for spawned workloads, and detect managed-service
+  run-directory mismatches before startup.
 
 - Consolidate change tracking in this single `CHAGELOG.md`; remove the former
   alternate entry point and update contributor/release instructions.

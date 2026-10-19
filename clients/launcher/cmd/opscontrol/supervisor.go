@@ -106,6 +106,13 @@ func EnsureRunning() (socketPath string, err error) {
 			return "", err
 		}
 		if installed {
+			matches, err := internal.ManagedRunDirMatches(mgr)
+			if err != nil {
+				return "", err
+			}
+			if !matches {
+				return "", fmt.Errorf("opscontrol: managed service run directory differs from DECEPTICON_OPSCONTROL_RUN_DIR; run `decepticon opscontrol install` to update the service")
+			}
 			active, err := mgr.Active()
 			if err != nil {
 				return "", err

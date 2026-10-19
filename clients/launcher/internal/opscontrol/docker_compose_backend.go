@@ -83,20 +83,68 @@ func newRunID() (string, error) {
 
 var engagementSlug = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$`)
 
+// RecordEngagementWorkspace passes the launcher's validated choice to the
+// managed daemon. The agent container can access the socket, but cannot
+// alter this host-only map or select a different host bind path.
+func RecordEngagementWorkspace(slug, workspace string) error {
+	if !engagementSlug.MatchString(slug) {
+		return fmt.Errorf("invalid engagement slug %q", slug)
+	}
+	resolved, err := validateEngagementWorkspace(slug, workspace)
+	if err != nil {
+		return err
+	}
+	dir := filepath.Join(runDir(), "engagement-workspaces")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return err
+	}
+	temp, err := os.CreateTemp(dir, ".workspace-*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(temp.Name())
+	if err := temp.Chmod(0o600); err != nil {
+		_ = temp.Close()
+		return err
+	}
+	if _, err := temp.WriteString(resolved); err != nil {
+		_ = temp.Close()
+		return err
+	}
+	if err := temp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(temp.Name(), filepath.Join(dir, slug))
+}
+
 func engagementWorkspace(slug string) (string, error) {
 	if !engagementSlug.MatchString(slug) {
 		return "", fmt.Errorf("invalid engagement slug %q", slug)
+	}
+	choiceFile := filepath.Join(runDir(), "engagement-workspaces", slug)
+	if body, err := os.ReadFile(choiceFile); err == nil {
+		return validateEngagementWorkspace(slug, string(body))
+	} else if !os.IsNotExist(err) {
+		return "", fmt.Errorf("read engagement workspace choice: %w", err)
+	}
+	return validateEngagementWorkspace(slug, filepath.Join(config.DecepticonHome(), "workspace", slug))
+}
+
+func validateEngagementWorkspace(slug, workspace string) (string, error) {
+	if !filepath.IsAbs(workspace) {
+		return "", fmt.Errorf("engagement workspace must be absolute")
 	}
 	root, err := filepath.EvalSymlinks(filepath.Join(config.DecepticonHome(), "workspace"))
 	if err != nil {
 		return "", fmt.Errorf("resolve workspace root: %w", err)
 	}
-	path, err := filepath.EvalSymlinks(filepath.Join(root, slug))
+	path, err := filepath.EvalSymlinks(workspace)
 	if err != nil {
 		return "", fmt.Errorf("resolve engagement workspace: %w", err)
 	}
 	relative, err := filepath.Rel(root, path)
-	if err != nil || relative != slug {
+	parts := strings.Split(relative, string(os.PathSeparator))
+	if err != nil || len(parts) < 1 || len(parts) > 2 || parts[len(parts)-1] != slug || relative == "." || strings.HasPrefix(relative, "..") {
 		return "", fmt.Errorf("engagement workspace escaped workspace root")
 	}
 	info, err := os.Stat(path)

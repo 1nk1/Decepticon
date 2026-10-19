@@ -264,6 +264,12 @@ func (s *SystemdManager) renderUnit(spec InstallSpec) string {
 	if spec.StackName != "" {
 		stackEnv = fmt.Sprintf("Environment=DECEPTICON_STACK_NAME=%s\n", spec.StackName)
 	}
+	runEnv := ""
+	readWritePaths := spec.HomePath
+	if spec.RunDir != "" {
+		runEnv = fmt.Sprintf("Environment=DECEPTICON_OPSCONTROL_RUN_DIR=%s\n", spec.RunDir)
+		readWritePaths += " " + spec.RunDir
+	}
 	// WorkingDirectory MUST be $DECEPTICON_HOME because compose's
 	// config-hash mixes the project working dir into the per-container
 	// label. Without this the daemon spawns containers with
@@ -289,7 +295,7 @@ ExecStart=%s opscontrol daemon
 WorkingDirectory=%s
 EnvironmentFile=-%s/.env
 Environment=DECEPTICON_HOME=%s
-%sRestart=on-failure
+%s%sRestart=on-failure
 RestartSec=5s
 NoNewPrivileges=true
 ProtectSystem=full
@@ -299,5 +305,5 @@ SyslogIdentifier=%s
 
 [Install]
 WantedBy=default.target
-`, spec.BinaryPath, spec.HomePath, spec.HomePath, spec.HomePath, stackEnv, spec.HomePath, s.UnitName)
+`, spec.BinaryPath, spec.HomePath, spec.HomePath, spec.HomePath, stackEnv, runEnv, readWritePaths, s.UnitName)
 }

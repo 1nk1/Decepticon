@@ -9,7 +9,7 @@ different model without editing the OSS tier map or a global env var.
 from decepticon.agents.build import resolve_role_model
 from decepticon.llm.factory import LLMFactory
 from decepticon_core.plugin_loader import PluginBundle
-from decepticon_core.types.llm import ModelAssignment
+from decepticon_core.types.llm import AuthMethod, Credentials, ModelAssignment, ProxyConfig
 
 _ITER = "decepticon.agents.build._iter_override_bundles"
 
@@ -23,6 +23,21 @@ class TestResolveRoleModel:
             "exploit", ModelAssignment(primary="anthropic/claude-opus-4-8", fallbacks=[])
         )
         assert assignment.primary == "openai/gpt-5.5"
+        assert assignment.fallbacks == []
+
+    def test_desktop_selection_works_with_single_credential_and_no_cloud_fallback(
+        self, monkeypatch
+    ):
+        monkeypatch.setenv("DECEPTICON_DESKTOP_MODEL", "ollama/qwen3")
+        factory = LLMFactory(
+            proxy=ProxyConfig(),
+            credentials=Credentials(methods=[AuthMethod.MINIMAX_API]),
+            profile="eco",
+        )
+        assignment = factory.router.get_assignment("scanner")
+        assert assignment.primary == "ollama/qwen3"
+        assert assignment.fallbacks == []
+        assert factory.get_fallback_models("scanner") == []
 
     def test_none_when_neither_env_nor_bundle(self, monkeypatch):
         monkeypatch.delenv("DECEPTICON_MODEL_EXPLOIT", raising=False)

@@ -39,3 +39,30 @@ func TestEngagementWorkspaceRejectsEscapeAndMissingDirectory(t *testing.T) {
 		}
 	}
 }
+
+func TestEngagementWorkspaceUsesValidatedDesktopChoice(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("DECEPTICON_HOME", home)
+	t.Setenv("DECEPTICON_OPSCONTROL_RUN_DIR", filepath.Join(home, "run"))
+	wanted := filepath.Join(home, "workspace", "desktop-workspace", "sample-engagement")
+	if err := os.MkdirAll(wanted, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := RecordEngagementWorkspace("sample-engagement", wanted); err != nil {
+		t.Fatal(err)
+	}
+	got, err := engagementWorkspace("sample-engagement")
+	if err != nil || got != wanted {
+		t.Fatalf("engagementWorkspace() = %q, %v; want %q", got, err, wanted)
+	}
+	if err := RecordEngagementWorkspace("other-engagement", wanted); err == nil {
+		t.Fatal("workspace for another engagement was accepted")
+	}
+	outside := filepath.Join(t.TempDir(), "sample-engagement")
+	if err := os.MkdirAll(outside, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := RecordEngagementWorkspace("sample-engagement", outside); err == nil {
+		t.Fatal("workspace outside home was accepted")
+	}
+}

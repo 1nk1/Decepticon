@@ -62,6 +62,14 @@ func runDir() string {
 	return filepath.Join(config.DecepticonHome(), "run")
 }
 
+// RunDirOverride returns the explicit absolute run directory, if any.
+func RunDirOverride() string {
+	if path := strings.TrimSpace(os.Getenv("DECEPTICON_OPSCONTROL_RUN_DIR")); filepath.IsAbs(path) {
+		return path
+	}
+	return ""
+}
+
 // HostSocketPath returns the host-side path of the opscontrol UDS.
 // ADR-0006 §1' specifies /var/run/decepticon-ops.sock for the
 // container-internal mount; the host path is rooted under

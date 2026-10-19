@@ -20,6 +20,7 @@ import (
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/engagement"
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/health"
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/migrate"
+	opsinternal "github.com/PurpleAILAB/Decepticon/clients/launcher/internal/opscontrol"
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/platform"
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/starprompt"
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/ui"
@@ -297,6 +298,9 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string) 
 	// compose interpolates ${DECEPTICON_ENGAGEMENT_WORKSPACE} from this var.
 	if err := os.Setenv("DECEPTICON_ENGAGEMENT_WORKSPACE", choice.WorkspacePath); err != nil {
 		return fmt.Errorf("set engagement workspace env: %w", err)
+	}
+	if err := opsinternal.RecordEngagementWorkspace(choice.Engagement, choice.WorkspacePath); err != nil {
+		return fmt.Errorf("record engagement workspace for opscontrol: %w", err)
 	}
 	if existingEngagement != "" {
 		if err := checkDesktopSandboxMount(strings.TrimSpace(os.Getenv("DECEPTICON_STACK_NAME")), choice.WorkspacePath); err != nil {
