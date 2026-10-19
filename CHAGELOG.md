@@ -25,6 +25,12 @@ Keep proposed and unmerged changes out of released sections.
   defaults and explicit local compatibility overrides remain; this does not
   publish an OSS version or prove provider availability.
 
+- Proposed [PR #1014](https://github.com/BitterSecurity/Decepticon/pull/1014):
+  defer agent factory exports until requested, so framework role registration
+  does not construct every agent graph during import. Preserve factory names,
+  identity, signatures and all configured LangGraph endpoints. Existing startup
+  health limits remain unchanged; this source fix is not a published release.
+
 - Proposed [PR #1011](https://github.com/BitterSecurity/Decepticon/pull/1011):
   own a shared public LiteLLM model catalog and deterministic route/CLI generation
   for OSS and the pinned SaaS consumer. Retain existing route semantics,
