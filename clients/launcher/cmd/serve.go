@@ -8,6 +8,7 @@ import (
 )
 
 var serveEngagement string
+var serveBrowserDescriptor string
 
 var serveCmd = &cobra.Command{
 	Use:   "serve",
@@ -23,5 +24,6 @@ var serveCmd = &cobra.Command{
 
 func init() {
 	serveCmd.Flags().StringVar(&serveEngagement, "engagement", "", "Existing engagement folder name")
+	serveCmd.Flags().StringVar(&serveBrowserDescriptor, "browser-descriptor", "", "Trusted host-owned per-run browser descriptor")
 	rootCmd.AddCommand(serveCmd)
 }
