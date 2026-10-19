@@ -55,6 +55,21 @@ func stackSuffix() string {
 	return ""
 }
 
+func runDir() string {
+	if path := strings.TrimSpace(os.Getenv("DECEPTICON_OPSCONTROL_RUN_DIR")); filepath.IsAbs(path) {
+		return path
+	}
+	return filepath.Join(config.DecepticonHome(), "run")
+}
+
+// RunDirOverride returns the explicit absolute run directory, if any.
+func RunDirOverride() string {
+	if path := strings.TrimSpace(os.Getenv("DECEPTICON_OPSCONTROL_RUN_DIR")); filepath.IsAbs(path) {
+		return path
+	}
+	return ""
+}
+
 // HostSocketPath returns the host-side path of the opscontrol UDS.
 // ADR-0006 §1' specifies /var/run/decepticon-ops.sock for the
 // container-internal mount; the host path is rooted under
@@ -66,7 +81,7 @@ func stackSuffix() string {
 //
 //	$DECEPTICON_HOME/run/ops.stack2.sock
 func HostSocketPath() string {
-	return filepath.Join(config.DecepticonHome(), "run", "ops"+stackSuffix()+".sock")
+	return filepath.Join(runDir(), "ops"+stackSuffix()+".sock")
 }
 
 // ContainerSocketPath is the ADR-0006 §1' mandated path inside the
@@ -81,14 +96,14 @@ const ContainerSocketPath = "/var/run/decepticon-ops.sock"
 //
 // Stack-scoped form: $DECEPTICON_HOME/run/opscontrol.stack2.pid
 func PIDFilePath() string {
-	return filepath.Join(config.DecepticonHome(), "run", "opscontrol"+stackSuffix()+".pid")
+	return filepath.Join(runDir(), "opscontrol"+stackSuffix()+".pid")
 }
 
 // EnsureRunDir creates $DECEPTICON_HOME/run with mode 0700. Idempotent.
 // Used by both the launcher (before spawning the daemon) and the
 // daemon itself (before binding the socket).
 func EnsureRunDir() error {
-	return os.MkdirAll(filepath.Join(config.DecepticonHome(), "run"), 0o700)
+	return os.MkdirAll(runDir(), 0o700)
 }
 
 // ServiceUnitName returns the OS-native service identifier for the

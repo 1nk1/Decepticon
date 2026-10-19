@@ -174,7 +174,7 @@ func writePrivateFile(path string, data []byte) (retErr error) {
 			_ = os.Remove(tmpPath)
 		}
 	}()
-	if err := tmp.Chmod(0o600); err != nil {
+	if err := ProtectPrivateFile(tmpPath); err != nil {
 		return fmt.Errorf("secure temporary env: %w", err)
 	}
 	if _, err := tmp.Write(data); err != nil {
@@ -243,23 +243,23 @@ var keyFormatRules = map[string]struct {
 	Prefix string
 	Hint   string
 }{
-	"ANTHROPIC_API_KEY":              {Prefix: "sk-", Hint: "Anthropic keys start with 'sk-'"},
-	"OPENAI_API_KEY":                 {Prefix: "sk-", Hint: "OpenAI keys start with 'sk-'"},
-	"GEMINI_API_KEY":                 {Prefix: "AIza", Hint: "Gemini keys start with 'AIza'"},
-	"OPENROUTER_API_KEY":             {Prefix: "sk-or-", Hint: "OpenRouter keys start with 'sk-or-'"},
-	"NVIDIA_API_KEY":                 {Prefix: "nvapi-", Hint: "NVIDIA keys start with 'nvapi-'"},
-	"DEEPSEEK_API_KEY":               {Prefix: "sk-", Hint: "DeepSeek keys start with 'sk-'"},
-	"XAI_API_KEY":                    {Prefix: "xai-", Hint: "xAI keys start with 'xai-'"},
-	"MINIMAX_API_KEY":                {Prefix: "", Hint: ""},
-	"MISTRAL_API_KEY":                {Prefix: "", Hint: ""},
-	"GROQ_API_KEY":                   {Prefix: "gsk_", Hint: "Groq keys start with 'gsk_'"},
-	"TOGETHER_API_KEY":               {Prefix: "", Hint: ""},
-	"FIREWORKS_API_KEY":              {Prefix: "fw_", Hint: "Fireworks keys start with 'fw_'"},
-	"COHERE_API_KEY":                 {Prefix: "", Hint: ""},
-	"MOONSHOT_API_KEY":               {Prefix: "sk-", Hint: "Moonshot keys start with 'sk-'"},
-	"KIMI_API_KEY":                   {Prefix: "sk-kimi-", Hint: "Kimi for Coding keys start with 'sk-kimi-'"},
-	"ZAI_API_KEY":                    {Prefix: "", Hint: ""},
-	"DASHSCOPE_API_KEY":              {Prefix: "sk-", Hint: "DashScope keys start with 'sk-'"},
+	"ANTHROPIC_API_KEY":  {Prefix: "sk-", Hint: "Anthropic keys start with 'sk-'"},
+	"OPENAI_API_KEY":     {Prefix: "sk-", Hint: "OpenAI keys start with 'sk-'"},
+	"GEMINI_API_KEY":     {Prefix: "AIza", Hint: "Gemini keys start with 'AIza'"},
+	"OPENROUTER_API_KEY": {Prefix: "sk-or-", Hint: "OpenRouter keys start with 'sk-or-'"},
+	"NVIDIA_API_KEY":     {Prefix: "nvapi-", Hint: "NVIDIA keys start with 'nvapi-'"},
+	"DEEPSEEK_API_KEY":   {Prefix: "sk-", Hint: "DeepSeek keys start with 'sk-'"},
+	"XAI_API_KEY":        {Prefix: "xai-", Hint: "xAI keys start with 'xai-'"},
+	"MINIMAX_API_KEY":    {Prefix: "", Hint: ""},
+	"MISTRAL_API_KEY":    {Prefix: "", Hint: ""},
+	"GROQ_API_KEY":       {Prefix: "gsk_", Hint: "Groq keys start with 'gsk_'"},
+	"TOGETHER_API_KEY":   {Prefix: "", Hint: ""},
+	"FIREWORKS_API_KEY":  {Prefix: "fw_", Hint: "Fireworks keys start with 'fw_'"},
+	"COHERE_API_KEY":     {Prefix: "", Hint: ""},
+	"MOONSHOT_API_KEY":   {Prefix: "sk-", Hint: "Moonshot keys start with 'sk-'"},
+	"KIMI_API_KEY":       {Prefix: "sk-kimi-", Hint: "Kimi for Coding keys start with 'sk-kimi-'"},
+	"ZAI_API_KEY":        {Prefix: "", Hint: ""},
+	"DASHSCOPE_API_KEY":  {Prefix: "sk-", Hint: "DashScope keys start with 'sk-'"},
 	// GitHub fine-grained PATs start with github_pat_; classic PATs
 	// start with ghp_. Accept either by skipping the prefix check.
 	"GITHUB_TOKEN":                   {Prefix: "", Hint: ""},
@@ -267,7 +267,7 @@ var keyFormatRules = map[string]struct {
 	"AZURE_API_KEY":                  {Prefix: "", Hint: ""},
 	"GOOGLE_APPLICATION_CREDENTIALS": {Prefix: "", Hint: "must be an absolute path to a service-account JSON file"},
 
-	"CUSTOM_OPENAI_API_KEY":          {Prefix: "", Hint: ""},
+	"CUSTOM_OPENAI_API_KEY": {Prefix: "", Hint: ""},
 }
 
 // validateKeyFormat returns an empty string if the key looks valid, or a reason if not.

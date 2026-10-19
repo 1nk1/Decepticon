@@ -39,6 +39,7 @@ from pydantic import SecretStr
 from decepticon.llm.router import ModelRouter
 from decepticon_core.registry import RoleRegistry
 from decepticon_core.types.llm import (
+    AGENT_TEMPERATURES,
     AGENT_TIERS,
     AuthMethod,
     Credentials,
@@ -1671,8 +1672,23 @@ class LLMFactory:
         apply_role_overrides: bool = True,
     ):
         self._proxy = proxy or self._resolve_proxy_config()
+        desktop_model = os.environ.get("DECEPTICON_DESKTOP_MODEL", "").strip()
         if mapping is not None:
             self._mapping = mapping
+        elif desktop_model and apply_role_overrides:
+            # Desktop Local selects one route for this run.  Building the
+            # mapping directly also supports providers without every tier in
+            # the profile; no unrelated credential chain can be inherited.
+            self._mapping = LLMModelMapping(
+                assignments={
+                    role: ModelAssignment(
+                        primary=desktop_model,
+                        fallbacks=[],
+                        temperature=AGENT_TEMPERATURES.get(role, 0.7),
+                    )
+                    for role in AGENT_TIERS
+                }
+            )
         else:
             creds = credentials if credentials is not None else _resolve_credentials()
             raw_profile = profile if profile is not None else self._resolve_profile()
@@ -1697,6 +1713,13 @@ class LLMFactory:
         """
         from decepticon.agents.build import resolve_role_model
 
+        desktop_model = os.environ.get("DECEPTICON_DESKTOP_MODEL", "").strip()
+        if desktop_model:
+            return ModelAssignment(
+                primary=desktop_model,
+                fallbacks=[],
+                temperature=assignment.temperature,
+            )
         override = resolve_role_model(role)
         if not override or override == assignment.primary:
             return assignment
@@ -1798,9 +1821,9 @@ class LLMFactory:
         until one succeeds. ``default_role`` works as in ``get_model``.
         """
         default_role = self._resolve_default_role(role, default_role)
-        assignment = self._compose_assignment(
-            role, self._router.get_assignment(role, default_role=default_role)
-        )
+        assignment = self._router.get_assignment(role, default_role=default_role)
+        if self._apply_role_overrides:
+            assignment = self._compose_assignment(role, assignment)
         if not assignment.fallbacks:
             return []
 

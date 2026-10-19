@@ -99,6 +99,10 @@ func (s *SystemdManager) Install(spec InstallSpec) error {
 	if spec.BinaryPath == "" || spec.HomePath == "" {
 		return errors.New("opscontrol: InstallSpec requires BinaryPath and HomePath")
 	}
+	wasActive, err := s.Active()
+	if err != nil {
+		return err
+	}
 	unitDir, err := os.UserHomeDir()
 	if err != nil {
 		return fmt.Errorf("opscontrol: resolve user home: %w", err)
@@ -138,6 +142,13 @@ func (s *SystemdManager) Install(spec InstallSpec) error {
 	}
 	if out, err := exec.Command(systemctlBinary, "--user", "enable", "--now", s.UnitName+".service").CombinedOutput(); err != nil {
 		return fmt.Errorf("opscontrol: enable --now: %w: %s", err, strings.TrimSpace(string(out)))
+	}
+	// enable --now does not restart an already active service. A repeat
+	// explicit install must load the new unit environment and socket path.
+	if wasActive {
+		if out, err := exec.Command(systemctlBinary, "--user", "restart", s.UnitName+".service").CombinedOutput(); err != nil {
+			return fmt.Errorf("opscontrol: restart updated service: %w: %s", err, strings.TrimSpace(string(out)))
+		}
 	}
 	return nil
 }
@@ -264,6 +275,12 @@ func (s *SystemdManager) renderUnit(spec InstallSpec) string {
 	if spec.StackName != "" {
 		stackEnv = fmt.Sprintf("Environment=DECEPTICON_STACK_NAME=%s\n", spec.StackName)
 	}
+	runEnv := ""
+	readWritePaths := spec.HomePath
+	if spec.RunDir != "" {
+		runEnv = fmt.Sprintf("Environment=DECEPTICON_OPSCONTROL_RUN_DIR=%s\n", spec.RunDir)
+		readWritePaths += " " + spec.RunDir
+	}
 	// WorkingDirectory MUST be $DECEPTICON_HOME because compose's
 	// config-hash mixes the project working dir into the per-container
 	// label. Without this the daemon spawns containers with
@@ -289,7 +306,7 @@ ExecStart=%s opscontrol daemon
 WorkingDirectory=%s
 EnvironmentFile=-%s/.env
 Environment=DECEPTICON_HOME=%s
-%sRestart=on-failure
+%s%sRestart=on-failure
 RestartSec=5s
 NoNewPrivileges=true
 ProtectSystem=full
@@ -299,5 +316,5 @@ SyslogIdentifier=%s
 
 [Install]
 WantedBy=default.target
-`, spec.BinaryPath, spec.HomePath, spec.HomePath, spec.HomePath, stackEnv, spec.HomePath, s.UnitName)
+`, spec.BinaryPath, spec.HomePath, spec.HomePath, spec.HomePath, stackEnv, runEnv, readWritePaths, s.UnitName)
 }

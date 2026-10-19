@@ -2,7 +2,9 @@ package opscontrol
 
 import (
 	"errors"
+	"os"
 	"runtime"
+	"strings"
 )
 
 // ServiceManager abstracts the OS-native init system that owns the
@@ -18,7 +20,7 @@ import (
 //     systemd=true in /etc/wsl.conf)
 //   - LaunchdManager (macOS user LaunchAgent)
 //   - noopManager    (every other host — Windows, WSL2 without
-//                     systemd, Linux without per-user systemd)
+//     systemd, Linux without per-user systemd)
 //
 // Every method is idempotent. Install on an already-installed unit
 // re-writes the unit file (so binary-path / DECEPTICON_HOME drift
@@ -80,6 +82,49 @@ type InstallSpec struct {
 	// empty). Templated into the unit name + Environment so two
 	// stacks coexist without colliding socket paths or unit names.
 	StackName string
+	RunDir    string
+}
+
+// ManagedRunDirMatches checks the installed service file before starting a
+// managed daemon. A caller's environment does not change an existing unit.
+func ManagedRunDirMatches(manager ServiceManager) (bool, error) {
+	override := RunDirOverride()
+	if override == "" {
+		return true, nil
+	}
+	var path string
+	var expected string
+	switch m := manager.(type) {
+	case *SystemdManager:
+		var err error
+		path, err = m.unitPath()
+		if err != nil {
+			return false, err
+		}
+		expected = "Environment=DECEPTICON_OPSCONTROL_RUN_DIR=" + override
+	case *LaunchdManager:
+		var err error
+		path, err = m.plistPath()
+		if err != nil {
+			return false, err
+		}
+		expected = "<key>DECEPTICON_OPSCONTROL_RUN_DIR</key>\n        <string>" + override + "</string>"
+	default:
+		return false, errors.New("opscontrol: unknown managed service configuration")
+	}
+	body, err := os.ReadFile(path)
+	if err != nil {
+		return false, err
+	}
+	if _, ok := manager.(*LaunchdManager); ok {
+		return strings.Contains(string(body), expected), nil
+	}
+	for _, line := range strings.Split(string(body), "\n") {
+		if strings.TrimSpace(line) == expected {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 // DetectServiceManager returns the best ServiceManager for the host.
@@ -114,11 +159,13 @@ var ErrNotInstalled = errors.New("opscontrol: service is not installed; run `dec
 // the launcher path stays untouched.
 type noopManager struct{}
 
-func (noopManager) Name() string                  { return "none" }
-func (noopManager) Available() bool               { return false }
-func (noopManager) Installed() (bool, error)      { return false, nil }
-func (noopManager) Active() (bool, error)         { return false, nil }
-func (noopManager) Install(_ InstallSpec) error   { return errors.New("opscontrol: no service manager available on this host (falling back to launcher-spawned mode)") }
-func (noopManager) Uninstall() error              { return nil }
-func (noopManager) Start() error                  { return ErrNotInstalled }
-func (noopManager) Stop() error                   { return nil }
+func (noopManager) Name() string             { return "none" }
+func (noopManager) Available() bool          { return false }
+func (noopManager) Installed() (bool, error) { return false, nil }
+func (noopManager) Active() (bool, error)    { return false, nil }
+func (noopManager) Install(_ InstallSpec) error {
+	return errors.New("opscontrol: no service manager available on this host (falling back to launcher-spawned mode)")
+}
+func (noopManager) Uninstall() error { return nil }
+func (noopManager) Start() error     { return ErrNotInstalled }
+func (noopManager) Stop() error      { return nil }

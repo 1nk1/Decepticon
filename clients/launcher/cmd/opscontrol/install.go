@@ -71,6 +71,7 @@ func EnsureInstalled() error {
 		BinaryPath: exe,
 		HomePath:   homePath,
 		StackName:  internal.StackName(),
+		RunDir:     internal.RunDirOverride(),
 	}
 
 	ui.Info(fmt.Sprintf("Installing opscontrol via %s (unit=%s)...", mgr.Name(), internal.ServiceUnitName()))

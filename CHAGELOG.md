@@ -1,4 +1,4 @@
-# Changelog
+# Decepticon version history
 
 All notable changes to the Decepticon project. Format based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning
@@ -28,6 +28,22 @@ Keep proposed and unmerged changes out of released sections.
   This source integration does not publish a release or deploy SaaS. Paired SaaS
   integration: [decepticon-saas#1294](https://github.com/BitterSecurity/decepticon-saas/pull/1294).
 
+- Proposed [PR #1009](https://github.com/BitterSecurity/Decepticon/pull/1009): add the Desktop `serve --engagement` adapter for existing local
+  engagements, with native model selection, private runtime configuration and
+  engagement-scoped mounts. Preserve normal CLI startup and existing homes.
+  Support canonical Desktop workspace/engagement document paths alongside legacy
+  CLI folders. Source work only; no package version or release is published.
+  Review fix: route the selected model into every agent role and use the catalog's
+  actual Kimi/Minimax credential names; retain Windows platform-specific file
+  permission checks alongside private configuration handling. Keep Desktop
+  selection on one model without inherited cloud fallbacks, preserve the
+  validated workspace path for spawned workloads, detect managed-service
+  run-directory mismatches before startup, and apply updated service settings
+  during explicit reinstall.
+
+- Consolidate change tracking in this single `CHAGELOG.md`; remove the former
+  alternate entry point and update contributor/release instructions.
+
 - PR #1013 verification follow-up: format catalog tooling with repository Ruff
   rules and keep safety assertions independent of the growing model count.
 
@@ -37,6 +53,12 @@ Keep proposed and unmerged changes out of released sections.
   admit their metadata in the locally reviewed generator. Existing credentials,
   defaults and explicit local compatibility overrides remain; this does not
   publish an OSS version or prove provider availability.
+
+- Proposed [PR #1014](https://github.com/BitterSecurity/Decepticon/pull/1014):
+  defer agent factory exports until requested, so framework role registration
+  does not construct every agent graph during import. Preserve factory names,
+  identity, signatures and all configured LangGraph endpoints. Existing startup
+  health limits remain unchanged; this source fix is not a published release.
 
 - Proposed [PR #1011](https://github.com/BitterSecurity/Decepticon/pull/1011):
   own a shared public LiteLLM model catalog and deterministic route/CLI generation
@@ -177,7 +199,7 @@ Keep proposed and unmerged changes out of released sections.
   Workflow updates affect new executions; existing checkpoint pins remain stable.
   Optional legacy VR and benchmark contracts retain their
   separately documented integration boundaries. Add root change-tracking
-  instructions and the `Chagelog.md` entry point while preserving this canonical
+  instructions while preserving the canonical CHAGELOG.md
   history and release automation. Included in v1.5.0.
 - Regenerate the checked-in Skillogy graph from the changed skill corpus so
   retrieval metadata and the deterministic CI build gate match the source (#999).
