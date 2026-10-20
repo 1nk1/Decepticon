@@ -15,7 +15,8 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed Desktop settings policy adapter (PR pending): host-owned,
+- Proposed [PR #1027](https://github.com/BitterSecurity/Decepticon/pull/1027)
+  Desktop settings policy adapter: host-owned,
   workspace/engagement-scoped model routing and tool approval with explicit
   selected-model failures and revocation checks before dispatch and result
   publication. Existing behavior remains unchanged without the opt-in.
