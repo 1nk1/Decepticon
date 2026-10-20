@@ -15,7 +15,8 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed launcher correction (PR link pending): startup readiness and `doctor`
+- Proposed [PR #1024](https://github.com/BitterSecurity/Decepticon/pull/1024):
+  startup readiness and `doctor`
   now honor the shell's `LANGGRAPH_PORT` before `.env`, matching Compose's
   published port. An explicitly empty shell value selects the default 2024.
   This fixes false failures when the two configurations disagree; it does not
