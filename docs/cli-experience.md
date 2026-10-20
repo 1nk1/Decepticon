@@ -62,10 +62,11 @@ newline fallbacks remain available when a terminal cannot distinguish modifiers.
 
 ## Upgrade behavior
 
-These changes are proposed under Unreleased. They require a launcher/CLI image and
-Compose configuration containing this PR; existing released images do not acquire
-the features simply because the source branch has changed. No release version is
-assigned here.
+The keyboard and slash command changes are merged into `main` and tracked under
+Unreleased in [version history](../CHAGELOG.md). They require a launcher/CLI image
+and, where applicable, Compose configuration containing the changes. Existing
+released images do not acquire the features simply because the source branch has
+changed. No release version is assigned here.
 
 The CLI Compose service mounts the selected engagement at `/workspace`, consistent
 with the agent workspace. Drafts, prompt history and Blue cursors prefer the
