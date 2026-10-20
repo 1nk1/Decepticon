@@ -37,6 +37,8 @@ from langchain.agents.middleware import AgentMiddleware
 from langchain_core.language_models import BaseChatModel
 from typing_extensions import Annotated, NotRequired, override
 
+from decepticon.desktop_dispatch import observe_dispatch
+from decepticon.desktop_policy import read_desktop_policy, require_current_policy
 from decepticon.llm.factory import LLMFactory
 from decepticon.middleware.state_reducers import reduce_converging_value
 from decepticon_core.types.llm import LLMModelMapping
@@ -144,9 +146,23 @@ class ModelOverrideMiddleware(AgentMiddleware):
     def __init__(self, role: str | None = None) -> None:
         super().__init__()
         self._role = role
+        self._desktop_policy = read_desktop_policy()
 
     @override
     def wrap_model_call(self, request, handler):
+        policy = self._desktop_policy
+        if policy is not None:
+            require_current_policy(policy)
+            selection = policy.selection(self._role)
+            model = _build_proxied_llm(selection.model, request.model)
+            settings = dict(request.model_settings)
+            if selection.effort is not None:
+                settings["reasoning_effort"] = selection.effort
+            require_current_policy(policy)
+            result = handler(request.override(model=model, model_settings=settings))
+            require_current_policy(policy)
+            observe_dispatch(policy, self._role, request)
+            return result
         override_id = _read_override(request, self._role)
         if not override_id:
             return handler(request)
@@ -160,6 +176,19 @@ class ModelOverrideMiddleware(AgentMiddleware):
 
     @override
     async def awrap_model_call(self, request, handler):
+        policy = self._desktop_policy
+        if policy is not None:
+            require_current_policy(policy)
+            selection = policy.selection(self._role)
+            model = _build_proxied_llm(selection.model, request.model)
+            settings = dict(request.model_settings)
+            if selection.effort is not None:
+                settings["reasoning_effort"] = selection.effort
+            require_current_policy(policy)
+            result = await handler(request.override(model=model, model_settings=settings))
+            require_current_policy(policy)
+            observe_dispatch(policy, self._role, request)
+            return result
         override_id = _read_override(request, self._role)
         if not override_id:
             return await handler(request)

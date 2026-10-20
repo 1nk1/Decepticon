@@ -116,6 +116,10 @@ func parseDesktopRuntime(serve bool) (*desktopModelRuntime, error) {
 }
 
 func writeDesktopRuntimeOverlay(home string, selected *desktopModelRuntime) (string, error) {
+	policyEnv, policyMount, err := desktopPolicyOverlay()
+	if err != nil {
+		return "", err
+	}
 	file, err := os.CreateTemp(home, ".desktop-compose-*.yml")
 	if err != nil {
 		return "", fmt.Errorf("create Desktop runtime overlay: %w", err)
@@ -143,7 +147,7 @@ func writeDesktopRuntimeOverlay(home string, selected *desktopModelRuntime) (str
 	if selected.provider == "ollama" {
 		agentEnv += "      DECEPTICON_LLM__TIMEOUT: '600'\n"
 	}
-	content := "services:\n  litellm:\n    environment:\n" + serviceEnv + "  langgraph:\n    environment:\n" + agentEnv
+	content := "services:\n  litellm:\n    environment:\n" + serviceEnv + "  langgraph:\n    environment:\n" + agentEnv + policyEnv + policyMount
 	if err := config.ProtectPrivateFile(path); err != nil {
 		os.Remove(path)
 		return "", fmt.Errorf("protect Desktop runtime overlay: %w", err)

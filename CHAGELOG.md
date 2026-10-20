@@ -15,6 +15,13 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed Desktop settings policy adapter (PR pending): host-owned,
+  workspace/engagement-scoped model routing and tool approval with explicit
+  selected-model failures and revocation checks before dispatch and result
+  publication. Existing behavior remains unchanged without the opt-in.
+  [Contract and qualification limits](docs/design/desktop-settings-policy.md).
+  Runtime pin, native qualification and release remain pending.
+
 - Proposed [PR #1023](https://github.com/BitterSecurity/Decepticon/pull/1023):
   name the workload-lifecycle command and Go packages `infracontrol`, while
   retaining `decepticon opscontrol` as an alias. New service units invoke the
