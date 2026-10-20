@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed CLI prompt follow-up (PR link pending): process Backspace even when
+- Proposed [PR #1025](https://github.com/BitterSecurity/Decepticon/pull/1025): process Backspace even when
   terminal input batches it with typed text, and keep Up/Down navigating recalled
   slash-command history until another editing action. Preserve multiline paste,
   Unicode graphemes and the unsent draft. Source only; no release is published.
