@@ -12,10 +12,11 @@ import (
 var version = "dev"
 
 var rootCmd = &cobra.Command{
-	Use:   "decepticon",
-	Args:  cobra.ArbitraryArgs,
-	Short: "Decepticon — Autonomous Hacking Agent for Red Team",
-	Long:  ui.RenderBanner() + "\n" + ui.Dim.Render("Autonomous Hacking Agent for Red Team"),
+	Use:     "decepticon",
+	Args:    cobra.ArbitraryArgs,
+	Short:   "Decepticon — Autonomous Hacking Agent for Red Team",
+	Long:    ui.RenderBanner() + "\n" + ui.Dim.Render("Autonomous Hacking Agent for Red Team") + "\n\nStart a session: decepticon start\nInspect services: decepticon status or decepticon doctor\nFollow logs: decepticon logs [service]",
+	Example: "  decepticon start\n  decepticon doctor --json\n  decepticon logs langgraph",
 	CompletionOptions: cobra.CompletionOptions{
 		HiddenDefaultCmd: true,
 	},
@@ -24,6 +25,7 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
+	decorateLauncherHelp()
 	command, err := rootCmd.ExecuteC()
 	if err != nil {
 		if errors.Is(err, errDoctorFailed) {
