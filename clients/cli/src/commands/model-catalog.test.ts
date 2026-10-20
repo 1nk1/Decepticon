@@ -1,24 +1,21 @@
-import { expect, test } from "vitest";
-import model from "./model";
-import { getModelOverride, setModelOverride } from "./modelOverride";
-import type { CommandContext } from "./types";
+import { afterEach, expect, test, vi } from "vitest";
+import model from "./model.js";
+import { getModelOverride, setModelOverride } from "./modelOverride.js";
+import type { CommandContext } from "./types.js";
 
-test("listed Ollama model can be selected without unknown-model warning", () => {
-  const previous = getModelOverride();
+afterEach(() => { setModelOverride(""); vi.unstubAllEnvs(); });
+
+test("a configured Ollama model can be selected without a catalogue warning", () => {
+  vi.stubEnv("DECEPTICON_COMPOSE_ENV_FILE", "/nonexistent/decepticon-test.env");
+  vi.stubEnv("OLLAMA_API_BASE", "http://localhost:11434");
+  vi.stubEnv("OLLAMA_MODEL", "qwen3-coder:30b");
   const messages: string[] = [];
   const context: CommandContext = {
-    addSystemEvent: text => messages.push(text),
-    clearEvents() {}, submit() {}, resume() {}, exit() {},
+    addSystemEvent: text => messages.push(text), clearEvents() {}, submit() {}, resume() {}, exit() {},
   };
-  try {
-    model.execute("", context);
-    const catalog = messages.pop() ?? "";
-    const ollama = catalog.split("Ollama (local):\n")[1]?.split("\n")[0].trim() ?? "";
-    expect(ollama).not.toBe("");
-    model.execute(ollama, context);
-    expect(getModelOverride()).toBe("ollama_chat/qwen3-coder:30b");
-    expect(messages.some(text => text.includes("not in the built-in catalog"))).toBe(false);
-  } finally {
-    setModelOverride(previous ?? "");
-  }
+  model.execute("", context);
+  expect(messages[0]).toContain("ollama_chat/qwen3-coder:30b");
+  model.execute("ollama_chat/qwen3-coder:30b", context);
+  expect(getModelOverride()).toBe("ollama_chat/qwen3-coder:30b");
+  expect(messages.some(text => text.includes("not in the built-in catalog"))).toBe(false);
 });

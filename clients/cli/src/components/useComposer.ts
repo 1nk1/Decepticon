@@ -5,14 +5,18 @@ export function useComposer(engagement: string) {
   const path = composerPath(engagement);
   const [error, setError] = useState("");
   const [value, setValue] = useState("");
-  const [cursor, setCursor] = useState(0);
+  const [cursor, setCursorState] = useState(0);
   const history = useRef<readonly string[]>([]);
   const historyIndex = useRef(0);
   const savedDraft = useRef("");
   const loadedPath = useRef("");
   const currentValue = useRef(value);
+  const currentCursor = useRef(cursor);
   currentValue.current = value;
-  function replace(text: string) { currentValue.current = text; setValue(text); setCursor(text.length); }
+  currentCursor.current = cursor;
+  function setCursor(position: number) { currentCursor.current = position; setCursorState(position); }
+  function replace(text: string) { currentValue.current = text; currentCursor.current = text.length; setValue(text); setCursorState(text.length); }
+  function snapshot() { return { value: currentValue.current, cursor: currentCursor.current }; }
   useEffect(() => {
     try {
       const stored = loadComposer(path);
@@ -48,9 +52,9 @@ export function useComposer(engagement: string) {
     replace("");
   }
   function recall(direction: number) {
-    if (historyIndex.current === history.current.length) savedDraft.current = value;
+    if (historyIndex.current === history.current.length) savedDraft.current = currentValue.current;
     historyIndex.current = Math.max(0, Math.min(history.current.length, historyIndex.current + direction));
     replace(history.current[historyIndex.current] ?? savedDraft.current);
   }
-  return { value, cursor, setCursor, replace, remember, recall, history, error, setError };
+  return { value, cursor, setCursor, replace, snapshot, remember, recall, history, error, setError };
 }

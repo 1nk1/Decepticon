@@ -7,7 +7,7 @@ import { labelForAgent } from "../utils/agents.js";
 import type { RunState } from "../hooks/useAgent.js";
 import { completions, completedInput } from "./composerCompletion.js";
 import { editExternally } from "./composerEditor.js";
-import { verticalCursor, draftViewport } from "./composerCursor.js";
+import { verticalCursor, draftViewport, previousGrapheme, nextGrapheme, deleteAtCursor, isForwardDeleteSequence } from "./composerCursor.js";
 import { useComposer } from "./useComposer.js";
 
 interface PromptProps {
@@ -43,6 +43,7 @@ function Composer({ runState, onSubmit, activeAgent = null, assistantId = "decep
   const [search, setSearch] = useState<string | null>(null);
   const [searchIndex, setSearchIndex] = useState(0);
   const paste = useRef<string | null>(null);
+  const rawInput = useRef("");
   const lastClear = useRef(clearDraftToken);
   const lastRequest = useRef<number | undefined>(undefined);
   const choices = dismissed ? [] : completions(value, getCommands());
@@ -62,12 +63,23 @@ function Composer({ runState, onSubmit, activeAgent = null, assistantId = "decep
     process.stdout.write("\u001b[?2004h");
     return () => { process.stdout.write("\u001b[?2004l"); };
   }, []);
+  // Subscribe before useInput: Ink strips both DEL and CSI 3~ to an empty
+  // input string, so keep the original event to distinguish the two keys.
+  const { internal_eventEmitter: inputEvents } = useStdin();
+  useEffect(() => {
+    const rememberRaw = (sequence: string) => { rawInput.current = sequence; };
+    inputEvents.on("input", rememberRaw);
+    return () => { inputEvents.off("input", rememberRaw); };
+  }, [inputEvents]);
 
   function insert(text: string) {
+    const { value, cursor } = editor.snapshot();
     replace(value.slice(0, cursor) + text + value.slice(cursor));
     setCursor(cursor + text.length);
   }
   useInput((input, key) => {
+    const { value, cursor } = editor.snapshot();
+    const choices = dismissed ? [] : completions(value, getCommands());
     if (input === "[200~") { paste.current = ""; return; }
     if (input === "[201~") {
       if (paste.current !== null) { insert(paste.current.replace(/\r\n?/g, "\n")); paste.current = null; }
@@ -115,28 +127,36 @@ function Composer({ runState, onSubmit, activeAgent = null, assistantId = "decep
       else onSubmit(submitted);
       return;
     }
-    if (key.leftArrow) { setCursor(Math.max(0, cursor - 1)); return; }
-    if (key.rightArrow) { setCursor(Math.min(value.length, cursor + 1)); return; }
+    if (key.leftArrow || (key.ctrl && input === "b")) { setCursor(previousGrapheme(value, cursor)); return; }
+    if (key.rightArrow || (key.ctrl && input === "f")) { setCursor(nextGrapheme(value, cursor)); return; }
+    if (key.home) { setCursor(value.lastIndexOf("\n", cursor - 1) + 1); return; }
+    if (key.end) { const end = value.indexOf("\n", cursor); setCursor(end < 0 ? value.length : end); return; }
     if (key.ctrl && input === "a") { setCursor(value.lastIndexOf("\n", cursor - 1) + 1); return; }
     if (key.ctrl && input === "e") { const end = value.indexOf("\n", cursor); setCursor(end < 0 ? value.length : end); return; }
-    if (key.ctrl && input === "u") { replace(value.slice(cursor)); setCursor(0); return; }
-    if (key.delete) {
-      replace(value.slice(0, cursor) + value.slice(cursor + 1)); setCursor(cursor); return;
+    if (key.ctrl && input === "u") { const start = value.lastIndexOf("\n", cursor - 1) + 1; replace(value.slice(0, start) + value.slice(cursor)); setCursor(start); return; }
+    if (key.ctrl && input === "k") { const end = value.indexOf("\n", cursor); replace(value.slice(0, cursor) + value.slice(end < 0 ? value.length : end === cursor ? end + 1 : end)); setCursor(cursor); return; }
+    if (key.ctrl && input === "w") {
+      const start = value.slice(0, cursor).search(/\S+\s*$/);
+      if (start >= 0) { replace(value.slice(0, start) + value.slice(cursor)); setCursor(start); }
+      return;
     }
-    if (key.backspace) {
-      replace(value.slice(0, Math.max(0, cursor - 1)) + value.slice(cursor)); setCursor(Math.max(0, cursor - 1)); return;
+    if (key.delete || key.backspace || (key.ctrl && input === "d")) {
+      const edited = deleteAtCursor(value, cursor, (key.delete && isForwardDeleteSequence(rawInput.current)) || (key.ctrl && input === "d"));
+      replace(edited.value); setCursor(edited.cursor); return;
     }
     if (!key.ctrl && !key.meta && input) insert(input.replace(/\u001b\[20[01]~/g, "").replace(/\r\n?/g, "\n"));
   });
   const mode = assistantId === "soundwave" ? "Plan" : assistantId === "blue_cell" ? "Blue" : "Red";
   const viewport = draftViewport(value, cursor);
+  const cursorEnd = nextGrapheme(viewport.text, viewport.cursor);
+  const cursorGlyph = viewport.text.slice(viewport.cursor, cursorEnd);
   const lineCount = viewport.lines;
   const menuStart = Math.max(0, selected - 5);
   return (
     <Box flexDirection="column" marginTop={1}>
       {queuedMessage && isActive && <Text dimColor>Queued: {queuedMessage}</Text>}
       <Text dimColor>{"─".repeat(columns)}</Text>
-      <Box><Text>{"› "}</Text><Text>{viewport.text.slice(0, viewport.cursor)}<Text inverse>{viewport.text[viewport.cursor] === "\n" || viewport.cursor === viewport.text.length ? " " : viewport.text[viewport.cursor]}</Text>{viewport.text.slice(viewport.cursor + (viewport.text[viewport.cursor] === "\n" ? 0 : 1))}</Text></Box>
+      <Box><Text>{"› "}</Text><Text>{viewport.text.slice(0, viewport.cursor)}<Text inverse>{cursorGlyph === "\n" || !cursorGlyph ? " " : cursorGlyph}</Text>{viewport.text.slice(viewport.cursor + (cursorGlyph === "\n" ? 0 : cursorGlyph.length))}</Text></Box>
       {lineCount > 3 && <Text dimColor>{lineCount} lines · {value.length} characters · Ctrl+G opens editor</Text>}
       <Text dimColor>{"─".repeat(columns)}</Text>
       {search !== null && <Text>History search: {search} · {matches[searchIndex] ?? "No match"}</Text>}
