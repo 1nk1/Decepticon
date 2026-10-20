@@ -15,6 +15,11 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed CLI prompt follow-up (PR link pending): process Backspace even when
+  terminal input batches it with typed text, and keep Up/Down navigating recalled
+  slash-command history until another editing action. Preserve multiline paste,
+  Unicode graphemes and the unsent draft. Source only; no release is published.
+
 - Proposed [PR #1023](https://github.com/BitterSecurity/Decepticon/pull/1023):
   name the workload-lifecycle command and Go packages `infracontrol`, while
   retaining `decepticon opscontrol` as an alias. New service units invoke the
