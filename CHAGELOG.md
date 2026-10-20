@@ -15,6 +15,12 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed launcher correction (PR link pending): startup readiness and `doctor`
+  now honor the shell's `LANGGRAPH_PORT` before `.env`, matching Compose's
+  published port. An explicitly empty shell value selects the default 2024.
+  This fixes false failures when the two configurations disagree; it does not
+  establish resolution of the affected host's separate timeout in issue #1004.
+
 - Proposed [PR #1023](https://github.com/BitterSecurity/Decepticon/pull/1023):
   name the workload-lifecycle command and Go packages `infracontrol`, while
   retaining `decepticon opscontrol` as an alias. New service units invoke the

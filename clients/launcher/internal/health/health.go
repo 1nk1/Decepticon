@@ -74,6 +74,14 @@ func CheckLangGraph(env map[string]string) error {
 
 func ProbeLangGraph(ctx context.Context, env map[string]string) error {
 	port := config.Get(env, "LANGGRAPH_PORT", DefaultLangGraphPort)
+	// Match Compose interpolation: the process environment overrides --env-file,
+	// including an explicit empty value, which selects ${LANGGRAPH_PORT:-2024}.
+	if processPort, set := os.LookupEnv("LANGGRAPH_PORT"); set {
+		port = processPort
+		if port == "" {
+			port = DefaultLangGraphPort
+		}
+	}
 	portNumber, err := strconv.Atoi(port)
 	if err != nil || portNumber < 1 || portNumber > 65535 {
 		return fmt.Errorf("LangGraph invalid LANGGRAPH_PORT %q: expected an integer from 1 to 65535", port)
