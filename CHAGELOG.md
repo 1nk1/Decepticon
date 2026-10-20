@@ -15,6 +15,14 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed CLI consumer-readiness correction (PR link pending): interactive
+  startup checks the configured CLI service's API route instead of requiring
+  host loopback connectivity. Service-only/Desktop startup and `doctor` retain
+  their host endpoint checks. Exact assistant validation, bounded requests and
+  the existing startup deadline apply to both routes; broken CLI DNS or API
+  responses still block interactive startup. Related to #1004; the reporter's
+  specific host forwarding timeout is not claimed resolved.
+
 - Proposed [PR #1024](https://github.com/BitterSecurity/Decepticon/pull/1024):
   startup readiness and `doctor`
   now honor the shell's `LANGGRAPH_PORT` before `.env`, matching Compose's

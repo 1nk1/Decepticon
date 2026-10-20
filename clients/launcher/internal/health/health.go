@@ -20,6 +20,7 @@ const (
 	DefaultLiteLLMPort   = "4000"
 	DefaultNeo4jHTTPPort = "7474"
 	DefaultWebPort       = "3000"
+	MaxCatalogBytes      = 1 << 20
 )
 
 // Timeouts are var (not const) so tests can shrink them.
@@ -45,17 +46,24 @@ var (
 // DECEPTICON_STARTUP_TIMEOUT_SECONDS overrides LangGraphTimeout for slow
 // environments where graph compile is the long pole.
 func CheckLangGraph(env map[string]string) error {
+	return WaitForReadiness(context.Background(), func(ctx context.Context) error {
+		return ProbeLangGraph(ctx, env)
+	})
+}
+
+// WaitForReadiness bounds retries and requests for the selected consumer route.
+func WaitForReadiness(parent context.Context, probe func(context.Context) error) error {
 	timeout := LangGraphTimeout
 	if v := os.Getenv("DECEPTICON_STARTUP_TIMEOUT_SECONDS"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil && n > 0 {
 			timeout = time.Duration(n) * time.Second
 		}
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(parent, timeout)
 	defer cancel()
 	var lastErr error
 	for {
-		err := ProbeLangGraph(ctx, env)
+		err := probe(ctx)
 		if err == nil {
 			return nil
 		}
@@ -66,7 +74,7 @@ func CheckLangGraph(env map[string]string) error {
 		select {
 		case <-ctx.Done():
 			timer.Stop()
-			return fmt.Errorf("LangGraph readiness timed out after %s; last observation: %w; inspect Docker published ports and `decepticon doctor --json`", timeout, lastErr)
+			return fmt.Errorf("LangGraph readiness timed out after %s; last observation: %w; inspect the selected consumer route and `decepticon doctor --json`", timeout, lastErr)
 		case <-timer.C:
 		}
 	}
@@ -114,29 +122,39 @@ func ProbeLangGraph(ctx context.Context, env map[string]string) error {
 			response.Body.Close()
 			continue
 		}
-		const maxCatalogBytes = 1 << 20
-		body, readErr := io.ReadAll(io.LimitReader(response.Body, maxCatalogBytes+1))
+		body, readErr := io.ReadAll(io.LimitReader(response.Body, MaxCatalogBytes+1))
 		response.Body.Close()
 		if readErr != nil {
 			return fmt.Errorf("LangGraph assistant catalog read failed (%s): %w", endpoint, readErr)
 		}
-		if len(body) > maxCatalogBytes {
-			return fmt.Errorf("LangGraph assistant catalog exceeds %d bytes (%s)", maxCatalogBytes, endpoint)
+		if len(body) > MaxCatalogBytes {
+			return fmt.Errorf("LangGraph assistant catalog exceeds %d bytes (%s)", MaxCatalogBytes, endpoint)
 		}
-		var assistants []struct {
-			GraphID string `json:"graph_id"`
+		if err := ValidateAssistantCatalog(body); err != nil {
+			return fmt.Errorf("LangGraph %w (%s)", err, endpoint)
 		}
-		if err := json.Unmarshal(body, &assistants); err != nil {
-			return fmt.Errorf("LangGraph invalid assistant catalog (%s): %w", endpoint, err)
-		}
-		for _, assistant := range assistants {
-			if assistant.GraphID == "decepticon" {
-				return nil
-			}
-		}
-		return fmt.Errorf("LangGraph /ok responds but decepticon assistant is not registered (%s)", endpoint)
+		return nil
 	}
 	return nil
+}
+
+// ValidateAssistantCatalog is shared by host and CLI-container readiness probes.
+func ValidateAssistantCatalog(body []byte) error {
+	if len(body) > MaxCatalogBytes {
+		return fmt.Errorf("assistant catalog exceeds %d bytes", MaxCatalogBytes)
+	}
+	var assistants []struct {
+		GraphID string `json:"graph_id"`
+	}
+	if err := json.Unmarshal(body, &assistants); err != nil {
+		return fmt.Errorf("invalid assistant catalog: %w", err)
+	}
+	for _, assistant := range assistants {
+		if assistant.GraphID == "decepticon" {
+			return nil
+		}
+	}
+	return fmt.Errorf("/ok responds but decepticon assistant is not registered")
 }
 
 // CheckLiteLLM polls the LiteLLM health endpoint. Kept for diagnostics.
@@ -213,9 +231,9 @@ func CheckWeb(env map[string]string) error {
 // gap is graph-compile readiness inside LangGraph: /ok answers before the
 // decepticon graph finishes compiling, so we probe /assistants/search until
 // the assistant is registered.
-func WaitForServices(env map[string]string) error {
+func WaitForServices(ctx context.Context, probe func(context.Context) error) error {
 	ui.Info("Verifying agent stack...")
-	if err := CheckLangGraph(env); err != nil {
+	if err := WaitForReadiness(ctx, probe); err != nil {
 		ui.Error(err.Error())
 		return err
 	}

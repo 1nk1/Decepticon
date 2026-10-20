@@ -370,7 +370,7 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string) 
 	}
 
 	// 5. Health checks
-	if err := health.WaitForServices(env); err != nil {
+	if err := waitForStartupServices(cmd.Context(), c, env, existingEngagement); err != nil {
 		return fmt.Errorf("service readiness: %w; inspect `decepticon doctor` and `decepticon logs` (services kept)", err)
 	}
 
@@ -420,6 +420,16 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string) 
 
 	ui.DimText("CLI exited. Services kept running — run 'decepticon stop' to shut down.")
 	return nil
+}
+
+// Interactive sessions consume the API from the CLI container. Service-only
+// launches serve host clients and must continue to verify the published route.
+func waitForStartupServices(ctx context.Context, c *compose.Compose, env map[string]string, existingEngagement string) error {
+	probe := c.ProbeCLI
+	if existingEngagement != "" {
+		probe = func(ctx context.Context) error { return health.ProbeLangGraph(ctx, env) }
+	}
+	return health.WaitForServices(ctx, probe)
 }
 
 // probeOllamaIfSelected does a best-effort GET on /api/tags to verify the
