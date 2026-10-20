@@ -15,6 +15,12 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #pending](https://github.com/BitterSecurity/Decepticon/pull/pending):
+  document launcher commands and session startup; suggest command names for
+  root typos, validate log service names against the Compose stack, and add
+  `status --json` for scripts. Keep existing session, service and human-output
+  behavior. Source only; no release is published.
+
 - Proposed [PR #1012](https://github.com/BitterSecurity/Decepticon/pull/1012):
   add UUID artifact revisions, immutable snapshots, a structured Info log and
   OPPLAN search toward independently verified High/Critical findings. Preserve
