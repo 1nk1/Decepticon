@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed CLI keyboard consistency update (PR link pending): add Shift+Enter
+- Proposed [PR #1028](https://github.com/BitterSecurity/Decepticon/pull/1028): add Shift+Enter
   and backslash-Enter multiline input, word navigation/deletion, cut recovery,
   input undo, empty-prompt help, Alt+P model selection and confirmed empty Ctrl+D
   exit. Esc dismisses focused UI before pausing active work while retaining queued
