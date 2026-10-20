@@ -28,3 +28,20 @@ it("preserves the latest unsent draft when unmounted before React commits the ed
   act(() => { result.current.replace("보존할 초안"); unmount(); });
   expect(loadComposer(composerPath("draft-test")).draft).toBe("보존할 초안");
 });
+
+it("applies rapid edits to the latest draft and cursor before React renders", () => {
+  const root = mkdtempSync(join(tmpdir(), "composer-rapid-"));
+  roots.push(root);
+  vi.stubEnv("DECEPTICON_STATE_DIR", root);
+  const { result } = renderHook(() => useComposer("rapid-test"));
+  act(() => {
+    const editor = result.current;
+    editor.replace("abc");
+    editor.setCursor(2);
+    const { value, cursor } = editor.snapshot();
+    editor.replace(value.slice(0, cursor) + value.slice(cursor + 1));
+    editor.setCursor(cursor);
+  });
+  expect(result.current.value).toBe("ab");
+  expect(result.current.cursor).toBe(2);
+});
