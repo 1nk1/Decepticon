@@ -1,8 +1,10 @@
 # Owned browser adapter protocol (proposed)
 
 This OSS change integrates PR #1009 at
-`0e3642296b6afed33665524f2da303a6ba6c4fe9`. It does not qualify a native browser
-engine, change the default Playwright backend, or update a SaaS runtime pin.
+`0e3642296b6afed33665524f2da303a6ba6c4fe9` and adds the trusted API-run
+registration lifecycle. Native qualification is specific to the host and engine
+combination below. It does not change the default Playwright backend or update
+a SaaS runtime pin.
 
 ## Trusted registration and transport
 
@@ -39,10 +41,9 @@ model overlay, and never forwards credentials through Compose environment.
 requires both `config.configurable.run_id` and
 `config.configurable.desktop_engagement_id` to match. `browser_action` receives
 that config through LangChain injection; it is not in its model-facing schema.
-The launcher does not invent the LangGraph run UUID. Task30 must register the
-actual graph run with the host and supply the matching trusted configuration;
-generic desktop IDs cannot substitute for the platform run ID. Until that
-real graph path is driven, launcher/runtime integration is not qualified.
+The launcher does not invent the LangGraph run UUID. The trusted SDK lifecycle
+below registers the actual graph run with the host and supplies matching trusted
+configuration; generic desktop IDs cannot substitute for the platform run ID.
 Descriptor issuance must happen within its 60-second TTL; a cold container
 start that exceeds it must obtain a fresh registration, never extend a token.
 
@@ -167,9 +168,25 @@ session tokens, request internals and renderer authority are never result fields
 
 Socket/HTTP fixture tests exercise the real `browser_action.ainvoke` entry and
 wire protocol. They do not prove an installed browser, network containment,
-native screenshot or Windows forwarding. Task21 supplies that engine and
-Task30 qualifies the launcher/runtime pair before pinning. Native acceptance
-must remain nonzero until those real host scenarios run.
+native screenshot or Windows forwarding. Separate native-host qualification
+pairs the actual Rust supervisor/worker and approved-destination proxy with the
+real LangGraph API, the production engagement-entry middleware and browser tool.
+It includes a 65-second delay after handshake, API-generated run IDs, expired
+registration/startup failure and caller-cancellation cleanup. This is a model-free
+graph scenario, not a live LLM engagement.
+
+The current qualification matrix is explicit:
+
+| Platform / engine | Status |
+|---|---|
+| Linux/WSL, native Rust host and headless-shell revision 1248 | Actual API/native pair qualified with mandatory namespaces, scope proxy and owned profile; the host QA copy requires `MAP * ~NOTFOUND, EXCLUDE 127.0.0.1`. This OSS package does not ship that host or engine patch. |
+| Linux/WSL, installed desktop Chrome revision 1223 | Native-engine startup crashed in qualification; not qualified. Separate Playwright fixture results do not qualify this native combination. |
+| Windows / Docker forwarding | Rejected at startup; an independently qualified transport is still required. |
+
+The external native runtime must provide the `NativeHost` context above.
+A source merge is not a native-engine distribution, SaaS runtime pin update or
+release. Preserve independent host containment and cleanup evidence when changing
+that runtime.
 
 Run the real browser fixture with Playwright 1.60.0 and its Chromium revision
 1223 available (the binding is a test-only dependency):
