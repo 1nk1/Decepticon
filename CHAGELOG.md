@@ -15,6 +15,13 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Review follow-up for [PR #1015](https://github.com/BitterSecurity/Decepticon/pull/1015):
+  accept canonical parent-directory aliases used by macOS while still rejecting
+  descriptor symlinks and paths outside the private run directory. Test Windows'
+  explicit unsupported-transport rejection separately from Unix integration.
+  Native engine scope containment, real run registration and Windows forwarding
+  remain unqualified; keep the integration proposed and unreleased.
+
 - Proposed [PR #1023](https://github.com/BitterSecurity/Decepticon/pull/1023):
   name the workload-lifecycle command and Go packages `infracontrol`, while
   retaining `decepticon opscontrol` as an alias. New service units invoke the
@@ -53,6 +60,14 @@ Keep proposed and unmerged changes out of released sections.
   graph after protocol edits.
   This source integration does not publish a release or deploy SaaS. Paired SaaS
   integration: [decepticon-saas#1294](https://github.com/BitterSecurity/decepticon-saas/pull/1294).
+- Proposed [PR #1015](https://github.com/BitterSecurity/Decepticon/pull/1015):
+  Desktop owned-browser-v1 adapter with trusted per-run browser injection,
+  authenticated capability/identity negotiation, protected launcher socket mounts,
+  bounded cancellation and fail-closed protocol errors preserve the existing
+  `browser_action` schema and default Playwright behavior. Depends explicitly on
+  the reviewed PR #1009 revision `0e364229`; native engine containment, actual
+  graph run registration and Windows forwarding still require qualification.
+  No SaaS pin or release changes.
 
 - Proposed [PR #1009](https://github.com/BitterSecurity/Decepticon/pull/1009): add the Desktop `serve --engagement` adapter for existing local
   engagements, with native model selection, private runtime configuration and
