@@ -15,7 +15,26 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed [PR #1026](https://github.com/BitterSecurity/Decepticon/pull/1026):
+- Proposed [PR #1015](https://github.com/BitterSecurity/Decepticon/pull/1015)
+  lifecycle completion: add protected per-run directory mounts and a trusted SDK
+  caller that registers the API-generated run UUID after startup, publishes fresh
+  credentials atomically, handshakes before model work after queue admission,
+  isolates browser sessions, and revokes/stops them after
+  completion or failure. Retain the static descriptor option and default
+  Playwright backend. The compatible native host context remains a downstream
+  dependency; Windows forwarding is explicitly unsupported. No release or SaaS
+  runtime pin change is included. CI follow-up makes the new registration tests
+  explicitly narrow optional results without changing runtime behavior.
+
+- Review follow-up for [PR #1015](https://github.com/BitterSecurity/Decepticon/pull/1015):
+  accept canonical parent-directory aliases used by macOS while still rejecting
+  descriptor symlinks and paths outside the private run directory. Test Windows'
+  explicit unsupported-transport rejection separately from Unix integration.
+  Correct the protocol document's action count to 13.
+  Native engine support remains platform-specific; Windows forwarding remains
+  unqualified. Keep the integration proposed and unreleased.
+
+- Merged [PR #1026](https://github.com/BitterSecurity/Decepticon/pull/1026):
   interactive
   startup checks the configured CLI service's API route instead of requiring
   host loopback connectivity. Service-only/Desktop startup and `doctor` retain
@@ -75,6 +94,14 @@ Keep proposed and unmerged changes out of released sections.
   graph after protocol edits.
   This source integration does not publish a release or deploy SaaS. Paired SaaS
   integration: [decepticon-saas#1294](https://github.com/BitterSecurity/decepticon-saas/pull/1294).
+- Proposed [PR #1015](https://github.com/BitterSecurity/Decepticon/pull/1015):
+  Desktop owned-browser-v1 adapter with trusted per-run browser injection,
+  authenticated capability/identity negotiation, protected launcher socket mounts,
+  bounded cancellation and fail-closed protocol errors preserve the existing
+  `browser_action` schema and default Playwright behavior. Depends explicitly on
+  the reviewed PR #1009 revision `0e364229`; native engine containment, actual
+  graph run registration and Windows forwarding still require qualification.
+  No SaaS pin or release changes.
 
 - Proposed [PR #1009](https://github.com/BitterSecurity/Decepticon/pull/1009): add the Desktop `serve --engagement` adapter for existing local
   engagements, with native model selection, private runtime configuration and

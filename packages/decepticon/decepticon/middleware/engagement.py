@@ -42,6 +42,7 @@ from typing_extensions import override
 from decepticon.middleware.opplan import _reduce_engagement_name, _reduce_workspace_path
 from decepticon.middleware.state_reducers import reduce_converging_value
 from decepticon.tools.bash.bash import bash_workspace
+from decepticon.tools.browser import native_startup
 from decepticon_core.utils.engagement_scope import (
     is_valid_engagement_label,
     reset_active_engagement,
@@ -425,6 +426,8 @@ class EngagementContextMiddleware(AgentMiddleware):
 
     @override
     async def abefore_agent(self, state, runtime) -> dict[str, Any] | None:
+        if native_startup.REGISTRATIONS_PATH.exists():
+            await native_startup.initialize_native_browser(get_config())
         return _hydrate_engagement_state(state)
 
     @override

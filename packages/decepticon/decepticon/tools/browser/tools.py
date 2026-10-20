@@ -28,7 +28,12 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Any
 
+from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
+
+from decepticon.tools.browser.native import current_native_browser
+from decepticon.tools.browser.native_protocol import NativeBrowserError
+from decepticon.tools.browser.native_startup import resolve_native_browser
 
 log = logging.getLogger(__name__)
 
@@ -285,11 +290,24 @@ def _json(data: Any) -> str:
     return json.dumps(data, indent=2, default=str, ensure_ascii=False)
 
 
-async def _dispatch(action: str, kwargs: dict[str, Any]) -> dict[str, Any]:
+async def _dispatch(action: str, kwargs: dict[str, Any], config: RunnableConfig) -> dict[str, Any]:
     if action not in _SUPPORTED_ACTIONS:
         raise BrowserActionError(
             f"Unknown action '{action}'. Supported: {sorted(_SUPPORTED_ACTIONS)}"
         )
+    native = current_native_browser() or await resolve_native_browser(config)
+    if native is not None:
+        required = {
+            "goto": ("url",),
+            "click": ("selector",),
+            "type": ("selector", "text"),
+            "eval_js": ("expression",),
+            "switch_tab": ("tab_id",),
+        }
+        for key in required.get(action, ()):
+            if key not in kwargs:
+                raise KeyError(key)
+        return await native.dispatch(action, kwargs)
     mgr = get_session_manager()
     if action == "launch":
         return await mgr.launch(headless=bool(kwargs.get("headless", True)))
@@ -332,7 +350,7 @@ async def _dispatch(action: str, kwargs: dict[str, Any]) -> dict[str, Any]:
 
 
 @tool
-async def browser_action(action: str, params_json: str = "{}") -> str:
+async def browser_action(action: str, config: RunnableConfig, params_json: str = "{}") -> str:
     """Drive a persistent Playwright browser session for SPA / auth / DOM work.
 
     Supported actions (pass parameters as a JSON string via ``params_json``):
@@ -362,7 +380,9 @@ async def browser_action(action: str, params_json: str = "{}") -> str:
         return _json({"error": "params_json must decode to a JSON object."})
 
     try:
-        result = await _dispatch(action, params)
+        result = await _dispatch(action, params, config)
+    except NativeBrowserError as exc:
+        return _json({"error": exc.code})
     except BrowserActionError as exc:
         return _json({"error": str(exc)})
     except KeyError as exc:
