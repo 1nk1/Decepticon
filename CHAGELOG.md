@@ -33,6 +33,18 @@ Keep proposed and unmerged changes out of released sections.
   Native engine support remains platform-specific; Windows forwarding remains
   unqualified. Keep the integration proposed and unreleased.
 
+- Merged [PR #1025](https://github.com/BitterSecurity/Decepticon/pull/1025): process Backspace even when
+  terminal input batches it with typed text, and keep Up/Down navigating recalled
+  slash-command history until another editing action. Preserve multiline paste,
+  Unicode graphemes and the unsent draft. Source only; no release is published.
+
+- Merged [PR #1024](https://github.com/BitterSecurity/Decepticon/pull/1024):
+  startup readiness and `doctor`
+  now honor the shell's `LANGGRAPH_PORT` before `.env`, matching Compose's
+  published port. An explicitly empty shell value selects the default 2024.
+  This fixes false failures when the two configurations disagree; it does not
+  establish resolution of the affected host's separate timeout in issue #1004.
+
 - Proposed [PR #1023](https://github.com/BitterSecurity/Decepticon/pull/1023):
   name the workload-lifecycle command and Go packages `infracontrol`, while
   retaining `decepticon opscontrol` as an alias. New service units invoke the

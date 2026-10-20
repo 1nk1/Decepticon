@@ -57,3 +57,32 @@ it("keeps a rapid history search query intact", () => {
   });
   expect(view.container.textContent).toContain("› two");
 });
+
+it.each(["\u007f", "\u0008"])("deletes when Backspace %j arrives in the same chunk as text", (backspace) => {
+  // Given an empty prompt receiving a coalesced terminal input chunk.
+  const view = prompt();
+  // When typing, deletion, and more typing arrive together.
+  act(() => { keyboard.handler?.(`한글👩‍💻${backspace}끝`, {}); });
+  // Then Backspace removes the preceding grapheme instead of entering a control byte.
+  expect(view.container.textContent).toContain("› 한글끝");
+});
+
+it("continues through slash command history and restores the draft with arrow keys", () => {
+  // Given submitted slash commands and an unfinished draft.
+  const view = prompt();
+  act(() => {
+    keyboard.handler?.("/help", {});
+    keyboard.handler?.("", { return: true });
+    keyboard.handler?.("/model clear", {});
+    keyboard.handler?.("", { return: true });
+    keyboard.handler?.("unfinished draft", {});
+  });
+  // When navigating through both commands and back to the draft.
+  act(() => { keyboard.handler?.("", { upArrow: true }); });
+  act(() => { keyboard.handler?.("", { upArrow: true }); });
+  expect(view.container.textContent).toContain("› /help");
+  act(() => { keyboard.handler?.("", { downArrow: true }); });
+  act(() => { keyboard.handler?.("", { downArrow: true }); });
+  // Then command completions have not stolen history navigation.
+  expect(view.container.textContent).toContain("› unfinished draft");
+});
