@@ -19,6 +19,7 @@ Keep proposed and unmerged changes out of released sections.
   accept canonical parent-directory aliases used by macOS while still rejecting
   descriptor symlinks and paths outside the private run directory. Test Windows'
   explicit unsupported-transport rejection separately from Unix integration.
+  Correct the protocol document's action count to 13.
   Native engine scope containment, real run registration and Windows forwarding
   remain unqualified; keep the integration proposed and unreleased.
 

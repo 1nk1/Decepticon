@@ -60,7 +60,7 @@ the registration before any action, and a client validates the echo.
    random hex). Host atomically consumes the bootstrap token exactly once,
    checks its expiry and binding, then returns the identity and exact nonce,
    `session_token` (new random 64 hex), `expires_at_ms` (at most one hour ahead),
-   exact `host_commit`, and `capabilities` containing exactly all 14 existing
+   exact `host_commit`, and `capabilities` containing exactly all 13 existing
    browser actions plus `cancel` and `scope-enforced`. Host verifies the token
    even if a replay carries a different nonce. A failed handshake is never retried.
 2. `POST /v1/browser/action`: session credential, plus `request_id` (UUID hex),
