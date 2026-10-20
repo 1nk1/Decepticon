@@ -3,7 +3,9 @@ import { deleteAtCursor, isForwardDeleteSequence, nextGrapheme, previousGrapheme
 
 it("distinguishes terminal Backspace from forward Delete", () => {
   expect(isForwardDeleteSequence("\u007f")).toBe(false);
+  expect(isForwardDeleteSequence("\u001b[127u")).toBe(false);
   expect(isForwardDeleteSequence("\u001b[3~")).toBe(true);
+  expect(isForwardDeleteSequence("\u001b[3;1:1~")).toBe(true);
   expect(deleteAtCursor("abcd", 2, false)).toEqual({ value: "acd", cursor: 1 });
   expect(deleteAtCursor("abcd", 2, true)).toEqual({ value: "abd", cursor: 2 });
 });

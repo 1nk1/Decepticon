@@ -25,7 +25,7 @@ export function deleteAtCursor(value: string, cursor: number, forward: boolean):
 export function isForwardDeleteSequence(sequence: string): boolean {
   // Ink 6 calls both DEL (terminal Backspace, 0x7f) and CSI 3~
   // "delete" and drops the raw sequence from useInput's `input` argument.
-  return /^\u001b\[3(?:;\d+)?~$/.test(sequence);
+  return /^\u001b\[3(?:(?:;\d+(?::[123])?)?~|[$^])$/.test(sequence);
 }
 
 export function verticalCursor(value: string, cursor: number, direction: -1 | 1): number | null {
