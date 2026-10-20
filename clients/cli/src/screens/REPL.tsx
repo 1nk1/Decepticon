@@ -102,6 +102,7 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
     modalActive: local.picker != null || composerModal || (agent.activeQuestion != null && !questionCommands),
     draftHasText: hasDraft,
     onClearDraft: clearDraft,
+    onModelPicker: () => handleSubmit("/model"),
   });
 
   // ── Command handling ────────────────────────────────────────────

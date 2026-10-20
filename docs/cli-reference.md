@@ -75,13 +75,25 @@ The interactive CLI is built with React 19 + [Ink](https://github.com/vadimdemed
 |-----|--------|
 | Enter | Send the prompt or confirm the selected command/menu item |
 | Tab | Complete the selected command or argument |
-| Ctrl+J / Alt+Enter | Insert a newline |
+| Shift+Enter / Alt+Enter / Ctrl+J | Insert a newline; `\` then Enter also works |
 | Up / Down | Move through suggestions, multiline input, or prompt history |
 | Ctrl+R | Search prompt history; Enter restores a match, Esc returns |
 | Ctrl+G | Edit the prompt in `$VISUAL` or `$EDITOR` |
+| Left / Right, Home / End | Move by character or to the current line start/end |
+| Ctrl+Left / Right, Alt+B / F | Move by word; punctuation separates words |
+| Backspace / Delete | Delete before/after the cursor |
+| Ctrl/Alt+Backspace, Ctrl+Delete / Alt+D | Cut the previous/next word when the terminal reports modifiers |
+| Ctrl+A / E | Current line start/end (terminal convention, not Select All) |
+| Ctrl+K / U / W, Ctrl+Y | Cut to line end/start or previous whitespace token; paste the last cut |
+| Ctrl+_ | Undo the last input edit and restore the cursor |
+| Alt+P | Open the configured model picker, preserving the draft |
+| `?` on empty input | Toggle keyboard help; `?` inside a prompt stays literal |
+| Ctrl+D on empty idle input | Press twice within 800 ms to exit; with text, delete forward |
 | Ctrl+O | Toggle compact output and transcript detail |
 | Ctrl+C | Pause a run; press again within 500 ms to cancel. When idle, clear the draft before exiting |
-| Esc | Close the current picker/search, return from transcript, or clear waiting messages |
+| Esc | Close the focused menu/search first; otherwise pause an active run without discarding queued messages. Return from transcript before pausing; idle Esc can clear waiting messages |
+
+Shift+Enter needs a distinct terminal key sequence. Compatible Kitty/WezTerm/Ghostty terminals negotiate enhanced keys automatically; unsupported terminals keep their existing input mode. If a terminal sends ordinary Enter for Shift+Enter, use `\` then Enter or Ctrl+J. Decepticon does not rewrite terminal settings.
 
 Drafts and the latest 200 distinct prompts persist per API endpoint and engagement.
 They are private local files beneath `DECEPTICON_STATE_DIR`, `DECEPTICON_HOME`, or

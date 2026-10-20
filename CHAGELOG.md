@@ -15,6 +15,14 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed CLI keyboard consistency update (PR link pending): add Shift+Enter
+  and backslash-Enter multiline input, word navigation/deletion, cut recovery,
+  input undo, empty-prompt help, Alt+P model selection and confirmed empty Ctrl+D
+  exit. Esc dismisses focused UI before pausing active work while retaining queued
+  input. Preserve existing Ctrl+A/E aliases and authorization/run semantics.
+  Negotiate enhanced keys only with supported terminals; portable fallbacks remain.
+  No release or terminal configuration rewrite is included.
+
 - Proposed [PR #1015](https://github.com/BitterSecurity/Decepticon/pull/1015)
   lifecycle completion: add protected per-run directory mounts and a trusted SDK
   caller that registers the API-generated run UUID after startup, publishes fresh
