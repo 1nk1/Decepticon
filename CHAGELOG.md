@@ -23,7 +23,8 @@ Keep proposed and unmerged changes out of released sections.
   completion or failure. Retain the static descriptor option and default
   Playwright backend. The compatible native host context remains a downstream
   dependency; Windows forwarding is explicitly unsupported. No release or SaaS
-  runtime pin change is included.
+  runtime pin change is included. CI follow-up makes the new registration tests
+  explicitly narrow optional results without changing runtime behavior.
 
 - Review follow-up for [PR #1015](https://github.com/BitterSecurity/Decepticon/pull/1015):
   accept canonical parent-directory aliases used by macOS while still rejecting

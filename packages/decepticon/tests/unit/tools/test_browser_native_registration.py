@@ -73,8 +73,9 @@ def test_registration_can_arrive_after_graph_start(registrations):
         async with anyio.create_task_group() as group:
             group.start_soon(register)
             backend = await native_startup.resolve_native_browser(config("late-run"))
-        # Then the graph resolves that fresh registration.
-        assert backend.descriptor.run_id == "late-run"
+            # Then the graph resolves that fresh registration.
+            assert backend is not None
+            assert backend.descriptor.run_id == "late-run"
 
     anyio.run(scenario)
 
@@ -88,6 +89,7 @@ def test_registration_rejects_untrusted_or_replaced_authority(registrations, sce
 
     async def check():
         initial = await native_startup.resolve_native_browser(config("run-one"))
+        assert initial is not None
         assert initial.descriptor.run_id == "run-one"
         selected = config("run-one")
         match scenario:
