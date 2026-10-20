@@ -19,7 +19,22 @@ var (
 var updateCmd = &cobra.Command{
 	Use:   "update",
 	Short: "Check for updates and apply them",
-	RunE:  runUpdate,
+	Long: `Check GitHub for a newer Decepticon release and apply it.
+
+Applies the new launcher binary, re-syncs configuration files
+(docker-compose.yml, litellm config, etc.) and pulls updated Docker
+images. With --force it refreshes configuration files and Docker
+images even when the version is unchanged.
+
+The channel defaults to DECEPTICON_CHANNEL in .env (falling back to
+latest); --channel overrides it for this run only. Set AUTO_UPDATE in
+~/.decepticon/.env or use --no-update to control the launch-time
+update check.`,
+	Example: `  decepticon update                Check for updates and apply them
+  decepticon update --force        Re-sync config files and Docker images
+  decepticon update --channel stable
+                                   Track the stable (soaked) channel for this run`,
+	RunE: runUpdate,
 }
 
 func init() {
