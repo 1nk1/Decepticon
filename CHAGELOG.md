@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed [PR #pending](https://github.com/BitterSecurity/Decepticon/pull/pending):
+- Proposed [PR #1021](https://github.com/BitterSecurity/Decepticon/pull/1021):
   point active repository, benchmark submodule, release, package and desktop
   links at BitterSecurity; use the current repository slug for launcher star
   prompts. Keep Go module/import paths, installed identifiers and historical
