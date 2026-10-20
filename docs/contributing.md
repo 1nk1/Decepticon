@@ -17,7 +17,7 @@ Contributions are welcome — whether you're a security researcher, AI engineer,
 **Prerequisites**: Docker, Docker Compose v2, and [uv](https://docs.astral.sh/uv/) (for Python tooling locally).
 
 ```bash
-git clone https://github.com/PurpleAILAB/Decepticon.git
+git clone https://github.com/BitterSecurity/Decepticon.git
 cd Decepticon
 
 # Copy and configure environment

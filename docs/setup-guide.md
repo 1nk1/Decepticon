@@ -229,7 +229,7 @@ launcher and every service image come from the current checkout (tag
 real `~/.decepticon` is untouched.
 
 ```bash
-git clone https://github.com/PurpleAILAB/Decepticon.git
+git clone https://github.com/BitterSecurity/Decepticon.git
 cd Decepticon
 make dogfood
 ```
@@ -789,7 +789,7 @@ Complete walkthrough from zero to a running autonomous engagement, covering ever
 curl -fsSL https://decepticon.red/install | bash
 
 # Or from source
-git clone https://github.com/PurpleAILAB/Decepticon.git
+git clone https://github.com/BitterSecurity/Decepticon.git
 cd Decepticon
 make install
 ```

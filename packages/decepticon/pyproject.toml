@@ -188,8 +188,8 @@ exploiter = "decepticon.agents.plugins.exploiter:SUBAGENT_SPEC"
 mitre_lookup = "decepticon.tools.mitre:get_mitre_tools"
 
 [project.urls]
-Homepage = "https://github.com/PurpleAILAB/Decepticon"
-Repository = "https://github.com/PurpleAILAB/Decepticon"
+Homepage = "https://github.com/BitterSecurity/Decepticon"
+Repository = "https://github.com/BitterSecurity/Decepticon"
 
 [build-system]
 requires = ["hatchling"]

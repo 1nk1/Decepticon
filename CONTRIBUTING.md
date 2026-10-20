@@ -17,7 +17,7 @@ Thank you for your interest in contributing to Decepticon! Whether you're a secu
 # The benchmark suite uses git submodules (xbow-validation-benchmarks,
 # MHBench). Clone with --recursive to fetch them; they are optional —
 # the main tool builds and runs without them.
-git clone --recursive https://github.com/PurpleAILAB/Decepticon.git
+git clone --recursive https://github.com/BitterSecurity/Decepticon.git
 cd Decepticon
 
 # Start with hot-reload (builds Docker images + watches for source changes)
@@ -40,14 +40,14 @@ make lint-fix      # Auto-fix lint issues
 
 ### Reporting Bugs
 
-Use the [Bug Report](https://github.com/PurpleAILAB/Decepticon/issues/new?template=bug_report.yml) issue template. Include:
+Use the [Bug Report](https://github.com/BitterSecurity/Decepticon/issues/new?template=bug_report.yml) issue template. Include:
 - Steps to reproduce
 - Expected vs actual behavior
 - Docker and Python version info
 
 ### Suggesting Features
 
-Use the [Feature Request](https://github.com/PurpleAILAB/Decepticon/issues/new?template=feature_request.yml) issue template.
+Use the [Feature Request](https://github.com/BitterSecurity/Decepticon/issues/new?template=feature_request.yml) issue template.
 
 ### Submitting Pull Requests
 
