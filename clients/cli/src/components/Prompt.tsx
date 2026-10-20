@@ -42,6 +42,7 @@ function Composer({ runState, onSubmit, activeAgent = null, assistantId = "decep
   const [dismissed, setDismissed] = useState(false);
   const selectedRef = useRef(selected);
   const dismissedRef = useRef(dismissed);
+  const historyNavigation = useRef(false);
   function select(index: number) { selectedRef.current = index; setSelected(index); }
   const [search, setSearchState] = useState<string | null>(null);
   const [searchIndex, setSearchIndexState] = useState(0);
@@ -53,7 +54,7 @@ function Composer({ runState, onSubmit, activeAgent = null, assistantId = "decep
   const rawInput = useRef("");
   const lastClear = useRef(clearDraftToken);
   const lastRequest = useRef<number | undefined>(undefined);
-  const choices = dismissed ? [] : completions(value, getCommands());
+  const choices = dismissed || historyNavigation.current ? [] : completions(value, getCommands());
   const matches = search === null ? [] : [...editor.history.current].reverse().filter((item) => item.includes(search));
   const isActive = runState === "streaming" || runState === "connecting";
   useEffect(() => { onModalChange?.(search !== null); return () => { onModalChange?.(false); }; }, [search !== null, onModalChange]);
@@ -84,9 +85,10 @@ function Composer({ runState, onSubmit, activeAgent = null, assistantId = "decep
     replace(value.slice(0, cursor) + text + value.slice(cursor));
     setCursor(cursor + text.length);
   }
-  useInput((input, key) => {
+  useInput(function handleInput(input, key) {
     const { value, cursor } = editor.snapshot();
-    const choices = dismissedRef.current ? [] : completions(value, getCommands());
+    if (!key.upArrow && !key.downArrow) historyNavigation.current = false;
+    const choices = dismissedRef.current || historyNavigation.current ? [] : completions(value, getCommands());
     const search = searchRef.current;
     const matches = search === null ? [] : [...editor.history.current].reverse().filter((item) => item.includes(search));
     if (input === "[200~") { paste.current = ""; return; }
@@ -95,6 +97,16 @@ function Composer({ runState, onSubmit, activeAgent = null, assistantId = "decep
       return;
     }
     if (paste.current !== null) { paste.current += key.return ? "\n" : key.ctrl && input === "j" ? "\n" : input; return; }
+    if (input.length > 1 && /[\u0008\u007f]/.test(input)) {
+      for (const part of input.split(/([\u0008\u007f])/).filter(Boolean)) {
+        if (part === "\u0008" || part === "\u007f") {
+          handleInput("", { ...key, backspace: true, delete: false });
+        } else {
+          handleInput(part, key);
+        }
+      }
+      return;
+    }
     if (search !== null) {
       if (key.escape || (key.ctrl && input === "c")) { setSearch(null); return; }
       if (key.return) { const found = matches[searchIndexRef.current]; if (found !== undefined) replace(found); setSearch(null); return; }
@@ -125,7 +137,7 @@ function Composer({ runState, onSubmit, activeAgent = null, assistantId = "decep
       if (choices.length) { select((selectedRef.current + (key.upArrow ? -1 : 1) + choices.length) % choices.length); return; }
       const next = verticalCursor(value, cursor, key.upArrow ? -1 : 1);
       if (next !== null) setCursor(next);
-      else editor.recall(key.upArrow ? -1 : 1);
+      else { historyNavigation.current = true; editor.recall(key.upArrow ? -1 : 1); }
       return;
     }
     if (key.return) {
