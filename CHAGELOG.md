@@ -15,7 +15,8 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed CLI consumer-readiness correction (PR link pending): interactive
+- Proposed [PR #1026](https://github.com/BitterSecurity/Decepticon/pull/1026):
+  interactive
   startup checks the configured CLI service's API route instead of requiring
   host loopback connectivity. Service-only/Desktop startup and `doctor` retain
   their host endpoint checks. Exact assistant validation, bounded requests and
