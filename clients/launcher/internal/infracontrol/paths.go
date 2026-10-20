@@ -4,7 +4,7 @@
 // The daemon is the only process that holds the docker socket; the
 // agent calls into it over a Unix-domain socket bind-mounted into
 // langgraph (and only langgraph). See docs/adr/0006-agent-driven-container-lifecycle.md.
-package opscontrol
+package infracontrol
 
 import (
 	"os"

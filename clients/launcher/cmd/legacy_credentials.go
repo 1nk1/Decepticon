@@ -17,7 +17,7 @@ import (
 
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/compose"
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/config"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/opscontrol"
+	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/infracontrol"
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/ui"
 )
 
@@ -78,7 +78,7 @@ func migrateLegacyCredentials(env map[string]string) error {
 }
 
 func migrationCompletionPath(home string) string {
-	project := sha256.Sum256([]byte(opscontrol.ComposeProjectName()))
+	project := sha256.Sum256([]byte(infracontrol.ComposeProjectName()))
 	return filepath.Join(home, fmt.Sprintf(".credential-migration-%x.complete", project[:8]))
 }
 

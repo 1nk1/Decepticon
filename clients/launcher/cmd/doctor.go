@@ -14,7 +14,7 @@ import (
 
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/config"
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/health"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/opscontrol"
+	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/infracontrol"
 	"github.com/spf13/cobra"
 )
 
@@ -98,15 +98,15 @@ func diagnose(ctx context.Context) doctorReport {
 		graphDetail = graphErr.Error()
 	}
 	add("langgraph", true, graphErr == nil, graphDetail, "Inspect LANGGRAPH_PORT and Docker published ports; compare host connectivity with container health using `decepticon logs langgraph`; retry `decepticon start --no-update`")
-	socket := opscontrol.HostSocketPath()
+	socket := infracontrol.HostSocketPath()
 	info, socketErr := os.Stat(socket)
-	add("opscontrol_socket", false, socketErr == nil && info.Mode()&os.ModeSocket != 0, "Opscontrol Unix socket presence", "Run `decepticon opscontrol status`; start with `decepticon start --no-update`")
+	add("opscontrol_socket", false, socketErr == nil && info.Mode()&os.ModeSocket != 0, "Opscontrol Unix socket presence", "Run `decepticon infracontrol status`; start with `decepticon start --no-update`")
 	transport := &http.Transport{DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
 		return (&net.Dialer{Timeout: 3 * time.Second}).DialContext(ctx, "unix", socket)
 	}}
 	defer transport.CloseIdleConnections()
 	opsClient := &http.Client{Transport: transport, Timeout: 3 * time.Second}
-	add("opscontrol", false, doctorHTTP(ctx, opsClient, "http://opscontrol/v1/health"), "Opscontrol daemon health response", "Run `decepticon opscontrol status`; inspect `decepticon logs`")
+	add("opscontrol", false, doctorHTTP(ctx, opsClient, "http://opscontrol/v1/health"), "Opscontrol daemon health response", "Run `decepticon infracontrol status`; inspect `decepticon logs`")
 	for _, component := range []struct{ name, key, fallback string }{{"blue_sensor", "BLUE_SENSOR_URL", "http://127.0.0.1:18081"}, {"blue_monitor", "BLUE_MONITOR_URL", "http://127.0.0.1:18085"}} {
 		endpoint := config.Get(env, component.key, component.fallback)
 		detail := "No host endpoint configured; monitoring status unknown"

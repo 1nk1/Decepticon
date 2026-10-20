@@ -14,13 +14,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/cmd/opscontrol"
+	"github.com/PurpleAILAB/Decepticon/clients/launcher/cmd/infracontrol"
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/compose"
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/config"
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/engagement"
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/health"
+	opsinternal "github.com/PurpleAILAB/Decepticon/clients/launcher/internal/infracontrol"
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/migrate"
-	opsinternal "github.com/PurpleAILAB/Decepticon/clients/launcher/internal/opscontrol"
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/platform"
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/starprompt"
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/ui"
@@ -322,17 +322,17 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string) 
 		}
 	}
 
-	// 4. Spawn the opscontrol daemon BEFORE `compose up` so the
+	// 4. Spawn the infracontrol daemon BEFORE `compose up` so the
 	// langgraph socket bind-mount has a real socket to attach to.
 	// ADR-0006 §1' — daemon owns docker socket; agent reaches it
 	// only via the langgraph-only UDS mount.
-	sock, err := opscontrol.EnsureRunning()
+	sock, err := infracontrol.EnsureRunning()
 	if err != nil {
 		// Non-fatal for backwards compatibility with stacks that
 		// have not yet adopted the docker-compose.opscontrol.yml
 		// override: agent ops_* tools will return a "daemon
 		// unreachable" diagnostic rather than crashing the boot.
-		ui.Warning("opscontrol daemon not started: " + err.Error())
+		ui.Warning("infracontrol daemon not started: " + err.Error())
 	} else if err := os.Setenv("DECEPTICON_OPSCONTROL_SOCK_HOST", sock); err != nil {
 		ui.Warning("set DECEPTICON_OPSCONTROL_SOCK_HOST: " + err.Error())
 	}

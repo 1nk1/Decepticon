@@ -15,7 +15,14 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed [PR #1022](https://github.com/BitterSecurity/Decepticon/pull/1022):
+- Proposed [PR #1023](https://github.com/BitterSecurity/Decepticon/pull/1023):
+  name the workload-lifecycle command and Go packages `infracontrol`, while
+  retaining `decepticon opscontrol` as an alias. New service units invoke the
+  new command; installed unit names, legacy units, environment variables,
+  socket/PID paths, Compose overlay names and doctor JSON keys remain valid.
+  Source only; no release is published.
+
+- Merged [PR #1022](https://github.com/BitterSecurity/Decepticon/pull/1022):
   document launcher commands and session startup; suggest command names for
   root typos, validate log service names against the Compose stack, and add
   `status --json` for scripts. Keep existing session, service and human-output

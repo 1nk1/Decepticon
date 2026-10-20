@@ -1,4 +1,4 @@
-package opscontrol
+package infracontrol
 
 import (
 	"errors"
@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/config"
-	internal "github.com/PurpleAILAB/Decepticon/clients/launcher/internal/opscontrol"
+	internal "github.com/PurpleAILAB/Decepticon/clients/launcher/internal/infracontrol"
 )
 
 // composeOverlayBody is the docker-compose overlay that bind-mounts
@@ -32,7 +32,7 @@ import (
 // "bind source path does not exist" on a cold boot (#972, #971).
 const composeOverlayBody = `# docker-compose.opscontrol.yml — LAUNCHER-MANAGED runtime overlay (ADR-0006).
 # Do NOT hand-edit. The launcher rewrites this file on every ` + "`decepticon start`" + `
-# (cmd/opscontrol/supervisor.go:writeComposeOverlay) so any manual edits are
+# (cmd/infracontrol/supervisor.go:writeComposeOverlay) so any manual edits are
 # erased on the next boot.
 #
 # DECEPTICON_OPSCONTROL_SOCK_HOST is REQUIRED at compose interpolation
@@ -75,7 +75,7 @@ func writeComposeOverlay() error {
 //     warming up).
 //
 //  2. **Managed-service-but-inactive**: the unit is installed but
-//     stopped (e.g., operator ran `decepticon opscontrol stop` by
+//     stopped (e.g., operator ran `decepticon infracontrol stop` by
 //     hand). EnsureRunning asks the manager to start it.
 //
 //  3. **Launcher-spawn fallback**: no service manager is available
@@ -95,7 +95,7 @@ func EnsureRunning() (socketPath string, err error) {
 	// when the file exists on disk. Embedded body + idempotent write
 	// = the overlay is always current with the launcher binary.
 	if err := writeComposeOverlay(); err != nil {
-		return "", fmt.Errorf("opscontrol: write compose overlay: %w", err)
+		return "", fmt.Errorf("infracontrol: write compose overlay: %w", err)
 	}
 	socketPath = internal.HostSocketPath()
 
@@ -111,7 +111,7 @@ func EnsureRunning() (socketPath string, err error) {
 				return "", err
 			}
 			if !matches {
-				return "", fmt.Errorf("opscontrol: managed service run directory differs from DECEPTICON_OPSCONTROL_RUN_DIR; run `decepticon opscontrol install` to update the service")
+				return "", fmt.Errorf("infracontrol: managed service run directory differs from DECEPTICON_OPSCONTROL_RUN_DIR; run `decepticon infracontrol install` to update the service")
 			}
 			active, err := mgr.Active()
 			if err != nil {
@@ -123,14 +123,14 @@ func EnsureRunning() (socketPath string, err error) {
 				}
 			}
 			if err := waitForSocket(socketPath, 5*time.Second); err != nil {
-				return "", fmt.Errorf("opscontrol: managed service did not bind socket: %w "+
-					"(check `decepticon opscontrol status`)", err)
+				return "", fmt.Errorf("infracontrol: managed service did not bind socket: %w "+
+					"(check `decepticon infracontrol status`)", err)
 			}
 			return socketPath, nil
 		}
 		// Service manager is available but no unit installed yet —
 		// fall through to launcher-spawn. The user can opt into
-		// managed-service mode later with `decepticon opscontrol
+		// managed-service mode later with `decepticon infracontrol
 		// install`.
 	}
 
@@ -143,8 +143,8 @@ func EnsureRunning() (socketPath string, err error) {
 // managed-service mode the daemon is intentionally NOT killed — it
 // lives across launcher sessions so `decepticon start` does not pay
 // the daemon-warmup cost every time. Operators who want the daemon
-// down call `decepticon opscontrol stop` explicitly or run
-// `decepticon opscontrol uninstall`.
+// down call `decepticon infracontrol stop` explicitly or run
+// `decepticon infracontrol uninstall`.
 //
 // In launcher-spawn fallback mode Stop sends SIGTERM and waits up to
 // 5s for the daemon to exit, then unlinks the socket.
@@ -181,9 +181,9 @@ func ensureRunningLauncherSpawn(socketPath string) (string, error) {
 
 	exe, err := os.Executable()
 	if err != nil {
-		return "", fmt.Errorf("opscontrol: locate self: %w", err)
+		return "", fmt.Errorf("infracontrol: locate self: %w", err)
 	}
-	cmd := exec.Command(exe, "opscontrol", "daemon") //nolint:gosec // own binary
+	cmd := exec.Command(exe, "infracontrol", "daemon") //nolint:gosec // own binary
 	cmd.Stdin = nil
 	logf, lerr := os.OpenFile(daemonLogPath(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
 	if lerr == nil {
@@ -193,12 +193,12 @@ func ensureRunningLauncherSpawn(socketPath string) (string, error) {
 	setDetached(cmd)
 	cmd.Env = append(os.Environ(), "DECEPTICON_OPSCONTROL_CHILD=1")
 	if err := cmd.Start(); err != nil {
-		return "", fmt.Errorf("opscontrol: spawn daemon: %w", err)
+		return "", fmt.Errorf("infracontrol: spawn daemon: %w", err)
 	}
 	_ = cmd.Process.Release()
 
 	if err := waitForSocket(socketPath, 5*time.Second); err != nil {
-		return "", fmt.Errorf("opscontrol: launcher-spawn daemon failed to bind socket: %w "+
+		return "", fmt.Errorf("infracontrol: launcher-spawn daemon failed to bind socket: %w "+
 			"(see %s)", err, daemonLogPath())
 	}
 	return socketPath, nil
@@ -210,7 +210,7 @@ func stopLauncherSpawn() error {
 		return nil
 	}
 	if err := terminateDaemon(pid); err != nil {
-		return fmt.Errorf("opscontrol: signal daemon: %w", err)
+		return fmt.Errorf("infracontrol: signal daemon: %w", err)
 	}
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
@@ -220,7 +220,7 @@ func stopLauncherSpawn() error {
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
-	return errors.New("opscontrol: daemon did not exit within 5s")
+	return errors.New("infracontrol: daemon did not exit within 5s")
 }
 
 // waitForSocket polls until the socket file appears as a real Unix

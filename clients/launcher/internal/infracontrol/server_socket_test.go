@@ -1,6 +1,6 @@
 //go:build !windows
 
-package opscontrol
+package infracontrol
 
 import (
 	"context"

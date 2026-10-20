@@ -1,4 +1,4 @@
-package opscontrol
+package infracontrol
 
 import (
 	"errors"
@@ -63,7 +63,7 @@ type ServiceManager interface {
 }
 
 // InstallSpec carries every value the manager needs to template the
-// unit file. Built once by `decepticon opscontrol install` from the
+// unit file. Built once by `decepticon infracontrol install` from the
 // launcher's resolved config (binary path via os.Executable(), home
 // path via config.DecepticonHome()).
 type InstallSpec struct {
@@ -110,7 +110,7 @@ func ManagedRunDirMatches(manager ServiceManager) (bool, error) {
 		}
 		expected = "<key>DECEPTICON_OPSCONTROL_RUN_DIR</key>\n        <string>" + override + "</string>"
 	default:
-		return false, errors.New("opscontrol: unknown managed service configuration")
+		return false, errors.New("infracontrol: unknown managed service configuration")
 	}
 	body, err := os.ReadFile(path)
 	if err != nil {
@@ -152,7 +152,7 @@ func DetectServiceManager() ServiceManager {
 }
 
 // ErrNotInstalled is returned by Start when the unit is not present.
-var ErrNotInstalled = errors.New("opscontrol: service is not installed; run `decepticon opscontrol install` first")
+var ErrNotInstalled = errors.New("infracontrol: service is not installed; run `decepticon infracontrol install` first")
 
 // noopManager is the fallback for environments without a recognized
 // init system. Every method is a benign no-op (or returns false) so
@@ -164,7 +164,7 @@ func (noopManager) Available() bool          { return false }
 func (noopManager) Installed() (bool, error) { return false, nil }
 func (noopManager) Active() (bool, error)    { return false, nil }
 func (noopManager) Install(_ InstallSpec) error {
-	return errors.New("opscontrol: no service manager available on this host (falling back to launcher-spawned mode)")
+	return errors.New("infracontrol: no service manager available on this host (falling back to launcher-spawned mode)")
 }
 func (noopManager) Uninstall() error { return nil }
 func (noopManager) Start() error     { return ErrNotInstalled }

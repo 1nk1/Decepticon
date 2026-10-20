@@ -56,17 +56,17 @@ func editDistance(a, b string) int {
 // Help text for secondary commands is kept with their existing behavior.
 func decorateLauncherHelp() {
 	docs := map[string][2]string{
-		"doctor":     {"Check the local installation and services without changing them. The --json flag prints a machine-readable report with recovery hints.", "  decepticon doctor\n  decepticon doctor --json"},
-		"update":     {"Update the installed Decepticon application and stack assets after checking the selected release channel.", "  decepticon update"},
-		"stop":       {"Stop the Compose stack and its local supervisor while preserving installed configuration and data.", "  decepticon stop"},
-		"remove":     {"Remove the local Decepticon installation. Review its flags before deleting stack data.", "  decepticon remove --help"},
-		"onboard":    {"Prepare a local Decepticon installation and configure authentication and stack assets.", "  decepticon onboard"},
-		"skill":      {"Install guidance for coding agents. Use skill install to select Claude Code, Codex, or both.", "  decepticon skill install --client both"},
-		"install":    {"Install the Decepticon Agent Skill for selected coding agents; --from selects a local source and --force backs up a modified installation.", "  decepticon skill install --client claude\n  decepticon skill install --client codex"},
-		"mcp":        {"Expose the running Decepticon stack to an MCP client through standard input and output.", "  decepticon mcp serve"},
-		"serve":      {"Start the Desktop adapter for an existing local engagement. Run --help to inspect its required engagement and runtime flags.", "  decepticon serve --engagement NAME"},
-		"opscontrol": {"Manage the host supervisor that owns container lifecycle operations. Existing service units and sockets retain their names.", "  decepticon opscontrol status"},
-		"kg-health":  {"Check the knowledge graph endpoint after the stack is running.", "  decepticon kg-health"},
+		"doctor":       {"Check the local installation and services without changing them. The --json flag prints a machine-readable report with recovery hints.", "  decepticon doctor\n  decepticon doctor --json"},
+		"update":       {"Update the installed Decepticon application and stack assets after checking the selected release channel.", "  decepticon update"},
+		"stop":         {"Stop the Compose stack and its local supervisor while preserving installed configuration and data.", "  decepticon stop"},
+		"remove":       {"Remove the local Decepticon installation. Review its flags before deleting stack data.", "  decepticon remove --help"},
+		"onboard":      {"Prepare a local Decepticon installation and configure authentication and stack assets.", "  decepticon onboard"},
+		"skill":        {"Install guidance for coding agents. Use skill install to select Claude Code, Codex, or both.", "  decepticon skill install --client both"},
+		"install":      {"Install the Decepticon Agent Skill for selected coding agents; --from selects a local source and --force backs up a modified installation.", "  decepticon skill install --client claude\n  decepticon skill install --client codex"},
+		"mcp":          {"Expose the running Decepticon stack to an MCP client through standard input and output.", "  decepticon mcp serve"},
+		"serve":        {"Start the Desktop adapter for an existing local engagement. Run --help to inspect its required engagement and runtime flags.", "  decepticon serve --engagement NAME"},
+		"infracontrol": {"Manage the host supervisor that owns container lifecycle operations. Existing service units and sockets retain their names; opscontrol remains an alias.", "  decepticon infracontrol status"},
+		"kg-health":    {"Check the knowledge graph endpoint after the stack is running.", "  decepticon kg-health"},
 	}
 	var visit func(*cobra.Command)
 	visit = func(command *cobra.Command) {

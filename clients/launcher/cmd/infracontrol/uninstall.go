@@ -1,19 +1,19 @@
-package opscontrol
+package infracontrol
 
 import (
-	internal "github.com/PurpleAILAB/Decepticon/clients/launcher/internal/opscontrol"
+	internal "github.com/PurpleAILAB/Decepticon/clients/launcher/internal/infracontrol"
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/ui"
 	"github.com/spf13/cobra"
 )
 
 var uninstallCmd = &cobra.Command{
 	Use:   "uninstall",
-	Short: "Remove the opscontrol managed service (reverts to launcher-spawn fallback)",
+	Short: "Remove the infracontrol managed service (reverts to launcher-spawn fallback)",
 	Long: `Stops the service, removes the systemd unit / launchd plist, and
-reloads the init system so a subsequent ` + "`decepticon opscontrol install`" + `
+reloads the init system so a subsequent ` + "`decepticon infracontrol install`" + `
 starts from a clean state.
 
-If the service was never installed via ` + "`decepticon opscontrol install`" + `,
+If the service was never installed via ` + "`decepticon infracontrol install`" + `,
 this command is a no-op.`,
 	RunE: runUninstall,
 }
@@ -29,13 +29,13 @@ func runUninstall(_ *cobra.Command, _ []string) error {
 		return err
 	}
 	if !installed {
-		ui.Info("opscontrol service is not installed; nothing to do.")
+		ui.Info("infracontrol service is not installed; nothing to do.")
 		return nil
 	}
 	if err := mgr.Uninstall(); err != nil {
 		return err
 	}
-	ui.Success("opscontrol service removed. Future `decepticon start` will use the launcher-spawn fallback unless reinstalled.")
+	ui.Success("infracontrol service removed. Future `decepticon start` will use the launcher-spawn fallback unless reinstalled.")
 	return nil
 }
 

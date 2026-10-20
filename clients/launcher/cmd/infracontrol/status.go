@@ -1,4 +1,4 @@
-package opscontrol
+package infracontrol
 
 import (
 	"context"
@@ -11,14 +11,14 @@ import (
 	"strings"
 	"time"
 
-	internal "github.com/PurpleAILAB/Decepticon/clients/launcher/internal/opscontrol"
+	internal "github.com/PurpleAILAB/Decepticon/clients/launcher/internal/infracontrol"
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/ui"
 	"github.com/spf13/cobra"
 )
 
 var statusCmd = &cobra.Command{
 	Use:   "status",
-	Short: "Report opscontrol service + daemon health",
+	Short: "Report infracontrol service + daemon health",
 	Long: `Shows three pieces of state operators usually need together:
 
   1. Service manager — systemd-user / launchd / none (= fallback)
