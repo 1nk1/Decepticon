@@ -15,7 +15,7 @@ Side-by-side numbers for AI / LLM pentesting agents that have **publicly release
 
 | # | System | XBOW Score | Mode | Source |
 |--:|---|---|---|---|
-|  **1** | **Decepticon** *(this repo)*     | **98.08 %** (102 / 104) — L1: 100 % (45/45) · L2: 98.0 % (50/51) · L3: 87.5 % (7/8) | **black-box**, LangGraph multi-agent | [github](https://github.com/PurpleAILAB/Decepticon) |
+|  **1** | **Decepticon** *(this repo)*     | **98.08 %** (102 / 104) — L1: 100 % (45/45) · L2: 98.0 % (50/51) · L3: 87.5 % (7/8) | **black-box**, LangGraph multi-agent | [github](https://github.com/BitterSecurity/Decepticon) |
 |  2 | **Shannon Lite** (KeygraphHQ)        | **96.15 %** (100 / 104) | white-box, hint-removed   | [github](https://github.com/KeygraphHQ/shannon) |
 |  2 | **Strix** (usestrix)                 | **96.15 %** (100 / 104) [^strix] | black-box                 | [github](https://github.com/usestrix/strix) |
 |  4 | **PentestGPT** (USENIX '24)          | **86.5 %** (90 / 104)   | black-box                 | [github](https://github.com/GreyDGL/PentestGPT) · [paper](https://www.usenix.org/conference/usenixsecurity24/presentation/deng) |

@@ -26,11 +26,13 @@ it("selects Blue through the no-argument mode picker", async () => {
 
 it("selects a model through the no-argument model picker", async () => {
   // Given a CLI context that presents choices
+  vi.stubEnv("DECEPTICON_AUTH_CHATGPT", "true");
   const requests: ChoicePickerRequest[] = [];
   await model.execute("", context(requests));
   const picker = requests[0];
   if (!picker) throw new Error("Model picker was not opened");
   // When the operator confirms a supported model
+  expect(picker.options.map((option) => option.value)).toContain("auth/gpt-6-astra");
   await picker.onSelect("auth/gpt-6-astra");
   // Then the override changes for the next message
   expect(getModelOverride()).toBe("auth/gpt-6-astra");

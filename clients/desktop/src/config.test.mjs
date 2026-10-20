@@ -324,7 +324,7 @@ test("statusHtml renders product branding and cloud actions", () => {
   );
 
   assert.match(html, /alt="Decepticon chameleon"/);
-  assert.ok(html.includes("PurpleAILAB"));
+  assert.ok(html.includes("BitterSecurity"));
   assert.ok(html.includes("An AI red team under your command."));
   assert.ok(html.includes("app.decepticon.red"));
   assert.ok(html.includes("v1.1.23"));

@@ -296,7 +296,7 @@ func (s *SystemdManager) renderUnit(spec InstallSpec) string {
 	// install tolerant of `.env` not existing yet.
 	return fmt.Sprintf(`[Unit]
 Description=Decepticon opscontrol daemon (ADR-0006)
-Documentation=https://github.com/PurpleAILAB/Decepticon/blob/main/docs/adr/0006-agent-driven-container-lifecycle.md
+Documentation=https://github.com/BitterSecurity/Decepticon/blob/main/docs/adr/0006-agent-driven-container-lifecycle.md
 After=network-online.target
 Wants=network-online.target
 
