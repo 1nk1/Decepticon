@@ -40,8 +40,15 @@ function Composer({ runState, onSubmit, activeAgent = null, assistantId = "decep
   const { value, cursor, replace, setCursor } = editor;
   const [selected, setSelected] = useState(0);
   const [dismissed, setDismissed] = useState(false);
-  const [search, setSearch] = useState<string | null>(null);
-  const [searchIndex, setSearchIndex] = useState(0);
+  const selectedRef = useRef(selected);
+  const dismissedRef = useRef(dismissed);
+  function select(index: number) { selectedRef.current = index; setSelected(index); }
+  const [search, setSearchState] = useState<string | null>(null);
+  const [searchIndex, setSearchIndexState] = useState(0);
+  const searchRef = useRef<string | null>(search);
+  const searchIndexRef = useRef(searchIndex);
+  function setSearch(value: string | null) { searchRef.current = value; setSearchState(value); }
+  function setSearchIndex(value: number) { searchIndexRef.current = value; setSearchIndexState(value); }
   const paste = useRef<string | null>(null);
   const rawInput = useRef("");
   const lastClear = useRef(clearDraftToken);
@@ -50,7 +57,7 @@ function Composer({ runState, onSubmit, activeAgent = null, assistantId = "decep
   const matches = search === null ? [] : [...editor.history.current].reverse().filter((item) => item.includes(search));
   const isActive = runState === "streaming" || runState === "connecting";
   useEffect(() => { onModalChange?.(search !== null); return () => { onModalChange?.(false); }; }, [search !== null, onModalChange]);
-  useEffect(() => { setSelected(0); setDismissed(false); onDraftChange?.(value); }, [value, onDraftChange]);
+  useEffect(() => { select(0); dismissedRef.current = false; setDismissed(false); onDraftChange?.(value); }, [value, onDraftChange]);
   useEffect(() => {
     if (lastClear.current !== clearDraftToken) { replace(""); lastClear.current = clearDraftToken; }
   }, [clearDraftToken]);
@@ -79,7 +86,9 @@ function Composer({ runState, onSubmit, activeAgent = null, assistantId = "decep
   }
   useInput((input, key) => {
     const { value, cursor } = editor.snapshot();
-    const choices = dismissed ? [] : completions(value, getCommands());
+    const choices = dismissedRef.current ? [] : completions(value, getCommands());
+    const search = searchRef.current;
+    const matches = search === null ? [] : [...editor.history.current].reverse().filter((item) => item.includes(search));
     if (input === "[200~") { paste.current = ""; return; }
     if (input === "[201~") {
       if (paste.current !== null) { insert(paste.current.replace(/\r\n?/g, "\n")); paste.current = null; }
@@ -88,10 +97,10 @@ function Composer({ runState, onSubmit, activeAgent = null, assistantId = "decep
     if (paste.current !== null) { paste.current += key.return ? "\n" : key.ctrl && input === "j" ? "\n" : input; return; }
     if (search !== null) {
       if (key.escape || (key.ctrl && input === "c")) { setSearch(null); return; }
-      if (key.return) { const found = matches[searchIndex]; if (found !== undefined) replace(found); setSearch(null); return; }
-      if ((key.ctrl && input === "r") || key.downArrow) { setSearchIndex((index) => Math.min(matches.length - 1, index + 1)); return; }
-      if (key.upArrow) { setSearchIndex((index) => Math.max(0, index - 1)); return; }
-      if (key.backspace || key.delete) setSearch(search.slice(0, -1));
+      if (key.return) { const found = matches[searchIndexRef.current]; if (found !== undefined) replace(found); setSearch(null); return; }
+      if ((key.ctrl && input === "r") || key.downArrow) { setSearchIndex(Math.min(Math.max(0, matches.length - 1), searchIndexRef.current + 1)); return; }
+      if (key.upArrow) { setSearchIndex(Math.max(0, searchIndexRef.current - 1)); return; }
+      if (key.backspace || key.delete) setSearch(search.slice(0, previousGrapheme(search, search.length)));
       else if (!key.ctrl && !key.meta) setSearch(search + input);
       setSearchIndex(0);
       return;
@@ -106,21 +115,21 @@ function Composer({ runState, onSubmit, activeAgent = null, assistantId = "decep
       return;
     }
     if ((key.ctrl && input === "j") || (key.meta && key.return)) { insert("\n"); return; }
-    if (key.escape) { setDismissed(true); return; }
+    if (key.escape) { dismissedRef.current = true; setDismissed(true); return; }
     if (key.tab) {
-      const choice = choices.find((item) => item.value === value)?.value ?? choices[selected]?.value;
+      const choice = choices.find((item) => item.value === value)?.value ?? choices[selectedRef.current]?.value;
       if (choice) replace(choice + (choice.includes(" ") ? "" : " "));
       return;
     }
     if (key.upArrow || key.downArrow) {
-      if (choices.length) { setSelected((index) => (index + (key.upArrow ? -1 : 1) + choices.length) % choices.length); return; }
+      if (choices.length) { select((selectedRef.current + (key.upArrow ? -1 : 1) + choices.length) % choices.length); return; }
       const next = verticalCursor(value, cursor, key.upArrow ? -1 : 1);
       if (next !== null) setCursor(next);
       else editor.recall(key.upArrow ? -1 : 1);
       return;
     }
     if (key.return) {
-      const submitted = completedInput(value, choices, selected);
+      const submitted = completedInput(value, choices, selectedRef.current);
       if (!submitted.trim()) return;
       editor.remember(submitted);
       if (isActive && onEditQueue && !submitted.startsWith("/")) onEditQueue(submitted);

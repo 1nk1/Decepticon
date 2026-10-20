@@ -19,7 +19,8 @@ export function modelEnvironment(): Environment {
 
 function present(value: string | undefined, name: string): boolean {
   const text = value?.trim() ?? "";
-  if (!text || /^your-|placeholder|not.used|dummy|fake|example/i.test(text)) return false;
+  const lower = text.toLowerCase();
+  if (!text || lower.startsWith("your-") || ["placeholder", "not-used", "not_used", "dummy", "fake", "example"].some((token) => lower.includes(token))) return false;
   if (name.startsWith("DECEPTICON_AUTH_")) return /^(true|1|yes|on)$/i.test(text);
   if (/(API_KEY|_TOKEN|SECRET_ACCESS_KEY)$/.test(name)) return text.length >= 24;
   return true;

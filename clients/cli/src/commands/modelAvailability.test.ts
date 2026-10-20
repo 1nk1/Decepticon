@@ -24,6 +24,7 @@ it("requires the OAuth opt-in and excludes placeholder keys", () => {
   expect(isConfiguredModel("auth/gpt-6.1-sol", {})).toBe(false);
   expect(isConfiguredModel("auth/gpt-6.1-sol", { DECEPTICON_AUTH_CHATGPT: "true" })).toBe(true);
   expect(isConfiguredModel("anthropic/claude-sonnet-4-6", { ANTHROPIC_API_KEY: "your-anthropic-key-here" })).toBe(false);
+  expect(isConfiguredModel("anthropic/claude-sonnet-4-6", { ANTHROPIC_API_KEY: `sk-ant-${"example".repeat(5)}` })).toBe(false);
 });
 
 it("preserves locally configured Ollama and custom endpoint IDs", () => {
