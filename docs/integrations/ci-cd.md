@@ -33,7 +33,7 @@ jobs:
         with:
           fetch-depth: 0     # required for diff-scope resolution
 
-      - uses: PurpleAILAB/Decepticon/.github/actions/decepticon-scan@main
+      - uses: BitterSecurity/Decepticon/.github/actions/decepticon-scan@main
         with:
           target: "./"
           scan-mode: "quick"

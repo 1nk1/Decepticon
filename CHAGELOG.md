@@ -15,13 +15,18 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed [PR #1017](https://github.com/BitterSecurity/Decepticon/pull/1017): fix CLI Backspace and forward Delete,
+- Proposed [PR #1021](https://github.com/BitterSecurity/Decepticon/pull/1021):
+  point active repository, benchmark submodule, release, package and desktop
+  links at BitterSecurity; use the current repository slug for launcher star
+  prompts. Keep Go module/import paths, installed identifiers and historical
+  records unchanged. Source only; no release is published.
+
+- Merged [PR #1017](https://github.com/BitterSecurity/Decepticon/pull/1017): fix CLI Backspace and forward Delete,
   Unicode-safe cursor editing, familiar multiline and history controls, and
   filter `/model` choices to routes supported by the owner's local provider
   configuration. Preserve manual model IDs and explicit local/BYOK endpoints.
   Picker eligibility does not verify live provider entitlement. Source change
   only; no OSS release is published.
-
 - Proposed [PR #1012](https://github.com/BitterSecurity/Decepticon/pull/1012):
   add UUID artifact revisions, immutable snapshots, a structured Info log and
   OPPLAN search toward independently verified High/Critical findings. Preserve
