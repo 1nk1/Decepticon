@@ -19,9 +19,10 @@ import web from "./web.js";
 import blue from "./blue.js";
 import mode from "./mode.js";
 import { scope } from "./scope.js";
+import { convenienceCommands } from "./convenience.js";
 
 /** All registered commands. Add new commands here. */
-const COMMANDS: Command[] = [help, clear, file, quit, resume, model, plugins, mode, scope, agent, web, blue, ...localCommands];
+const COMMANDS: Command[] = [help, clear, file, quit, resume, model, plugins, mode, scope, agent, web, blue, ...localCommands, ...convenienceCommands];
 
 /** Get all registered commands. */
 export function getCommands(): Command[] {

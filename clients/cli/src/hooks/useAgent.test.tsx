@@ -78,6 +78,65 @@ describe("useAgent — engagement handoff lifecycle", () => {
     vi.restoreAllMocks();
   });
 
+  it("preserves active streams and queued prompts when a fresh conversation is requested", async () => {
+    // Given an active run with a waiting message
+    const client = mockState.client;
+    if (!client) throw new Error("Missing fixture client");
+    const stream = createControllableStream();
+    client.runs.stream.mockReturnValueOnce(stream);
+    const { result } = renderHook(() => useAgent());
+    act(() => result.current.submit("active request"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    act(() => result.current.enqueue("waiting request"));
+    const thread = result.current.threadId;
+    // When /new or /clear asks to clear the conversation
+    act(() => result.current.clearEvents());
+    // Then the active thread and queue remain attached
+    expect(result.current.threadId).toBe(thread);
+    expect(result.current.runState).toBe("streaming");
+    expect(result.current.queuedMessages).toEqual(["waiting request"]);
+    expect(client.runs.cancel).not.toHaveBeenCalled();
+    expect(result.current.events).toEqual(expect.arrayContaining([expect.objectContaining({ content: expect.stringContaining("Finish or cancel") })]));
+    act(() => result.current.clearQueuedMessage());
+    await act(async () => { stream.end(); await vi.runAllTimersAsync(); });
+  });
+
+  it("disconnects the client stream without cancelling server work when the CLI unmounts", async () => {
+    // Given an attached stream
+    const client = mockState.client;
+    if (!client) throw new Error("Missing fixture client");
+    const stream = createControllableStream();
+    client.runs.stream.mockReturnValueOnce(stream);
+    const { result, unmount } = renderHook(() => useAgent());
+    act(() => result.current.submit("keep server work running"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    // When the CLI exits and its hook is unmounted
+    unmount();
+    // Then the SDK signal aborts locally without a server cancellation
+    expect(client.runs.stream).toHaveBeenCalledWith(expect.any(String), "soundwave", expect.objectContaining({
+      onDisconnect: "continue", signal: expect.objectContaining({ aborted: true }),
+    }));
+    expect(client.runs.cancel).not.toHaveBeenCalled();
+    stream.end();
+  });
+
+  it("starts a new server thread after clearing an idle conversation", async () => {
+    // Given a completed conversation
+    const client = mockState.client;
+    if (!client) throw new Error("Missing fixture client");
+    const { result } = renderHook(() => useAgent());
+    act(() => result.current.submit("first conversation"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    // When the idle conversation is cleared and another message sent
+    act(() => result.current.clearEvents());
+    expect(result.current.threadId).toBeNull();
+    expect(result.current.events).toEqual([]);
+    act(() => result.current.submit("second conversation"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    // Then thread creation happens again without deleting the saved thread
+    expect(client.threads.create).toHaveBeenCalledTimes(2);
+  });
+
   it("starts in Red when no assistant override is configured", async () => {
     // Given a fresh CLI process with no selected assistant.
     vi.stubEnv("DECEPTICON_ASSISTANT_ID", "");

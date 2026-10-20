@@ -15,6 +15,16 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #1029](https://github.com/BitterSecurity/Decepticon/pull/1029):
+  CLI slash command conveniences add `/plan`, `/shortcuts`,
+  `/version` (`/about`) and `/pwd` (`/cwd`), plus `/new` as an alias for `/clear`.
+  Display aliases in help and autocomplete, including existing `/exit` and `/?`.
+  A fresh conversation requires idle state and an empty queue, preserving active
+  runs, queued prompts and saved sessions. Plan remains optional and retains
+  existing mode and web terminal restrictions. On exit, disconnect the local
+  stream so the CLI can terminate while server work continues. Source changes
+  are unreleased.
+
 - Proposed [PR #1028](https://github.com/BitterSecurity/Decepticon/pull/1028): add Shift+Enter
   and backslash-Enter multiline input, word navigation/deletion, cut recovery,
   input undo, empty-prompt help, Alt+P model selection and confirmed empty Ctrl+D

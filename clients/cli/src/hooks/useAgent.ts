@@ -189,6 +189,10 @@ export function useAgent({
   const streamReadyResolveRef = useRef<(() => void) | null>(null);
   const queuedMessageRef = useRef<string[]>([]);
 
+  useEffect(() => () => {
+    abortRef.current?.abort();
+  }, []);
+
   const [events, setEvents] = useState<AgentEvent[]>([]);
   const [runState, setRunState] = useState<RunState>("idle");
   const [pendingTool, setPendingTool] = useState<PendingTool | null>(null);
@@ -826,6 +830,10 @@ export function useAgent({
 
   const clearEvents = useCallback(() => {
     if (switchingRef.current || restoringRef.current) return;
+    if (abortRef.current || runStateRef.current !== "idle" || activeQuestionRef.current || queuedMessageRef.current.length > 0) {
+      addSystemEvent("Finish or cancel the current run and handle /queue before starting a fresh conversation.");
+      return;
+    }
     eventsRef.current = [];
     setEvents([]);
     threadIdRef.current = null;
@@ -836,7 +844,7 @@ export function useAgent({
     setActiveQuestion(null);
     askedQuestionIds.current.clear();
     setRunState("idle");
-  }, []);
+  }, [addSystemEvent]);
 
   const selectAssistant = useCallback(async (next: string, commit?: () => Promise<void>): Promise<boolean> => {
     if (restoringRef.current) {
