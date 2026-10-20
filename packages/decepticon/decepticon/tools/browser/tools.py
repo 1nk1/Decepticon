@@ -33,7 +33,7 @@ from langchain_core.tools import tool
 
 from decepticon.tools.browser.native import current_native_browser
 from decepticon.tools.browser.native_protocol import NativeBrowserError
-from decepticon.tools.browser.native_startup import mounted_native_browser
+from decepticon.tools.browser.native_startup import resolve_native_browser
 
 log = logging.getLogger(__name__)
 
@@ -295,7 +295,7 @@ async def _dispatch(action: str, kwargs: dict[str, Any], config: RunnableConfig)
         raise BrowserActionError(
             f"Unknown action '{action}'. Supported: {sorted(_SUPPORTED_ACTIONS)}"
         )
-    native = current_native_browser() or mounted_native_browser(config)
+    native = current_native_browser() or await resolve_native_browser(config)
     if native is not None:
         required = {
             "goto": ("url",),

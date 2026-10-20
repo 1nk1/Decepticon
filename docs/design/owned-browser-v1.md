@@ -46,6 +46,72 @@ real graph path is driven, launcher/runtime integration is not qualified.
 Descriptor issuance must happen within its 60-second TTL; a cold container
 start that exceeds it must obtain a fresh registration, never extend a token.
 
+## API run lifecycle (proposed per-run directory mode)
+
+For an API server, prefer `decepticon serve --engagement <slug>
+--browser-registrations <local-home>/run/browser-runs`. Create that directory with
+mode 0700 before starting the server. The launcher mounts the entire dedicated
+directory read-only at `/run/decepticon/browser-runs`, only in langgraph. It needs
+no descriptor or running browser during cold startup. Never mount the entire
+Local `run/` directory or publish credentials in the engagement workspace.
+
+Once the API is ready, the authenticated, scope-approved host caller invokes
+`decepticon.tools.browser.native_run.run_with_native_browser`. This concrete SDK
+lifecycle creates a run, obtains and validates the server-generated UUID, waits
+for a queued run to become active, starts the supplied
+`NativeHost` context with `(engagement_id, run_id, private_run_directory)`, and
+atomically publishes its fresh descriptor as `<UUID>/browser.json`. The host
+binds `<UUID>/browser.sock` and must stop its owned processes and remove its socket
+on context exit. The caller joins the run, revokes its descriptor, and exits the
+host context; failed startup or caller cancellation also cancels the API run.
+Each resumed turn calls this lifecycle again and receives a new run UUID.
+
+The standard engagement middleware initializes and handshakes at graph entry,
+before model work. The established session survives the 60-second bootstrap
+expiry; its independent session expiry still applies. Custom graphs must call
+`initialize_native_browser(config)` at entry before model work.
+
+The graph accepts only its injected `configurable.run_id` and the trusted
+`desktop_engagement_id`. Initialization waits at most 30 seconds for the
+matching registration. Backend sessions are isolated per registration, unchanged
+credentials retain their sequence, replaced descriptors fail closed, and removed
+registrations invalidate cached sessions. Credentials never enter graph inputs,
+model arguments, or API run configuration. The existing static descriptor option
+remains for already-registered direct runs; it cannot solve API cold startup.
+
+The `NativeHost` implementation is an explicit downstream dependency: it must
+start the compatible native supervisor, worker, approved-destination proxy and
+isolated browser profile, issue the 60-second descriptor only after readiness,
+and own teardown. This OSS package does not ship that native engine or authorize
+scope. A plain executable launch without those services is not a valid host.
+The SDK lifecycle preserves the supplied graph config and does not replace RoE
+or HITL middleware. Default Playwright operation is unchanged without native
+mounts. Windows forwarding remains rejected; Linux/WSL Unix transport is the
+qualified direction. A headless engine qualification does not qualify an
+installed desktop Chrome binary or a Windows host bridge.
+
+Trusted caller shape (the host-specific context comes from the native runtime):
+
+```python
+from pathlib import Path
+from langgraph_sdk import get_client
+from decepticon.tools.browser.native_run import run_with_native_browser
+
+# launch_owned_host is the approved native runtime's async context manager.
+client = get_client(url="http://127.0.0.1:2024")
+thread = await client.threads.create()
+result = await run_with_native_browser(
+    client,
+    thread_id=thread["thread_id"],
+    assistant_id="decepticon",
+    engagement_id=approved_engagement_id,
+    registrations=Path(local_home) / "run" / "browser-runs",
+    host=launch_owned_host,
+    input=approved_engagement_input,
+    config=approved_run_config,
+)
+```
+
 ## Messages and authorization
 
 All messages are strict JSON objects, maximum 8 MiB. All responses use HTTP 200

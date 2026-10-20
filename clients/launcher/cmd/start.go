@@ -372,6 +372,14 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string) 
 		defer os.Remove(overlay)
 		c.OverlayFile = overlay
 	}
+	if existingEngagement != "" && serveBrowserRegistrations != "" {
+		overlay, err := writeDesktopBrowserRegistrationsOverlay(home, serveBrowserRegistrations, c.OverlayFile)
+		if err != nil {
+			return err
+		}
+		defer os.Remove(overlay)
+		c.OverlayFile = overlay
+	}
 
 	ui.Info("[4/5] Services · starting and waiting for readiness")
 	if err := c.Up(compose.Profiles.CLI); err != nil {

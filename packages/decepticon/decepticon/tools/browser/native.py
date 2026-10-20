@@ -39,8 +39,11 @@ _current: ContextVar[NativeBrowserBackend | None] = ContextVar("native_browser",
 class NativeBrowserBackend:
     """Mutable session owns one handshake, ordered actions and a fail-closed state."""
 
-    def __init__(self, descriptor: NativeBrowserDescriptor) -> None:
+    def __init__(
+        self, descriptor: NativeBrowserDescriptor, *, socket_path: str = SOCKET_PATH
+    ) -> None:
         self.descriptor = descriptor
+        self._socket_path = socket_path
         self._identity = Identity(
             **descriptor.model_dump(
                 include={
@@ -58,7 +61,7 @@ class NativeBrowserBackend:
 
     async def _post(self, path: str, body: WireModel, token: str) -> bytes:
         transport = httpx.AsyncHTTPTransport(
-            uds=SOCKET_PATH if self.descriptor.transport == "unix" else None,
+            uds=self._socket_path if self.descriptor.transport == "unix" else None,
             retries=0,
         )
         payload = body.model_dump_json().encode()
@@ -170,6 +173,17 @@ class NativeBrowserBackend:
                 log.warning(
                     "native browser cancellation unacknowledged; host deadline remains active"
                 )
+
+    async def initialize(self) -> None:
+        """Consume the short-lived bootstrap at graph entry before model work."""
+        async with self._lock:
+            if self._failed:
+                raise NativeBrowserError("BROWSER_DISCONNECTED")
+            try:
+                await self._handshake()
+            except NativeBrowserError:
+                self._failed = True
+                raise
 
     async def dispatch(self, action: str, params: dict[str, JsonValue]) -> dict[str, JsonValue]:
         async with self._lock:

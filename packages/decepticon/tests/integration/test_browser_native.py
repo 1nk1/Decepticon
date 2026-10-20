@@ -226,3 +226,28 @@ def test_default_cancel_propagates_during_real_navigation(tmp_path: Path) -> Non
                 await host.cleanup(artifact(tmp_path, "default-cancel.http.json"))
 
     asyncio.run(scenario())
+
+
+def test_initialized_session_outlives_bootstrap_without_replay(tmp_path: Path, monkeypatch) -> None:
+    import time
+
+    from decepticon.tools.browser.native import NativeBrowserBackend
+
+    async def scenario():
+        # Given a host registration consumed at graph entry.
+        host = BrowserHostFixture()
+        async with await asyncio.start_server(host.handle, "127.0.0.1", 0) as server:
+            host.origin = f"http://127.0.0.1:{server.sockets[0].getsockname()[1]}"
+            try:
+                backend = NativeBrowserBackend(host.descriptor())
+                await backend.initialize()
+                now = time.time()
+                monkeypatch.setattr(time, "time", lambda: now + 61)
+                # When another node initializes after bootstrap expiry.
+                await backend.initialize()
+                # Then the established session remains usable without replaying bootstrap.
+                assert len([r for r in host.receipts if r["path"].endswith("handshake")]) == 1
+            finally:
+                await host.cleanup(artifact(tmp_path, "entry-bootstrap.http.json"))
+
+    asyncio.run(scenario())

@@ -15,13 +15,23 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #1015](https://github.com/BitterSecurity/Decepticon/pull/1015)
+  lifecycle completion: add protected per-run directory mounts and a trusted SDK
+  caller that registers the API-generated run UUID after startup, publishes fresh
+  credentials atomically, handshakes before model work after queue admission,
+  isolates browser sessions, and revokes/stops them after
+  completion or failure. Retain the static descriptor option and default
+  Playwright backend. The compatible native host context remains a downstream
+  dependency; Windows forwarding is explicitly unsupported. No release or SaaS
+  runtime pin change is included.
+
 - Review follow-up for [PR #1015](https://github.com/BitterSecurity/Decepticon/pull/1015):
   accept canonical parent-directory aliases used by macOS while still rejecting
   descriptor symlinks and paths outside the private run directory. Test Windows'
   explicit unsupported-transport rejection separately from Unix integration.
   Correct the protocol document's action count to 13.
-  Native engine scope containment, real run registration and Windows forwarding
-  remain unqualified; keep the integration proposed and unreleased.
+  Native engine support remains platform-specific; Windows forwarding remains
+  unqualified. Keep the integration proposed and unreleased.
 
 - Proposed [PR #1023](https://github.com/BitterSecurity/Decepticon/pull/1023):
   name the workload-lifecycle command and Go packages `infracontrol`, while

@@ -106,3 +106,45 @@ func writeDesktopBrowserOverlay(home, source, engagement, existing string) (stri
 	}
 	return file.Name(), nil
 }
+
+// Directory mounts allow registrations to be published after the API assigns a run UUID.
+func writeDesktopBrowserRegistrationsOverlay(home, source, existing string) (string, error) {
+	if runtime.GOOS == "windows" {
+		return "", fmt.Errorf("INCOMPATIBLE_RUNTIME: Windows browser forwarding is not qualified")
+	}
+	expected, err := filepath.Abs(filepath.Join(home, "run", "browser-runs"))
+	if err != nil {
+		return "", err
+	}
+	path, err := filepath.Abs(source)
+	if err != nil || path != expected {
+		return "", fmt.Errorf("UNAUTHORIZED_ADAPTER: expected private Local run/browser-runs directory")
+	}
+	info, err := os.Lstat(path)
+	if err != nil || !info.IsDir() || info.Mode().Perm()&0o077 != 0 {
+		return "", fmt.Errorf("UNAUTHORIZED_ADAPTER: invalid private registration directory")
+	}
+	content := "services:\n  langgraph:\n"
+	if existing != "" {
+		base, err := os.ReadFile(existing)
+		if err != nil {
+			return "", err
+		}
+		content = string(base)
+	}
+	sourceJSON, err := json.Marshal(path)
+	if err != nil {
+		return "", err
+	}
+	content += "    volumes:\n      - type: bind\n        source: " + string(sourceJSON) + "\n        target: /run/decepticon/browser-runs\n        read_only: true\n"
+	file, err := os.CreateTemp(home, ".desktop-browser-*.yml")
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+	if _, err := file.WriteString(content); err != nil {
+		os.Remove(file.Name())
+		return "", err
+	}
+	return file.Name(), nil
+}

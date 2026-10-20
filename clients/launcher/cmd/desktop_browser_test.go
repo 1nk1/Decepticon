@@ -155,3 +155,31 @@ func TestDesktopBrowserRejectsForeignOrPublicDescriptor(t *testing.T) {
 		})
 	}
 }
+
+func TestDesktopBrowserDirectoryAllowsColdStartWithoutCredentials(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Unix-only registration transport")
+	}
+	home := t.TempDir()
+	path := filepath.Join(home, "run", "browser-runs")
+	if err := os.MkdirAll(path, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	overlay, err := writeDesktopBrowserRegistrationsOverlay(home, path, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(overlay)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(raw), "target: /run/decepticon/browser-runs") || strings.Count(string(raw), "read_only: true") != 1 {
+		t.Fatalf("invalid directory mount: %s", raw)
+	}
+	if err := os.Chmod(path, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := writeDesktopBrowserRegistrationsOverlay(home, path, ""); err == nil {
+		t.Fatal("accepted public registration directory")
+	}
+}
