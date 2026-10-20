@@ -15,6 +15,12 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #1031](https://github.com/BitterSecurity/Decepticon/pull/1031):
+  simplify the README demo area by removing the repeated OSS capability list and
+  trailing decorative image. Add acknowledgements for integrated open-source
+  projects, adapted code, security references and CLI design inspiration, with
+  upstream links and existing attribution notices. Documentation only.
+
 - Proposed [PR #1030](https://github.com/BitterSecurity/Decepticon/pull/1030):
   document interactive CLI commands and familiar keys in the README and getting
   started guide. Correct the direct Red setup flow, explain `/new` session and
