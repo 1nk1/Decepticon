@@ -41,7 +41,7 @@ const (
 	// RepoSlug is the canonical "owner/repo" used for every gh API
 	// call and the browser URL. Hardcoded — no scenario justifies
 	// targeting a different repository.
-	RepoSlug = "PurpleAILAB/Decepticon"
+	RepoSlug = "BitterSecurity/Decepticon"
 	RepoURL  = "https://github.com/" + RepoSlug
 )
 

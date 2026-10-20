@@ -67,7 +67,16 @@ var (
 )
 
 var startCmd = &cobra.Command{
-	Use:   "start",
+	Use: "start [thread-id]",
+	Long: `Start the agent stack, verify service and assistant readiness, then launch the CLI.
+
+The launcher checks updates, prepares the selected engagement, starts the Compose services, verifies LangGraph and opens a session. Services stay running after the CLI exits; use decepticon stop to shut them down.
+Use --resume to pick a session, --resume=THREAD_ID or --resume THREAD_ID for a known session, or --continue for the latest session.`,
+	Example: `  decepticon start
+  decepticon start --no-update
+  decepticon start --resume
+  decepticon start --resume=THREAD_ID
+  decepticon start --continue`,
 	Short: "Start Decepticon services and launch the CLI",
 	RunE:  runStart,
 }
@@ -99,6 +108,11 @@ func runStart(cmd *cobra.Command, args []string) error {
 }
 
 func runStartMode(cmd *cobra.Command, args []string, existingEngagement string) error {
+	if cmd == rootCmd {
+		if err := validateRootArgs(args); err != nil {
+			return err
+		}
+	}
 	desktopRuntime, err := parseDesktopRuntime(existingEngagement != "")
 	if err != nil {
 		return err

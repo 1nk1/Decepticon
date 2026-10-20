@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with: { fetch-depth: 0 }
-      - uses: PurpleAILAB/Decepticon/.github/actions/decepticon-scan@main
+      - uses: BitterSecurity/Decepticon/.github/actions/decepticon-scan@main
         with:
           fail-on: high
         env:

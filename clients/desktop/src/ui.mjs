@@ -261,7 +261,7 @@ export function statusHtml(config, message = "checking dashboard…", detail = "
         <div class="brand">
           ${icon}
           <div>
-            <div class="kicker">PurpleAILAB</div>
+            <div class="kicker">BitterSecurity</div>
             <h1 class="title">Decepti<span class="red">con</span></h1>
           </div>
         </div>

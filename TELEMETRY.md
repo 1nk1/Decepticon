@@ -159,7 +159,7 @@ anonymization.
 
 ## Where it goes, and for how long
 
-- **Recipient:** PurpleAILAB, the Decepticon maintainers. Batches go to a
+- **Recipient:** BitterSecurity, the Decepticon maintainers. Batches go to a
   Cloudflare Worker we operate, which forwards to our PostHog project. The
   Worker never records your IP and disables geo-enrichment.
 - **Purpose:** improving Decepticon, and — for the `research` tier — building a

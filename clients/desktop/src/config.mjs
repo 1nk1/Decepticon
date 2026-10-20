@@ -158,7 +158,7 @@ export function setupGuide(platform = os.platform()) {
     installCommand,
     onboardCommand,
     apiKeyCommand: "decepticon onboard --reset",
-    downloadUrl: "https://github.com/PurpleAILAB/Decepticon/releases/latest",
+    downloadUrl: "https://github.com/BitterSecurity/Decepticon/releases/latest",
     docsUrl: "https://docs.decepticon.red",
     cloudAppUrl: CLOUD_APP_URL,
     marketingUrl: "https://decepticon.red",

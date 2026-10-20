@@ -1,57 +1,40 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import model from "./model.js";
 import { getModelOverride, setModelOverride } from "./modelOverride.js";
-import type { CommandContext } from "./types.js";
+import type { ChoicePickerRequest, CommandContext } from "./types.js";
 
-afterEach(() => setModelOverride(""));
+afterEach(() => { setModelOverride(""); vi.unstubAllEnvs(); });
 
-function runModelCommand(args: string): string[] {
-  const events: string[] = [];
-  const context: CommandContext = {
-    addSystemEvent: (content) => events.push(content),
-    clearEvents: () => {},
-    submit: () => {},
-    resume: () => {},
-    exit: () => {},
+function run(args: string): { events: string[]; picker?: ChoicePickerRequest } {
+  const result: { events: string[]; picker?: ChoicePickerRequest } = { events: [] };
+  const ctx: CommandContext = {
+    addSystemEvent: (text) => result.events.push(text), clearEvents() {}, submit() {}, resume() {}, exit() {},
+    openPicker: (request) => { result.picker = request; },
   };
-  model.execute(args, context);
-  return events;
+  model.execute(args, ctx);
+  return result;
 }
 
-describe("/model current prod catalog", () => {
-  it("lists current direct and gateway routes once", () => {
-    const [listing] = runModelCommand("");
-    expect(listing).toContain("openai/gpt-5.6-sol");
-    expect(listing).toContain("runyour/qwen3.8-max");
-    expect(listing).toContain("anthropic/claude-sonnet-5");
-    expect(listing.split("\n").filter((line) => line.trim() === "openai/gpt-6.1-sol")).toHaveLength(1);
-    expect(listing).not.toContain("subscription/gpt-6.1-sol");
-  });
-
-  it("accepts a current route without an unknown-model warning", () => {
-    const events = runModelCommand("openrouter/anthropic/claude-sonnet-5.5");
-    expect(events).toHaveLength(1);
-    expect(events[0]).toContain("Model override set");
-    expect(getModelOverride()).toBe("openrouter/anthropic/claude-sonnet-5.5");
-  });
+it("does not show the whole catalogue without configured providers", () => {
+  vi.stubEnv("DECEPTICON_COMPOSE_ENV_FILE", "/nonexistent/decepticon-test.env");
+  const picker = run("").picker;
+  expect(picker?.options).toEqual([{ label: "Default credential chain", value: "clear" }]);
 });
 
-describe("/model ChatGPT OAuth catalog", () => {
-  it("lists only supported Codex subscription models", () => {
-    const [listing] = runModelCommand("");
-    const oauthModels = listing.split("\n").map((line) => line.trim())
-      .filter((line) => line.startsWith("auth/gpt-"));
-    expect(oauthModels).toEqual([
-      "auth/gpt-6-astra", "auth/gpt-6.1-sol", "auth/gpt-6-luna",
-      "auth/gpt-5.6-sol", "auth/gpt-5.6-terra", "auth/gpt-5.6-luna",
-    ]);
-  });
+it("offers only the configured provider in the picker and completion", () => {
+  vi.stubEnv("DECEPTICON_COMPOSE_ENV_FILE", "/nonexistent/decepticon-test.env");
+  vi.stubEnv("ANTHROPIC_API_KEY", `sk-ant-${"a".repeat(40)}`);
+  const choices = run("").picker?.options.map((option) => option.value) ?? [];
+  expect(choices).toContain("anthropic/claude-sonnet-4-6");
+  expect(choices).not.toContain("openai/gpt-5.5");
+  expect(model.complete?.("anthropic/claude-sonnet")).toContain("anthropic/claude-sonnet-4-6");
+  expect(model.complete?.("openai/")).toEqual([]);
+});
 
-  it.each(["gpt-6-astra", "gpt-6.1-sol", "gpt-6-luna"])(
-    "selects %s without an unknown-model warning", (slug) => {
-      const events = runModelCommand(`auth/${slug}`);
-      expect(events).toHaveLength(1);
-      expect(getModelOverride()).toBe(`auth/${slug}`);
-    },
-  );
+it("keeps manual IDs and clear available for BYOK routes", () => {
+  const events = run("custom/new-model").events;
+  expect(events.at(-1)).toContain("Model override set: custom/new-model");
+  expect(getModelOverride()).toBe("custom/new-model");
+  run("clear");
+  expect(getModelOverride()).toBe("");
 });

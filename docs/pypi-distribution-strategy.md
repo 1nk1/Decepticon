@@ -35,7 +35,7 @@ a real version-stamping flow, and supply-chain hardening.
   OSS default stays lean (`["standard"]`); downstream images opt their bundle in.
 - **The only documented way for a downstream product to consume the core is a git pin.**
   `docs/library-usage.md:383-393` recommends
-  `decepticon @ git+https://github.com/PurpleAILAB/Decepticon.git@v1.x.y`
+  `decepticon @ git+https://github.com/BitterSecurity/Decepticon.git@v1.x.y`
   and states: *"PyPI publication is on the roadmap once the public API
   surface is stable enough to commit to."*
 - `docs/contributing.md:114` already assumes the end state:

@@ -3,7 +3,7 @@ description: >
   Run an autonomous red-team scan against the current repository using
   Decepticon, emit SARIF v2.1.0 results suitable for GitHub Code Scanning,
   and fail the job when findings hit a configurable severity threshold.
-author: "PurpleAILAB"
+author: "BitterSecurity"
 branding:
   icon: "shield"
   color: "purple"
