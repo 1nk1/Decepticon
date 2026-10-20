@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed PR (link added after creation): fix CLI Backspace and forward Delete,
+- Proposed [PR #1017](https://github.com/BitterSecurity/Decepticon/pull/1017): fix CLI Backspace and forward Delete,
   Unicode-safe cursor editing, familiar multiline and history controls, and
   filter `/model` choices to routes supported by the owner's local provider
   configuration. Preserve manual model IDs and explicit local/BYOK endpoints.
