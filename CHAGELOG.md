@@ -15,7 +15,12 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed [PR #1024](https://github.com/BitterSecurity/Decepticon/pull/1024):
+- Proposed [PR #1025](https://github.com/BitterSecurity/Decepticon/pull/1025): process Backspace even when
+  terminal input batches it with typed text, and keep Up/Down navigating recalled
+  slash-command history until another editing action. Preserve multiline paste,
+  Unicode graphemes and the unsent draft. Source only; no release is published.
+
+- Merged [PR #1024](https://github.com/BitterSecurity/Decepticon/pull/1024):
   startup readiness and `doctor`
   now honor the shell's `LANGGRAPH_PORT` before `.env`, matching Compose's
   published port. An explicitly empty shell value selects the default 2024.
