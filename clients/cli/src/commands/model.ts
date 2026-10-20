@@ -2,7 +2,7 @@
  * /model — runtime LLM swap for the current REPL session.
  *
  * Usage:
- *   /model              List the active override + every supported model id
+ *   /model              List configured routes for this installation
  *   /model <id>         Set the override (e.g. /model groq/llama-3.3-70b-versatile)
  *   /model clear        Drop the override and resume the credentials-priority chain
  *
@@ -16,6 +16,7 @@
 import type { Command } from "./types.js";
 import { setModelOverride, getModelOverride } from "./modelOverride.js";
 import { CURRENT_PROD_MODELS } from "./currentProdModels.js";
+import { configuredModelGroups, isConfiguredModel, modelEnvironment } from "./modelAvailability.js";
 
 const SUPPORTED_MODELS: Record<string, string[]> = {
   // Cloud Anthropic
@@ -193,19 +194,21 @@ const model: Command = {
   name: "model",
   description: "Show or change the LLM model for this session",
   argumentHint: "[<model-id> | clear]",
-  complete: (args) => ["clear", ...flatten().filter((id) => !id.includes("<"))].filter((id) => id.startsWith(args)),
+  complete: (args) => ["clear", ...Object.values(configuredModelGroups(SUPPORTED_MODELS, modelEnvironment())).flat()].filter((id) => id.startsWith(args)),
   execute(args, ctx) {
     const arg = args.trim();
 
-    // No arg → list
+    // No arg → list only routes backed by this installation's configuration.
     if (arg === "") {
       const current = getModelOverride();
+      const groups = configuredModelGroups(SUPPORTED_MODELS, modelEnvironment());
+      const configured = Object.values(groups).flat();
       if (ctx.openPicker) {
         ctx.openPicker({
-          title: `Model (current: ${current || "default"})`,
+          title: `Configured routes · entitlement unverified (current: ${current || "default"})`,
           options: [
             { label: "Default credential chain", value: "clear" },
-            ...flatten().filter((id) => !id.includes("<")).map((id) => ({ label: id, value: id })),
+            ...configured.map((id) => ({ label: id, value: id })),
           ],
           onSelect: async (value) => { await model.execute(value, ctx); },
         });
@@ -218,9 +221,9 @@ const model: Command = {
           : "No override active — using the credentials-priority chain from .env",
       );
       lines.push("");
-      lines.push("Supported models (group → ids):");
+      lines.push("Configured route candidates (credentials and provider entitlement are not verified):");
       const listed = new Set<string>();
-      for (const [group, ids] of Object.entries(SUPPORTED_MODELS)) {
+      for (const [group, ids] of Object.entries(groups)) {
         const fresh = ids.filter((id) => !listed.has(id));
         if (fresh.length === 0) continue;
         lines.push(`  ${group}:`);
@@ -229,6 +232,7 @@ const model: Command = {
           listed.add(id);
         }
       }
+      if (!configured.length) lines.push("  No configured routes found. Check the local .env or enter a custom model ID manually.");
       lines.push("");
       lines.push("Usage:");
       lines.push("  /model <id>     Switch the primary model for the next message");
@@ -253,6 +257,8 @@ const model: Command = {
         `Note: '${arg}' is not in the built-in catalog. Sending anyway — ` +
           `the model call will fail with a clear 404 if LiteLLM does not know it.`,
       );
+    } else if (!isConfiguredModel(arg, modelEnvironment())) {
+      ctx.addSystemEvent(`Note: '${arg}' is in the catalog but has no configured route for this installation. The next model call may fail.`);
     }
     setModelOverride(arg);
     ctx.addSystemEvent(
