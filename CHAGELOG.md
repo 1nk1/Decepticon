@@ -15,7 +15,17 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed [PR #1025](https://github.com/BitterSecurity/Decepticon/pull/1025): process Backspace even when
+- Proposed [PR #1026](https://github.com/BitterSecurity/Decepticon/pull/1026):
+  interactive
+  startup checks the configured CLI service's API route instead of requiring
+  host loopback connectivity. Service-only/Desktop startup and `doctor` retain
+  their host endpoint checks. Exact assistant validation, bounded requests and
+  the existing startup deadline apply to both routes; broken CLI DNS or API
+  responses still block interactive startup. Related to #1004; the reporter's
+  specific host forwarding timeout is not claimed resolved. Readiness tests
+  separate host Node startup from request deadlines for Windows verification.
+
+- Merged [PR #1025](https://github.com/BitterSecurity/Decepticon/pull/1025): process Backspace even when
   terminal input batches it with typed text, and keep Up/Down navigating recalled
   slash-command history until another editing action. Preserve multiline paste,
   Unicode graphemes and the unsent draft. Source only; no release is published.
