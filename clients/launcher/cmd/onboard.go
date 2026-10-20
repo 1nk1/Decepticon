@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"charm.land/huh/v2"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/cmd/opscontrol"
+	"github.com/PurpleAILAB/Decepticon/clients/launcher/cmd/infracontrol"
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/config"
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/migrate"
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/platform"
@@ -1108,10 +1108,10 @@ func runOnboard(cmd *cobra.Command, args []string) error {
 	// systemd-user / launchd this is a no-op announcement, and the
 	// launcher's spawn fallback takes over at `decepticon start`.
 	fmt.Println()
-	if err := opscontrol.EnsureInstalled(); err != nil {
+	if err := infracontrol.EnsureInstalled(); err != nil {
 		// Non-fatal: onboarding can complete without managed-service
 		// mode, the user will just stay on launcher-spawn fallback.
-		ui.Warning("opscontrol install skipped: " + err.Error())
+		ui.Warning("infracontrol install skipped: " + err.Error())
 	}
 	fmt.Println()
 

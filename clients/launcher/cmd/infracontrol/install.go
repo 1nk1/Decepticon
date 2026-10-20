@@ -1,4 +1,4 @@
-package opscontrol
+package infracontrol
 
 import (
 	"errors"
@@ -7,15 +7,15 @@ import (
 	"time"
 
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/config"
-	internal "github.com/PurpleAILAB/Decepticon/clients/launcher/internal/opscontrol"
+	internal "github.com/PurpleAILAB/Decepticon/clients/launcher/internal/infracontrol"
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/ui"
 	"github.com/spf13/cobra"
 )
 
 var installCmd = &cobra.Command{
 	Use:   "install",
-	Short: "Install opscontrol as a managed background service",
-	Long: `Installs the opscontrol daemon as a systemd user unit (Linux,
+	Short: "Install infracontrol as a managed background service",
+	Long: `Installs the infracontrol daemon as a systemd user unit (Linux,
 including WSL2 with systemd=true) or a launchd LaunchAgent (macOS).
 
 After install the daemon survives reboots, restarts automatically on
@@ -45,26 +45,26 @@ func EnsureInstalled() error {
 	mgr := internal.DetectServiceManager()
 	if !mgr.Available() {
 		ui.Warning("No supported service manager on this host (looked for systemd-user, launchd).")
-		ui.Info("opscontrol will use the launcher-spawn path automatically. No install action required.")
+		ui.Info("infracontrol will use the launcher-spawn path automatically. No install action required.")
 		return nil
 	}
 
 	exe, err := os.Executable()
 	if err != nil {
-		return fmt.Errorf("opscontrol: resolve binary path: %w", err)
+		return fmt.Errorf("infracontrol: resolve binary path: %w", err)
 	}
 
 	// systemd's ReadWritePaths= refuses to set up the unit's mount
 	// namespace if the path does not exist yet. Pre-create the home
 	// directory and its run/ subdirectory so the very first start
 	// after install succeeds. (Onboard normally creates these too;
-	// this is the standalone `decepticon opscontrol install` path.)
+	// this is the standalone `decepticon infracontrol install` path.)
 	homePath := config.DecepticonHome()
 	if err := os.MkdirAll(homePath, 0o700); err != nil {
-		return fmt.Errorf("opscontrol: pre-create home: %w", err)
+		return fmt.Errorf("infracontrol: pre-create home: %w", err)
 	}
 	if err := internal.EnsureRunDir(); err != nil {
-		return fmt.Errorf("opscontrol: pre-create run dir: %w", err)
+		return fmt.Errorf("infracontrol: pre-create run dir: %w", err)
 	}
 
 	spec := internal.InstallSpec{
@@ -74,7 +74,7 @@ func EnsureInstalled() error {
 		RunDir:     internal.RunDirOverride(),
 	}
 
-	ui.Info(fmt.Sprintf("Installing opscontrol via %s (unit=%s)...", mgr.Name(), internal.ServiceUnitName()))
+	ui.Info(fmt.Sprintf("Installing infracontrol via %s (unit=%s)...", mgr.Name(), internal.ServiceUnitName()))
 	if err := mgr.Install(spec); err != nil {
 		return err
 	}
@@ -88,7 +88,7 @@ func EnsureInstalled() error {
 		return err
 	}
 
-	ui.Success(fmt.Sprintf("opscontrol service is active. Socket: %s", internal.HostSocketPath()))
+	ui.Success(fmt.Sprintf("infracontrol service is active. Socket: %s", internal.HostSocketPath()))
 	return nil
 }
 
@@ -106,7 +106,7 @@ func waitForActive(mgr internal.ServiceManager, timeout time.Duration) error {
 	for time.Now().Before(deadline) {
 		active, err := mgr.Active()
 		if err != nil {
-			return fmt.Errorf("opscontrol: probe active state: %w", err)
+			return fmt.Errorf("infracontrol: probe active state: %w", err)
 		}
 		if active {
 			if info, sErr := os.Stat(socketPath); sErr == nil && info.Mode()&os.ModeSocket != 0 {
@@ -115,7 +115,7 @@ func waitForActive(mgr internal.ServiceManager, timeout time.Duration) error {
 		}
 		time.Sleep(200 * time.Millisecond)
 	}
-	return errors.New("opscontrol: service did not reach active+socket-ready within " + timeout.String() +
+	return errors.New("infracontrol: service did not reach active+socket-ready within " + timeout.String() +
 		"; check `journalctl --user -u " + internal.ServiceUnitName() + "` or `launchctl print` output")
 }
 

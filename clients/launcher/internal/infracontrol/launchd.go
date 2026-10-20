@@ -1,4 +1,4 @@
-package opscontrol
+package infracontrol
 
 import (
 	"errors"
@@ -50,7 +50,7 @@ func (l *LaunchdManager) Available() bool {
 func (l *LaunchdManager) plistPath() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return "", fmt.Errorf("opscontrol: resolve user home: %w", err)
+		return "", fmt.Errorf("infracontrol: resolve user home: %w", err)
 	}
 	return filepath.Join(home, "Library", "LaunchAgents", l.Label+".plist"), nil
 }
@@ -82,21 +82,21 @@ func (l *LaunchdManager) Active() (bool, error) {
 
 func (l *LaunchdManager) Install(spec InstallSpec) error {
 	if spec.BinaryPath == "" || spec.HomePath == "" {
-		return errors.New("opscontrol: InstallSpec requires BinaryPath and HomePath")
+		return errors.New("infracontrol: InstallSpec requires BinaryPath and HomePath")
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return fmt.Errorf("opscontrol: resolve user home: %w", err)
+		return fmt.Errorf("infracontrol: resolve user home: %w", err)
 	}
 	agentsDir := filepath.Join(home, "Library", "LaunchAgents")
 	if err := os.MkdirAll(agentsDir, 0o755); err != nil {
-		return fmt.Errorf("opscontrol: create LaunchAgents dir: %w", err)
+		return fmt.Errorf("infracontrol: create LaunchAgents dir: %w", err)
 	}
 
 	plist := l.renderPlist(spec)
 	plistFile := filepath.Join(agentsDir, l.Label+".plist")
 	if err := os.WriteFile(plistFile, []byte(plist), 0o644); err != nil {
-		return fmt.Errorf("opscontrol: write plist: %w", err)
+		return fmt.Errorf("infracontrol: write plist: %w", err)
 	}
 
 	uid := strconv.Itoa(os.Getuid())
@@ -105,13 +105,13 @@ func (l *LaunchdManager) Install(spec InstallSpec) error {
 	_ = exec.Command(launchctlBinary, "bootout", "gui/"+uid+"/"+l.Label).Run()
 
 	if out, err := exec.Command(launchctlBinary, "bootstrap", "gui/"+uid, plistFile).CombinedOutput(); err != nil {
-		return fmt.Errorf("opscontrol: launchctl bootstrap: %w: %s", err, strings.TrimSpace(string(out)))
+		return fmt.Errorf("infracontrol: launchctl bootstrap: %w: %s", err, strings.TrimSpace(string(out)))
 	}
 	if out, err := exec.Command(launchctlBinary, "enable", "gui/"+uid+"/"+l.Label).CombinedOutput(); err != nil {
-		return fmt.Errorf("opscontrol: launchctl enable: %w: %s", err, strings.TrimSpace(string(out)))
+		return fmt.Errorf("infracontrol: launchctl enable: %w: %s", err, strings.TrimSpace(string(out)))
 	}
 	if out, err := exec.Command(launchctlBinary, "kickstart", "gui/"+uid+"/"+l.Label).CombinedOutput(); err != nil {
-		return fmt.Errorf("opscontrol: launchctl kickstart: %w: %s", err, strings.TrimSpace(string(out)))
+		return fmt.Errorf("infracontrol: launchctl kickstart: %w: %s", err, strings.TrimSpace(string(out)))
 	}
 	return nil
 }
@@ -124,7 +124,7 @@ func (l *LaunchdManager) Uninstall() error {
 		return err
 	}
 	if err := os.Remove(p); err != nil && !errors.Is(err, os.ErrNotExist) {
-		return fmt.Errorf("opscontrol: remove plist: %w", err)
+		return fmt.Errorf("infracontrol: remove plist: %w", err)
 	}
 	return nil
 }
@@ -139,7 +139,7 @@ func (l *LaunchdManager) Start() error {
 	}
 	uid := strconv.Itoa(os.Getuid())
 	if out, err := exec.Command(launchctlBinary, "kickstart", "gui/"+uid+"/"+l.Label).CombinedOutput(); err != nil {
-		return fmt.Errorf("opscontrol: launchctl kickstart: %w: %s", err, strings.TrimSpace(string(out)))
+		return fmt.Errorf("infracontrol: launchctl kickstart: %w: %s", err, strings.TrimSpace(string(out)))
 	}
 	return nil
 }
@@ -175,7 +175,7 @@ func (l *LaunchdManager) renderPlist(spec InstallSpec) string {
     <key>ProgramArguments</key>
     <array>
         <string>%s</string>
-        <string>opscontrol</string>
+        <string>infracontrol</string>
         <string>daemon</string>
     </array>
     <key>RunAtLoad</key>

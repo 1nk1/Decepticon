@@ -1,4 +1,4 @@
-package opscontrol
+package infracontrol
 
 import (
 	"os"
@@ -110,9 +110,9 @@ func TestStackName_SanitizesEnv(t *testing.T) {
 	cases := []struct{ in, want string }{
 		{"", ""},
 		{"stack2", "stack2"},
-		{"STACK2", "-----2"},          // uppercase replaced; digits preserved
-		{"with space", "with-space"},   // space normalized
-		{"a$b", "a-b"},                  // special normalized
+		{"STACK2", "-----2"},         // uppercase replaced; digits preserved
+		{"with space", "with-space"}, // space normalized
+		{"a$b", "a-b"},               // special normalized
 		{strings.Repeat("x", 64), strings.Repeat("x", 32)}, // truncated
 	}
 	for _, c := range cases {

@@ -15,7 +15,7 @@ var logsCmd = &cobra.Command{
   neo4j
   sandbox
   web`,
-	Args:  cobra.MaximumNArgs(1),
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		service := "langgraph"
 		if len(args) > 0 {

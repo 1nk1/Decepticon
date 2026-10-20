@@ -15,6 +15,13 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #pending](https://github.com/BitterSecurity/Decepticon/pull/pending):
+  name the workload-lifecycle command and Go packages `infracontrol`, while
+  retaining `decepticon opscontrol` as an alias. New service units invoke the
+  new command; installed unit names, legacy units, environment variables,
+  socket/PID paths, Compose overlay names and doctor JSON keys remain valid.
+  Source only; no release is published.
+
 - Proposed [PR #1012](https://github.com/BitterSecurity/Decepticon/pull/1012):
   add UUID artifact revisions, immutable snapshots, a structured Info log and
   OPPLAN search toward independently verified High/Critical findings. Preserve

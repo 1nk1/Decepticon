@@ -365,7 +365,7 @@ is amended (separate docs PR) to:
     will spell out the new default explicitly.
 
 - **Migration timeline** (revised 2026-06-06)
-  - Sprint 1 (revised): this revised ADR + `clients/launcher/cmd/opscontrol`
+  - Sprint 1 (revised): this revised ADR + `clients/launcher/cmd/infracontrol` (formerly `cmd/opscontrol`)
     Go daemon (HTTP-over-Unix-socket) + `Backend` Protocol +
     `DockerComposeBackend` + onboard-flow install + `tools/ops`
     LangChain wrappers (preserved from the original PR #592, with the

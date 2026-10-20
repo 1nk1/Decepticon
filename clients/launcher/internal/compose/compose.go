@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/config"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/opscontrol"
+	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/infracontrol"
 	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/runtime"
 )
 
@@ -104,7 +104,7 @@ func (c *Compose) baseArgs() []string {
 	// normal flows but breaks the moment any caller passes a different
 	// `-p` (CI, manual debugging, …) and produces a "container_name in
 	// use by another project" conflict on the next ops_start.
-	args = append(args, "-p", opscontrol.ComposeProjectName())
+	args = append(args, "-p", infracontrol.ComposeProjectName())
 	args = append(args, "-f", c.ComposeFile, "--env-file", c.EnvFile)
 	if c.OverlayFile != "" {
 		args = append(args, "-f", c.OverlayFile)
@@ -169,8 +169,8 @@ func (c *Compose) composeEnv() []string {
 	// COMPOSE_PROJECT). The daemon's DockerComposeBackend reads from the
 	// same helper so the two never write DIFFERENT container_name
 	// values into the SAME compose project. See
-	// opscontrol.ComposeCommandEnv() for the rationale.
-	env := opscontrol.ComposeCommandEnv()
+	// infracontrol.ComposeCommandEnv() for the rationale.
+	env := infracontrol.ComposeCommandEnv()
 	if v := c.readVersion(); v != "" {
 		env = append(env, "DECEPTICON_VERSION="+imageTag(v))
 	}

@@ -28,7 +28,7 @@ type ollamaProbeResult struct {
 }
 
 // probeOllamaForOnboard returns models on the host that advertise
-// ``tools``. Multi-candidate URL strategy mirrors the host-side
+// “tools“. Multi-candidate URL strategy mirrors the host-side
 // reachability probe; the first candidate to answer /api/tags wins.
 // Per-model /api/show calls run in parallel so a power user with many
 // pulled models still finishes inside the wizard's overall budget.
@@ -46,8 +46,8 @@ func probeOllamaForOnboard(baseURL string) ollamaProbeResult {
 	return ollamaProbeResult{}
 }
 
-// filterToolCapable returns the subset of ``models`` whose /api/show
-// response advertises the ``tools`` capability. Each call goes out
+// filterToolCapable returns the subset of “models“ whose /api/show
+// response advertises the “tools“ capability. Each call goes out
 // concurrently — Ollama answers /api/show locally and the wizard's
 // overall budget is small, so serializing the calls would only matter
 // for users with many pulled models, but parallelizing costs nothing.
@@ -113,7 +113,7 @@ func fetchOllamaTags(baseURL string) ([]string, bool) {
 }
 
 // hasOllamaToolsCapability returns true only when /api/show lists
-// ``tools`` in capabilities. Older Ollama (< 0.3) without the field
+// “tools“ in capabilities. Older Ollama (< 0.3) without the field
 // reports false — the wizard's strict list stays trustworthy.
 func hasOllamaToolsCapability(baseURL, model string) bool {
 	payload, err := json.Marshal(map[string]string{"name": model})

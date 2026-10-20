@@ -1,4 +1,4 @@
-package opscontrol
+package infracontrol
 
 import "testing"
 

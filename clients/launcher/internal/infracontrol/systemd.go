@@ -1,4 +1,4 @@
-package opscontrol
+package infracontrol
 
 import (
 	"errors"
@@ -57,7 +57,7 @@ func (s *SystemdManager) Name() string { return "systemd-user" }
 func (s *SystemdManager) unitPath() (string, error) {
 	dir, err := os.UserHomeDir()
 	if err != nil {
-		return "", fmt.Errorf("opscontrol: resolve user home: %w", err)
+		return "", fmt.Errorf("infracontrol: resolve user home: %w", err)
 	}
 	return filepath.Join(dir, ".config", "systemd", "user", s.UnitName+".service"), nil
 }
@@ -97,7 +97,7 @@ func (s *SystemdManager) Active() (bool, error) {
 // the service. Idempotent.
 func (s *SystemdManager) Install(spec InstallSpec) error {
 	if spec.BinaryPath == "" || spec.HomePath == "" {
-		return errors.New("opscontrol: InstallSpec requires BinaryPath and HomePath")
+		return errors.New("infracontrol: InstallSpec requires BinaryPath and HomePath")
 	}
 	wasActive, err := s.Active()
 	if err != nil {
@@ -105,11 +105,11 @@ func (s *SystemdManager) Install(spec InstallSpec) error {
 	}
 	unitDir, err := os.UserHomeDir()
 	if err != nil {
-		return fmt.Errorf("opscontrol: resolve user home: %w", err)
+		return fmt.Errorf("infracontrol: resolve user home: %w", err)
 	}
 	unitDir = filepath.Join(unitDir, ".config", "systemd", "user")
 	if err := os.MkdirAll(unitDir, 0o755); err != nil {
-		return fmt.Errorf("opscontrol: create systemd user dir: %w", err)
+		return fmt.Errorf("infracontrol: create systemd user dir: %w", err)
 	}
 
 	// Drop-in `*.conf` files override the unit we're about to write,
@@ -128,11 +128,11 @@ func (s *SystemdManager) Install(spec InstallSpec) error {
 	unit := s.renderUnit(spec)
 	unitFile := filepath.Join(unitDir, s.UnitName+".service")
 	if err := os.WriteFile(unitFile, []byte(unit), 0o644); err != nil {
-		return fmt.Errorf("opscontrol: write unit: %w", err)
+		return fmt.Errorf("infracontrol: write unit: %w", err)
 	}
 
 	if out, err := exec.Command(systemctlBinary, "--user", "daemon-reload").CombinedOutput(); err != nil {
-		return fmt.Errorf("opscontrol: daemon-reload: %w: %s", err, strings.TrimSpace(string(out)))
+		return fmt.Errorf("infracontrol: daemon-reload: %w: %s", err, strings.TrimSpace(string(out)))
 	}
 	if dropInRemoved {
 		// daemon-reload is required after drop-in removal too; the call
@@ -141,13 +141,13 @@ func (s *SystemdManager) Install(spec InstallSpec) error {
 		_ = exec.Command(systemctlBinary, "--user", "reset-failed", s.UnitName+".service").Run()
 	}
 	if out, err := exec.Command(systemctlBinary, "--user", "enable", "--now", s.UnitName+".service").CombinedOutput(); err != nil {
-		return fmt.Errorf("opscontrol: enable --now: %w: %s", err, strings.TrimSpace(string(out)))
+		return fmt.Errorf("infracontrol: enable --now: %w: %s", err, strings.TrimSpace(string(out)))
 	}
 	// enable --now does not restart an already active service. A repeat
 	// explicit install must load the new unit environment and socket path.
 	if wasActive {
 		if out, err := exec.Command(systemctlBinary, "--user", "restart", s.UnitName+".service").CombinedOutput(); err != nil {
-			return fmt.Errorf("opscontrol: restart updated service: %w: %s", err, strings.TrimSpace(string(out)))
+			return fmt.Errorf("infracontrol: restart updated service: %w: %s", err, strings.TrimSpace(string(out)))
 		}
 	}
 	return nil
@@ -191,7 +191,7 @@ func (s *SystemdManager) removeStaleDropIns(dir string) bool {
 			binaryPath := fields[0]
 			if _, err := os.Stat(binaryPath); errors.Is(err, os.ErrNotExist) {
 				fmt.Fprintf(os.Stderr,
-					"opscontrol: removing stale drop-in %s — ExecStart=%s no longer exists\n",
+					"infracontrol: removing stale drop-in %s — ExecStart=%s no longer exists\n",
 					path, binaryPath)
 				if err := os.Remove(path); err == nil {
 					removed = true
@@ -218,7 +218,7 @@ func (s *SystemdManager) Uninstall() error {
 		return err
 	}
 	if err := os.Remove(p); err != nil && !errors.Is(err, os.ErrNotExist) {
-		return fmt.Errorf("opscontrol: remove unit file: %w", err)
+		return fmt.Errorf("infracontrol: remove unit file: %w", err)
 	}
 	// daemon-reload so systemd forgets the unit before another
 	// install reuses the path.
@@ -235,7 +235,7 @@ func (s *SystemdManager) Start() error {
 		return ErrNotInstalled
 	}
 	if out, err := exec.Command(systemctlBinary, "--user", "start", s.UnitName+".service").CombinedOutput(); err != nil {
-		return fmt.Errorf("opscontrol: systemctl start: %w: %s", err, strings.TrimSpace(string(out)))
+		return fmt.Errorf("infracontrol: systemctl start: %w: %s", err, strings.TrimSpace(string(out)))
 	}
 	return nil
 }
@@ -295,14 +295,14 @@ func (s *SystemdManager) renderUnit(spec InstallSpec) string {
 	// ports, passwords, …) the launcher saw. The leading `-` keeps
 	// install tolerant of `.env` not existing yet.
 	return fmt.Sprintf(`[Unit]
-Description=Decepticon opscontrol daemon (ADR-0006)
+Description=Decepticon infracontrol daemon (ADR-0006)
 Documentation=https://github.com/PurpleAILAB/Decepticon/blob/main/docs/adr/0006-agent-driven-container-lifecycle.md
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=%s opscontrol daemon
+ExecStart=%s infracontrol daemon
 WorkingDirectory=%s
 EnvironmentFile=-%s/.env
 Environment=DECEPTICON_HOME=%s
