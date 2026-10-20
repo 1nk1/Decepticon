@@ -125,6 +125,36 @@ decepticon
 
 → **[Quick start](docs/getting-started.md)** · **[Full setup walkthrough](docs/setup-guide.md)**
 
+### Inside the interactive CLI
+
+Type `/` to browse commands, select with Up/Down, then press Enter. Tab completes
+the selected command; aliases also appear in help and autocomplete.
+
+| Command | Use |
+|---------|-----|
+| `/help`, `/shortcuts` | Discover commands or keyboard shortcuts |
+| `/model`, `/status` | Choose a configured model or inspect session connections |
+| `/plan` | Enter optional Plan mode, then send your planning message |
+| `/mode red`, `/mode blue` | Return to Red or select Blue investigation |
+| `/new` | Start a fresh conversation in the same engagement and mode when idle |
+| `/sessions`, `/resume` | Browse saved conversations or continue paused work |
+| `/version` (`/about`), `/pwd` (`/cwd`) | Check the running version and workspace paths |
+| `/quit`, `/exit` | Leave the chat; services and server work keep running |
+
+Enter sends; Shift+Enter, Alt+Enter or Ctrl+J adds a line. Up/Down recalls input
+history at the first/last input row; Ctrl+R searches it. Esc closes focused UI
+first, then pauses active work; `/resume` continues it. Ctrl+A moves to the start
+of the current line. Use `/queue` to review waiting messages before `/new`.
+
+`/new` preserves saved conversations and terminal scrollback; it does not create
+another engagement or change target authorization. `/plan` and `/new` take no
+arguments. In the web terminal, use the dashboard's mode controls.
+
+The new shortcuts and slash conveniences above describe current `main`, including
+unreleased changes. A source merge does not update installed images. See
+[version history](CHAGELOG.md), the [complete CLI reference](docs/cli-reference.md#slash-commands)
+and [upgrade behavior](docs/cli-experience.md#upgrade-behavior).
+
 ### Use from Claude Code or Codex
 
 After starting Decepticon, register its MCP server in your coding agent:

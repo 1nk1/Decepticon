@@ -164,11 +164,25 @@ such, rather than guessing which model will serve the next request.
 
 Aliases appear in both `/help` and slash autocomplete. `/plan` takes no arguments;
 send your planning message after the mode changes. `/new` takes no title or prompt
-argument and resets the visible chat as well as its active thread, like `/clear`.
+argument and resets the active conversation's event state and thread, like `/clear`.
+Previously printed terminal scrollback remains available.
 It does not delete saved sessions or change the engagement, target scope or mode.
 Finish or cancel paused/active work and handle `/queue` before using it.
 `/quit` and `/exit` disconnect the CLI stream; server work continues. Messages
 still waiting in the local queue are not submitted after exit.
+
+#### Example: optional planning, then a separate conversation
+
+1. Enter `/plan`, then send a planning message after the mode changes.
+2. Use `/status` to inspect the current session and connections.
+3. Finish or cancel the run and review `/queue`. Use `/sessions` to find saved
+   conversations if you need to return to them later.
+4. Enter `/new` to start another conversation in the same mode and engagement.
+   This does not switch back to Red; use `/mode red` explicitly when appropriate.
+
+These commands describe current `main`, including unreleased changes. Compare
+`/version` with [version history](../CHAGELOG.md); merging source does not update
+an installed launcher or CLI image. See [upgrade behavior](cli-experience.md#upgrade-behavior).
 
 These conveniences follow the official [Claude Code commands](https://code.claude.com/docs/en/commands),
 [Codex CLI commands](https://learn.chatgpt.com/docs/developer-commands?surface=cli)

@@ -15,7 +15,13 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed [PR #1029](https://github.com/BitterSecurity/Decepticon/pull/1029):
+- Proposed [PR #1030](https://github.com/BitterSecurity/Decepticon/pull/1030):
+  document interactive CLI commands and familiar keys in the README and getting
+  started guide. Correct the direct Red setup flow, explain `/new` session and
+  scrollback preservation, and distinguish merged source from released images.
+  Documentation only; no runtime or version changes.
+
+- Merged [PR #1029](https://github.com/BitterSecurity/Decepticon/pull/1029):
   CLI slash command conveniences add `/plan`, `/shortcuts`,
   `/version` (`/about`) and `/pwd` (`/cwd`), plus `/new` as an alias for `/clear`.
   Display aliases in help and autocomplete, including existing `/exit` and `/?`.
@@ -25,7 +31,7 @@ Keep proposed and unmerged changes out of released sections.
   stream so the CLI can terminate while server work continues. Source changes
   are unreleased.
 
-- Proposed [PR #1028](https://github.com/BitterSecurity/Decepticon/pull/1028): add Shift+Enter
+- Merged [PR #1028](https://github.com/BitterSecurity/Decepticon/pull/1028): add Shift+Enter
   and backslash-Enter multiline input, word navigation/deletion, cut recovery,
   input undo, empty-prompt help, Alt+P model selection and confirmed empty Ctrl+D
   exit. Esc dismisses focused UI before pausing active work while retaining queued

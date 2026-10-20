@@ -61,11 +61,40 @@ From the terminal UI, run `/web` (or `/web up`) to start the dashboard. It is th
 ## First Real Engagement
 
 1. Launch Decepticon (`decepticon`). To use the browser UI, run `/web` and open <http://localhost:3000>.
-2. In the CLI, choose **New engagement** and enter its name. The session defaults to Red. Import a reviewed RoE with `/scope import <file> --confirm`, then use `/mode red approve` before target-facing work. The web dashboard uses its own engagement setup form.
-3. Direct approved Red does not require planning documents. Use `/mode plan` explicitly for optional Soundwave discussion and planning; publication leaves you in Plan. See [engagement workflow](engagement-workflow.md) and [RoE provisioning](roe-provisioning.md).
+2. In the CLI, choose **New engagement**, enter its name and the authorized **Target web URL**. The launcher creates the RoE and direct approval, then opens Red. No prewritten scope file or Plan session is required for this path. For an existing engagement without valid approval, import a reviewed RoE with `/scope import <file> --confirm`, then use `/mode red approve`. The web dashboard uses its own engagement setup form.
+3. Direct approved Red does not require planning documents. Use `/plan` (or `/mode plan`) explicitly for optional Soundwave discussion and planning, then send your planning message; publication leaves you in Plan. See [engagement workflow](engagement-workflow.md) and [RoE provisioning](roe-provisioning.md).
 4. Use `/mode plan`, `/mode red`, or `/mode blue` within the CLI session, or the web live-view selector. Red runs specialist operations under the approved RoE; Blue investigation needs a connected local sensor.
 
+The direct target field currently accepts a root HTTP/HTTPS URL on its default
+port, such as `https://example.com`, without a path, query or credentials. For
+other scope requirements, use the [RoE provisioning guide](roe-provisioning.md).
+
 > **Important**: Only run Decepticon against systems you own or have explicit written authorization to test. See the disclaimer in the main README.
+
+### Find your way around the chat
+
+Type `/` for the command menu, use Up/Down to select, and Enter to execute; Tab
+completes a command. `/help` lists commands and aliases; `/shortcuts` lists keys.
+
+| Task | Command |
+|------|---------|
+| Inspect version, session and connections | `/version`, `/status` |
+| Check target workspace versus CLI directory | `/pwd` |
+| Select a configured model | `/model` |
+| Continue paused work or browse saved conversations | `/resume`, `/sessions` |
+| Review or clear waiting messages | `/queue`, `/queue clear` |
+| Start a fresh conversation in the same engagement and mode | `/new` |
+| Leave the chat without stopping services | `/quit` or `/exit` |
+
+`/new` accepts no arguments and requires idle state with no waiting messages.
+Finish or cancel active/paused work first. It preserves saved conversations and
+terminal scrollback. It does not create a new engagement. Leaving the chat
+disconnects its stream; waiting local messages are not submitted after exit.
+
+This guide describes current `main`; some controls are unreleased. Check
+[version history](../CHAGELOG.md) and [upgrade behavior](cli-experience.md#upgrade-behavior)
+against your installed version. See the [full command reference](cli-reference.md#slash-commands)
+for aliases and Blue sensor commands.
 
 ---
 
