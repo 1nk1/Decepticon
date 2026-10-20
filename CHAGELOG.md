@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed [PR #pending](https://github.com/BitterSecurity/Decepticon/pull/pending):
+- Proposed [PR #1022](https://github.com/BitterSecurity/Decepticon/pull/1022):
   document launcher commands and session startup; suggest command names for
   root typos, validate log service names against the Compose stack, and add
   `status --json` for scripts. Keep existing session, service and human-output
