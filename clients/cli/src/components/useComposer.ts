@@ -12,11 +12,21 @@ export function useComposer(engagement: string) {
   const loadedPath = useRef("");
   const currentValue = useRef(value);
   const currentCursor = useRef(cursor);
+  const edits = useRef<{ readonly value: string; readonly cursor: number }[]>([]);
   currentValue.current = value;
   currentCursor.current = cursor;
   function setCursor(position: number) { currentCursor.current = position; setCursorState(position); }
-  function replace(text: string) { currentValue.current = text; currentCursor.current = text.length; setValue(text); setCursorState(text.length); }
+  function replace(text: string) {
+    if (text !== currentValue.current) edits.current = [...edits.current.slice(-99), snapshot()];
+    currentValue.current = text; currentCursor.current = text.length; setValue(text); setCursorState(text.length);
+  }
   function snapshot() { return { value: currentValue.current, cursor: currentCursor.current }; }
+  function undo() {
+    const previous = edits.current.pop();
+    if (!previous) return;
+    currentValue.current = previous.value; currentCursor.current = previous.cursor;
+    setValue(previous.value); setCursorState(previous.cursor);
+  }
   useEffect(() => {
     try {
       const stored = loadComposer(path);
@@ -30,6 +40,7 @@ export function useComposer(engagement: string) {
       replace("");
     }
     loadedPath.current = path;
+    edits.current = [];
   }, [path]);
   useEffect(() => {
     if (loadedPath.current !== path) return;
@@ -50,11 +61,12 @@ export function useComposer(engagement: string) {
     historyIndex.current = history.current.length;
     savedDraft.current = "";
     replace("");
+    edits.current = [];
   }
   function recall(direction: number) {
     if (historyIndex.current === history.current.length) savedDraft.current = currentValue.current;
     historyIndex.current = Math.max(0, Math.min(history.current.length, historyIndex.current + direction));
     replace(history.current[historyIndex.current] ?? savedDraft.current);
   }
-  return { value, cursor, setCursor, replace, snapshot, remember, recall, history, error, setError };
+  return { value, cursor, setCursor, replace, undo, snapshot, remember, recall, history, error, setError };
 }

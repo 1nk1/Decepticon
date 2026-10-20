@@ -9,6 +9,8 @@ import { completions, completedInput } from "./composerCompletion.js";
 import { editExternally } from "./composerEditor.js";
 import { verticalCursor, draftViewport, previousGrapheme, nextGrapheme, deleteAtCursor, isForwardDeleteSequence } from "./composerCursor.js";
 import { useComposer } from "./useComposer.js";
+import { previousWord, nextWord } from "./composerWords.js";
+import { KEYBOARD_HELP } from "./keyboardHelp.js";
 
 interface PromptProps {
   readonly runState: RunState;
@@ -43,6 +45,8 @@ function Composer({ runState, onSubmit, activeAgent = null, assistantId = "decep
   const selectedRef = useRef(selected);
   const dismissedRef = useRef(dismissed);
   const historyNavigation = useRef(false);
+  const [help, setHelp] = useState(false);
+  const killed = useRef("");
   function select(index: number) { selectedRef.current = index; setSelected(index); }
   const [search, setSearchState] = useState<string | null>(null);
   const [searchIndex, setSearchIndexState] = useState(0);
@@ -57,7 +61,8 @@ function Composer({ runState, onSubmit, activeAgent = null, assistantId = "decep
   const choices = dismissed || historyNavigation.current ? [] : completions(value, getCommands());
   const matches = search === null ? [] : [...editor.history.current].reverse().filter((item) => item.includes(search));
   const isActive = runState === "streaming" || runState === "connecting";
-  useEffect(() => { onModalChange?.(search !== null); return () => { onModalChange?.(false); }; }, [search !== null, onModalChange]);
+  const modalActive = search !== null || help || choices.length > 0;
+  useEffect(() => { onModalChange?.(modalActive); return () => { onModalChange?.(false); }; }, [modalActive, onModalChange]);
   useEffect(() => { select(0); dismissedRef.current = false; setDismissed(false); onDraftChange?.(value); }, [value, onDraftChange]);
   useEffect(() => {
     if (lastClear.current !== clearDraftToken) { replace(""); lastClear.current = clearDraftToken; }
@@ -84,6 +89,13 @@ function Composer({ runState, onSubmit, activeAgent = null, assistantId = "decep
     const { value, cursor } = editor.snapshot();
     replace(value.slice(0, cursor) + text + value.slice(cursor));
     setCursor(cursor + text.length);
+  }
+  function cut(start: number, end: number) {
+    const { value } = editor.snapshot();
+    if (start === end) return;
+    killed.current = value.slice(start, end);
+    replace(value.slice(0, start) + value.slice(end));
+    setCursor(start);
   }
   useInput(function handleInput(input, key) {
     const { value, cursor } = editor.snapshot();
@@ -117,7 +129,14 @@ function Composer({ runState, onSubmit, activeAgent = null, assistantId = "decep
       setSearchIndex(0);
       return;
     }
+    if (help) {
+      setHelp(false);
+      if (input === "?" || key.escape || key.return || (key.ctrl && input === "c")) return;
+    } else if (input === "?" && !value && !key.ctrl && !key.meta) { setHelp(true); return; }
     if (key.ctrl && input === "r") { setSearch(""); setSearchIndex(0); return; }
+    if (key.ctrl && input === "c" && choices.length) { replace(""); return; }
+    if (input === "\u001f" || (key.ctrl && (input === "_" || input === "/"))) { editor.undo(); return; }
+    if (key.ctrl && input === "y") { insert(killed.current); return; }
     if (key.ctrl && input === "g") {
       const wasRaw = stdin.isRaw;
       // Suspend the terminal itself while Ink retains ownership of its input subscriptions.
@@ -126,7 +145,10 @@ function Composer({ runState, onSubmit, activeAgent = null, assistantId = "decep
       finally { stdin.setRawMode(wasRaw); onModalChange?.(false); }
       return;
     }
-    if ((key.ctrl && input === "j") || (key.meta && key.return)) { insert("\n"); return; }
+    if (input === "\u001b[27;2;13~" || (input === "[27;2;13~" && rawInput.current === "\u001b[27;2;13~") || (key.ctrl && input === "j") || ((key.meta || key.shift) && key.return)) { insert("\n"); return; }
+    if (key.return && value[cursor - 1] === "\\") {
+      replace(value.slice(0, cursor - 1) + "\n" + value.slice(cursor)); setCursor(cursor); return;
+    }
     if (key.escape) { dismissedRef.current = true; setDismissed(true); return; }
     if (key.tab) {
       const choice = choices.find((item) => item.value === value)?.value ?? choices[selectedRef.current]?.value;
@@ -148,17 +170,25 @@ function Composer({ runState, onSubmit, activeAgent = null, assistantId = "decep
       else onSubmit(submitted);
       return;
     }
+    if (((key.ctrl || key.meta) && key.leftArrow) || (key.meta && input === "b")) { setCursor(previousWord(value, cursor)); return; }
+    if (((key.ctrl || key.meta) && key.rightArrow) || (key.meta && input === "f")) { setCursor(nextWord(value, cursor)); return; }
+    if (key.meta && input === "d") { cut(cursor, nextWord(value, cursor)); return; }
+    if ((key.ctrl || key.meta) && (key.backspace || key.delete)) {
+      if (key.delete && isForwardDeleteSequence(rawInput.current)) cut(cursor, nextWord(value, cursor));
+      else cut(previousWord(value, cursor), cursor);
+      return;
+    }
     if (key.leftArrow || (key.ctrl && input === "b")) { setCursor(previousGrapheme(value, cursor)); return; }
     if (key.rightArrow || (key.ctrl && input === "f")) { setCursor(nextGrapheme(value, cursor)); return; }
-    if (key.home) { setCursor(value.lastIndexOf("\n", cursor - 1) + 1); return; }
+    if (key.home) { setCursor(cursor === 0 ? 0 : value.lastIndexOf("\n", cursor - 1) + 1); return; }
     if (key.end) { const end = value.indexOf("\n", cursor); setCursor(end < 0 ? value.length : end); return; }
-    if (key.ctrl && input === "a") { setCursor(value.lastIndexOf("\n", cursor - 1) + 1); return; }
+    if (key.ctrl && input === "a") { setCursor(cursor === 0 ? 0 : value.lastIndexOf("\n", cursor - 1) + 1); return; }
     if (key.ctrl && input === "e") { const end = value.indexOf("\n", cursor); setCursor(end < 0 ? value.length : end); return; }
-    if (key.ctrl && input === "u") { const start = value.lastIndexOf("\n", cursor - 1) + 1; replace(value.slice(0, start) + value.slice(cursor)); setCursor(start); return; }
-    if (key.ctrl && input === "k") { const end = value.indexOf("\n", cursor); replace(value.slice(0, cursor) + value.slice(end < 0 ? value.length : end === cursor ? end + 1 : end)); setCursor(cursor); return; }
+    if (key.ctrl && input === "u") { const start = cursor === 0 ? 0 : value.lastIndexOf("\n", cursor - 1) + 1; cut(start === cursor && cursor > 0 ? cursor - 1 : start, cursor); return; }
+    if (key.ctrl && input === "k") { const end = value.indexOf("\n", cursor); cut(cursor, end < 0 ? value.length : end === cursor ? end + 1 : end); return; }
     if (key.ctrl && input === "w") {
       const start = value.slice(0, cursor).search(/\S+\s*$/);
-      if (start >= 0) { replace(value.slice(0, start) + value.slice(cursor)); setCursor(start); }
+      if (start >= 0) cut(start, cursor);
       return;
     }
     if (key.delete || key.backspace || (key.ctrl && input === "d")) {
@@ -183,7 +213,8 @@ function Composer({ runState, onSubmit, activeAgent = null, assistantId = "decep
       {search !== null && <Text>History search: {search} · {matches[searchIndex] ?? "No match"}</Text>}
       {choices.slice(menuStart, menuStart + 6).map((choice, index) => <Text key={choice.value} bold={index + menuStart === selected} dimColor={index + menuStart !== selected}>{index + menuStart === selected ? "› " : "  "}{choice.value} — {choice.description}</Text>)}
       <Text><Text bold>{mode}</Text>{" · "}{labelForAgent(activeAgent ?? assistantId)}{columns >= 70 ? ` · ${engagement}` : ""}{columns >= 100 ? ` · ${model || getModelOverride() || "default model"}` : ""}{connectionStatus ? ` · ${connectionStatus}` : ""}</Text>
-      <Text dimColor>{isActive ? "Ctrl+C pause · twice cancel · /queue edit" : runState === "paused" ? "Ctrl+C cancel · /resume continue" : "Enter send · Ctrl+J newline · Ctrl+R history · Ctrl+G editor · Ctrl+C clear/exit"}</Text>
+      {help && KEYBOARD_HELP.map((line) => <Text key={line} dimColor>{line}</Text>)}
+      <Text dimColor>{isActive ? "Esc / Ctrl+C pause · Ctrl+C twice cancel · /queue edit · ? shortcuts" : runState === "paused" ? "/resume continue · Ctrl+C cancel · ? shortcuts" : "Enter send · Shift+Enter newline · ↑/↓ history · ? shortcuts"}</Text>
       {editor.error && <Text color="yellow">Composer: {editor.error}</Text>}
     </Box>
   );
