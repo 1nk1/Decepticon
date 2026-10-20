@@ -15,8 +15,12 @@ export function completions(value: string, commands: readonly Command[]): readon
       value: `${value.slice(0, space)} ${arg}`, description: command?.description ?? "",
     }));
   }
-  return commands.filter((command) => !command.isHidden && `/${command.name}`.startsWith(value))
-    .map((command) => ({ value: `/${command.name}`, description: command.description }))
+  return commands.filter((command) => !command.isHidden)
+    .flatMap((command) => [command.name, ...(command.aliases ?? [])].map((name) => ({
+      value: `/${name}`,
+      description: name === command.name ? command.description : `${command.description} (/${command.name})`,
+    })))
+    .filter((choice) => choice.value.startsWith(value))
     .sort((left, right) => Number(right.value === value) - Number(left.value === value));
 }
 

@@ -15,7 +15,8 @@ const help: Command = {
       "Commands:",
       ...visible.map((c) => {
         const usage = c.argumentHint ? `/${c.name} ${c.argumentHint}` : `/${c.name}`;
-        return `  ${usage.padEnd(maxLen + 4)}${c.description}`;
+        const aliases = c.aliases?.length ? ` (also ${c.aliases.map((name) => `/${name}`).join(", ")})` : "";
+        return `  ${usage.padEnd(maxLen + 4)}${c.description}${aliases}`;
       }),
       "",
       "Shortcuts:",

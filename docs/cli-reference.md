@@ -136,12 +136,16 @@ remain available through `/blue incidents` and the monitor's APIs.
 
 | Command | Description |
 |---------|-------------|
-| `/help` | List registered commands and shortcuts |
-| `/clear` | Start a fresh conversation; saved server-side conversations remain |
+| `/help`, `/?` | List registered commands, aliases and shortcuts |
+| `/shortcuts` | Show the keyboard shortcut reference |
+| `/version`, `/about` | Show the running deployment version and CLI runtime |
+| `/pwd`, `/cwd` | Show the target workspace and CLI process directory separately |
+| `/clear`, `/new` | Start a fresh conversation when idle with no queued messages; saved server-side conversations remain |
 | `/file <path>` | Read a prompt from a file |
 | `/resume [message]` | Continue a paused run, or choose an existing conversation |
 | `/sessions [all \| legacy]` | Browse saved conversations |
 | `/mode [plan \| red [approve] \| blue]` | Select the conversation mode |
+| `/plan` | Enter optional Plan mode; send the planning message afterward |
 | `/model [model-id \| clear]` | Search the model catalog and select an override |
 | `/agent` | Inspect or select an orchestrator |
 | `/plugins` | List or toggle agent bundles |
@@ -152,11 +156,28 @@ remain available through `/blue incidents` and the monitor's APIs.
 | `/web [up \| down \| url]` | Manage the optional web dashboard |
 | `/blue up 127.0.0.1:3000` | Connect the local sensor to a running service |
 | `/blue status \| verify \| sources \| events \| incidents \| metrics \| analyze \| stop` | Inspect or manage Blue collection |
-| `/quit` | Exit the chat; services stay running |
+| `/quit`, `/exit` | Exit the chat; services stay running |
 
 `/model` displays a catalog, not a claim that all providers are authenticated.
 The footer shows a session override when present; automatic routing is labeled as
 such, rather than guessing which model will serve the next request.
+
+Aliases appear in both `/help` and slash autocomplete. `/plan` takes no arguments;
+send your planning message after the mode changes. `/new` takes no title or prompt
+argument and resets the visible chat as well as its active thread, like `/clear`.
+It does not delete saved sessions or change the engagement, target scope or mode.
+Finish or cancel paused/active work and handle `/queue` before using it.
+`/quit` and `/exit` disconnect the CLI stream; server work continues. Messages
+still waiting in the local queue are not submitted after exit.
+
+These conveniences follow the official [Claude Code commands](https://code.claude.com/docs/en/commands),
+[Codex CLI commands](https://learn.chatgpt.com/docs/developer-commands?surface=cli)
+and [Gemini CLI commands](https://geminicli.com/docs/reference/commands/).
+Their similarly named commands can have broader behavior: Decepticon's `/plan`
+selects its existing optional planner, `/about` reports version/runtime, and `/pwd`
+distinguishes the mounted target workspace from the CLI process directory.
+Context compaction, chat forking and permission controls require separate runtime
+support; no shortcuts for those capabilities are registered here.
 
 ### Read-only diagnosis and export
 
