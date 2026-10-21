@@ -21,6 +21,8 @@ import { useGlobalKeybindings } from "../hooks/useGlobalKeybindings.js";
 import { useAppState } from "../state/AppState.js";
 import { Banner } from "../components/Banner.js";
 import { EventItem } from "../components/EventItem.js";
+import { AIMessage } from "../components/messages/AIMessage.js";
+import { PendingToolMessage } from "../components/messages/PendingToolMessage.js";
 import { ActivityIndicator } from "../components/ActivityIndicator.js";
 import { OpplanStatus } from "../components/OpplanStatus.js";
 import { Prompt } from "../components/Prompt.js";
@@ -290,6 +292,9 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
             streamStats={agent.streamStats}
             assistantId={agent.assistantId}
           />
+
+          {agent.pendingTool && <PendingToolMessage tool={agent.pendingTool} />}
+          {agent.streamingText && <AIMessage content={agent.streamingText} streaming />}
 
           {/* Persistent OPPLAN display */}
           {opplan && opplan.objectives.length > 0 && (

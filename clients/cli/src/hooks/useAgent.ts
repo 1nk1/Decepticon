@@ -30,6 +30,7 @@ import { restoredQuestion } from "../utils/sessionQuestion.js";
 import { blueMonitorReady } from "../commands/blue.js";
 import { rolePurpose, type RolePurpose } from "../commands/rolePurpose.js";
 import { assertRedApproved } from "../commands/planMode.js";
+import { LiveMessageText } from "../utils/liveMessageText.js";
 
 function workflowSetting(name: string, version = false): string | undefined {
   const value = process.env[name];
@@ -74,6 +75,7 @@ function buildConfigurable(purpose: RolePurpose): Record<string, unknown> | unde
 
 interface LangChainMessage {
   type: string; // "human", "ai", "tool"
+  id?: string;
   name?: string; // tool name (on ToolMessage)
   content: string | Array<{ type: string; text?: string }>;
   tool_calls?: Array<{
@@ -101,7 +103,7 @@ interface UseAgentOptions {
   resumeThread?: boolean;
 }
 
-interface PendingTool {
+export interface PendingTool {
   name: string;
   args: Record<string, unknown>;
 }
@@ -135,6 +137,8 @@ interface UseAgentReturn {
   /** Derived from runState for backward compatibility. */
   isStreaming: boolean;
   pendingTool: PendingTool | null;
+  /** Live token-delta text from the "messages" stream mode; "" when idle. */
+  streamingText: string;
   streamStats: StreamStats | null;
   /** Currently active agent name (e.g. "decepticon", "recon"). */
   activeAgent: string | null;
@@ -196,6 +200,7 @@ export function useAgent({
   const [events, setEvents] = useState<AgentEvent[]>([]);
   const [runState, setRunState] = useState<RunState>("idle");
   const [pendingTool, setPendingTool] = useState<PendingTool | null>(null);
+  const [streamingText, setStreamingText] = useState<string>("");
   const [streamStats, setStreamStats] = useState<StreamStats | null>(null);
   const [activeAgent, setActiveAgent] = useState<string | null>(null);
   const [assistantId, setAssistantId] = useState<string>(INITIAL_ASSISTANT_ID);
@@ -292,6 +297,7 @@ export function useAgent({
     runStateRef.current = "idle";
     setRunState("idle");
     setPendingTool(null);
+    setStreamingText("");
     setStreamStats(null);
     setActiveAgent(null);
   }, []);
@@ -333,6 +339,7 @@ export function useAgent({
       // LangGraph SDK emits: { event: "metadata", data: { run_id, thread_id } }
       const toolCallArgs = new Map<string, Record<string, unknown>>();
       const toolCallNames = new Map<string, string>();
+      const liveText = new LiveMessageText();
       let cumTotal = 0;
       let cumPrompt = 0;
       let cumCompletion = 0;
@@ -559,12 +566,22 @@ export function useAgent({
           continue;
         }
 
+        // Server "messages" mode emits cumulative partial/complete snapshots;
+        // messages-tuple emits one [chunk, metadata] delta. Child namespace
+        // events stay with the existing subagent custom-event renderer.
+        const live = liveText.update(event.event, event.data);
+        if (live !== undefined) {
+          setStreamingText(live);
+          continue;
+        }
+
         if (event.event !== "values") continue;
 
         const data = event.data as {
           messages?: LangChainMessage[];
         };
         const messages = data.messages ?? [];
+        setStreamingText(liveText.finalize(messages));
         const newMessages = messages.slice(lastCountRef.current);
         lastCountRef.current = messages.length;
 
@@ -703,6 +720,7 @@ export function useAgent({
       if (abortController.signal.aborted) return;
       streamReadyResolveRef.current?.();
       streamReadyResolveRef.current = null;
+      setStreamingText("");
 
       // The stream ended because the backend tool called langgraph.interrupt
       // and is waiting for the operator's pick. Keep runState=paused so the
@@ -1297,6 +1315,7 @@ export function useAgent({
     runState,
     isStreaming,
     pendingTool,
+    streamingText,
     streamStats,
     activeAgent,
     assistantId,

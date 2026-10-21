@@ -15,6 +15,13 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Review corrections for [PR #1036](https://github.com/BitterSecurity/Decepticon/pull/1036):
+  decode cumulative SDK `messages/partial` and `messages/complete` events and
+  single message tuples correctly. Retire live text by message ID, ignore late
+  finalized snapshots and child namespaces, and clear drafts on pause/completion.
+  Keep running-tool previews on one line. No shared web stream-mode change or
+  release is included.
+
 - Review corrections for [PR #1035](https://github.com/BitterSecurity/Decepticon/pull/1035):
   retain runtime fallback examples for MCP and infracontrol help, and apply
   command suggestions through the actual startup validator with its existing
@@ -38,6 +45,13 @@ Keep proposed and unmerged changes out of released sections.
   workspace lock so pip installations upgrade vulnerable transitive copies.
   Rebuild container images when released; existing images are not changed by
   this source update. No product version bump or release is included.
+
+- Proposed [PR #1036](https://github.com/BitterSecurity/Decepticon/pull/1036):
+  render token-level streaming output in the TUI — cumulative AI partials from the
+  already-subscribed LangGraph `messages` mode now update a live buffer with a cursor,
+  finalized by the matching values snapshot, and in-flight tool calls render as a compact
+  `● Tool(args…) …` header. Pure Ink primitives, no platform-specific terminal behavior.
+  Addresses issue #1032.
 
 - Proposed [PR #1031](https://github.com/BitterSecurity/Decepticon/pull/1031):
   simplify the README demo area by removing the repeated OSS capability list and
