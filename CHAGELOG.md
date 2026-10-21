@@ -52,6 +52,12 @@ Keep proposed and unmerged changes out of released sections.
   finalized by the matching values snapshot, and in-flight tool calls render as a compact
   `● Tool(args…) …` header. Pure Ink primitives, no platform-specific terminal behavior.
   Addresses issue #1032.
+- Proposed [PR #1039](https://github.com/BitterSecurity/Decepticon/pull/1039):
+  TUI error-recovery polish — esc-to-dismiss error banners, number-key question
+  selection, a Blue footer that only renders while monitoring is relevant, removal of
+  dead client code (SessionPicker, SpinnerIcon) and English blue notification templates.
+  Auto-reconnect and transcript interactivity are deferred as designed follow-ups.
+  Partially addresses issue #1034.
 
 - Proposed [PR #1031](https://github.com/BitterSecurity/Decepticon/pull/1031):
   simplify the README demo area by removing the repeated OSS capability list and
