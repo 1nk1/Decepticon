@@ -78,6 +78,66 @@ describe("useAgent — engagement handoff lifecycle", () => {
     vi.restoreAllMocks();
   });
 
+  it("renders cumulative SDK partial messages before values and finalizes only their matching ID", async () => {
+    const client = mockState.client;
+    if (!client) throw new Error("Missing fixture client");
+    const stream = createControllableStream();
+    client.runs.stream.mockReturnValueOnce(stream);
+    const { result } = renderHook(() => useAgent());
+    act(() => result.current.submit("stream a response"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    await act(async () => { await stream.emit({ event: "messages/partial", data: [{ type: "ai", id: "live", content: "Hello" }] }); });
+    expect(result.current.streamingText).toBe("Hello");
+    await act(async () => { await stream.emit({ event: "messages/partial", data: [{ type: "ai", id: "live", content: "Hello world" }] }); });
+    expect(result.current.streamingText).toBe("Hello world");
+    await act(async () => { await stream.emit({ event: "values", data: { messages: [{ type: "ai", id: "previous", content: "Earlier" }] } }); });
+    expect(result.current.streamingText).toBe("Hello world");
+    await act(async () => { await stream.emit({ event: "values", data: { messages: [{ type: "ai", id: "previous", content: "Earlier" }, { type: "ai", id: "live", content: "Hello world" }] } }); });
+    expect(result.current.streamingText).toBe("");
+    expect(result.current.events.filter((event) => event.content === "Hello world")).toHaveLength(1);
+    await act(async () => { await stream.emit({ event: "messages/complete", data: [{ type: "ai", id: "live", content: "Hello world" }] }); });
+    expect(result.current.streamingText).toBe("");
+    await act(async () => { stream.end(); await vi.runAllTimersAsync(); });
+  });
+
+  it("accepts single SDK tuples and ignores malformed or child-namespace chunks", async () => {
+    const client = mockState.client;
+    if (!client) throw new Error("Missing fixture client");
+    const stream = createControllableStream();
+    client.runs.stream.mockReturnValueOnce(stream);
+    const { result } = renderHook(() => useAgent());
+    act(() => result.current.submit("tuple response"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    await act(async () => { await stream.emit({ event: "messages", data: [{ type: "AIMessageChunk", id: "tuple", content: "Hi " }, {}] }); });
+    await act(async () => { await stream.emit({ event: "messages", data: [{ type: "AIMessageChunk", id: "tuple", content: "there" }, {}] }); });
+    expect(result.current.streamingText).toBe("Hi there");
+    await act(async () => { await stream.emit({ event: "messages/partial|child", data: [{ type: "ai", id: "child", content: "Child output" }] }); });
+    await act(async () => { await stream.emit({ event: "messages", data: [null, {}] }); });
+    expect(result.current.streamingText).toBe("Hi there");
+    expect(result.current.error).toBeNull();
+    await act(async () => { await stream.emit({ event: "values", data: { messages: [{ type: "ai", id: "tuple", content: "Hi there" }] } }); });
+    await act(async () => { stream.end(); await vi.runAllTimersAsync(); });
+    expect(result.current.streamingText).toBe("");
+  });
+
+  it("clears anonymous partial output when its authoritative values arrive and clears paused drafts", async () => {
+    const client = mockState.client;
+    if (!client) throw new Error("Missing fixture client");
+    const stream = createControllableStream();
+    client.runs.stream.mockReturnValueOnce(stream);
+    const { result } = renderHook(() => useAgent());
+    act(() => result.current.submit("anonymous response"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    await act(async () => { await stream.emit({ event: "messages/partial", data: [{ type: "ai", content: "Draft" }] }); });
+    expect(result.current.streamingText).toBe("Draft");
+    await act(async () => { await stream.emit(completedValuesEvent); });
+    expect(result.current.streamingText).toBe("");
+    await act(async () => { await stream.emit({ event: "messages/partial", data: [{ type: "ai", id: "question", content: "Choose" }] }); });
+    await act(async () => { await stream.emit({ event: "updates", data: { __interrupt__: [{ value: { type: "ask_user_question", tool_call_id: "q-live", question: "Choose", options: [{ label: "One" }] } }] } }); });
+    await act(async () => { stream.end(); await vi.runAllTimersAsync(); });
+    expect(result.current.streamingText).toBe("");
+  });
+
   it("preserves active streams and queued prompts when a fresh conversation is requested", async () => {
     // Given an active run with a waiting message
     const client = mockState.client;

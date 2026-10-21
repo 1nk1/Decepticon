@@ -15,6 +15,13 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Review corrections for [PR #1036](https://github.com/BitterSecurity/Decepticon/pull/1036):
+  decode cumulative SDK `messages/partial` and `messages/complete` events and
+  single message tuples correctly. Retire live text by message ID, ignore late
+  finalized snapshots and child namespaces, and clear drafts on pause/completion.
+  Keep running-tool previews on one line. No shared web stream-mode change or
+  release is included.
+
 - Proposed [PR #1047](https://github.com/BitterSecurity/Decepticon/pull/1047):
   update certifi to 2026.10.19 for PYSEC-2026-4320 / GHSA-6q48-6c7w-9gw2.
   Require the fixed minimum in published package metadata as well as the

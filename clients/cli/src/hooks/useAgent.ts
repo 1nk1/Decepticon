@@ -30,6 +30,7 @@ import { restoredQuestion } from "../utils/sessionQuestion.js";
 import { blueMonitorReady } from "../commands/blue.js";
 import { rolePurpose, type RolePurpose } from "../commands/rolePurpose.js";
 import { assertRedApproved } from "../commands/planMode.js";
+import { LiveMessageText } from "../utils/liveMessageText.js";
 
 function workflowSetting(name: string, version = false): string | undefined {
   const value = process.env[name];
@@ -199,10 +200,7 @@ export function useAgent({
   const [events, setEvents] = useState<AgentEvent[]>([]);
   const [runState, setRunState] = useState<RunState>("idle");
   const [pendingTool, setPendingTool] = useState<PendingTool | null>(null);
-  // Token-delta buffer from the "messages" stream mode. Rendered live in the
-  // dynamic area and cleared when the authoritative values snapshot lands.
   const [streamingText, setStreamingText] = useState<string>("");
-  const streamingIdRef = useRef<string | null>(null);
   const [streamStats, setStreamStats] = useState<StreamStats | null>(null);
   const [activeAgent, setActiveAgent] = useState<string | null>(null);
   const [assistantId, setAssistantId] = useState<string>(INITIAL_ASSISTANT_ID);
@@ -300,7 +298,6 @@ export function useAgent({
     setRunState("idle");
     setPendingTool(null);
     setStreamingText("");
-    streamingIdRef.current = null;
     setStreamStats(null);
     setActiveAgent(null);
   }, []);
@@ -342,6 +339,7 @@ export function useAgent({
       // LangGraph SDK emits: { event: "metadata", data: { run_id, thread_id } }
       const toolCallArgs = new Map<string, Record<string, unknown>>();
       const toolCallNames = new Map<string, string>();
+      const liveText = new LiveMessageText();
       let cumTotal = 0;
       let cumPrompt = 0;
       let cumCompletion = 0;
@@ -568,24 +566,12 @@ export function useAgent({
           continue;
         }
 
-        // Token deltas from the "messages" stream mode: [chunk, metadata]
-        // tuples. Accumulate AI text into the live buffer that REPL renders
-        // above the activity indicator; the authoritative values snapshot
-        // below finalizes (and clears) it. Tool-call chunks carry no text
-        // and are skipped — pendingTool covers their display.
-        if (event.event === "messages") {
-          const tuples = event.data as
-            | Array<[LangChainMessage, unknown]>
-            | undefined;
-          if (Array.isArray(tuples)) {
-            for (const [chunk] of tuples) {
-              if (chunk?.type !== "ai") continue;
-              const delta = extractText(chunk.content);
-              if (!delta) continue;
-              if (chunk.id) streamingIdRef.current = chunk.id;
-              setStreamingText((prev) => prev + delta);
-            }
-          }
+        // Server "messages" mode emits cumulative partial/complete snapshots;
+        // messages-tuple emits one [chunk, metadata] delta. Child namespace
+        // events stay with the existing subagent custom-event renderer.
+        const live = liveText.update(event.event, event.data);
+        if (live !== undefined) {
+          setStreamingText(live);
           continue;
         }
 
@@ -595,6 +581,7 @@ export function useAgent({
           messages?: LangChainMessage[];
         };
         const messages = data.messages ?? [];
+        setStreamingText(liveText.finalize(messages));
         const newMessages = messages.slice(lastCountRef.current);
         lastCountRef.current = messages.length;
 
@@ -619,14 +606,6 @@ export function useAgent({
             const text = stripResultTags(extractText(msg.content));
             if (text) {
               addEvent({ type: "ai_message", content: text });
-            }
-
-            // The values snapshot is authoritative: finalize any live
-            // token buffer for this message (or a stale one from an
-            // earlier message) so the completed event replaces it.
-            if (streamingIdRef.current !== null) {
-              setStreamingText("");
-              streamingIdRef.current = null;
             }
 
             const invalidToolCount = msg.invalid_tool_calls?.length ?? 0;
@@ -741,6 +720,7 @@ export function useAgent({
       if (abortController.signal.aborted) return;
       streamReadyResolveRef.current?.();
       streamReadyResolveRef.current = null;
+      setStreamingText("");
 
       // The stream ended because the backend tool called langgraph.interrupt
       // and is waiting for the operator's pick. Keep runState=paused so the

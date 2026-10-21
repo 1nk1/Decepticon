@@ -19,7 +19,7 @@ function describeArgs(args: Record<string, unknown>): string {
         : JSON.stringify(value) ?? "";
     parts.push(`${key}=${text}`);
   }
-  const joined = parts.join(", ");
+  const joined = parts.join(", ").replace(/[\r\n\t\x00-\x1f\x7f]/g, " ");
   return joined.length > 96 ? `${joined.slice(0, 96)}…` : joined;
 }
 

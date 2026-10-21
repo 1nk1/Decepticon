@@ -293,10 +293,8 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
             assistantId={agent.assistantId}
           />
 
-          {/* In-flight tool call header and live token-delta text (the
-              "messages" stream mode is finalized by the values snapshot). */}
           {agent.pendingTool && <PendingToolMessage tool={agent.pendingTool} />}
-          {agent.streamingText && <AIMessage content={agent.streamingText} />}
+          {agent.streamingText && <AIMessage content={agent.streamingText} streaming />}
 
           {/* Persistent OPPLAN display */}
           {opplan && opplan.objectives.length > 0 && (
