@@ -241,7 +241,7 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
               events={agent.events}
               sessions={sessions}
             />
-            {agent.error && <ErrorMessage content={agent.error} />}
+            {agent.error && <ErrorMessage content={agent.error} onDismiss={agent.clearError} />}
           </Box>
         </Box>
       </ScreenProvider>
@@ -301,7 +301,7 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
             <OpplanStatus opplan={opplan} />
           )}
 
-          {agent.error && <ErrorMessage content={agent.error} />}
+          {agent.error && <ErrorMessage content={agent.error} onDismiss={agent.clearError} />}
 
           {/* No global "(ctrl+o to expand)" hint here: the Prompt footer
               already shows "ctrl+o: expand" persistently while idle, and
@@ -336,7 +336,7 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
             />
           )}
           <Box flexDirection="column" marginTop={1}>
-            <Text dimColor wrap="truncate-end">Blue {blue.status} · collector {blue.collectorStatus} · AI {blue.aiStatus} · unread {blue.unreadCount} · /alerts</Text>
+            {blue.status === "connected" || blue.unreadCount > 0 ? <Text dimColor wrap="truncate-end">Blue {blue.status} · collector {blue.collectorStatus} · AI {blue.aiStatus} · unread {blue.unreadCount} · /alerts</Text> : null}
             {agent.queuedMessages.length > 0 && <Text dimColor>{agent.queuedMessages.length} waiting · /queue to edit or remove</Text>}
           </Box>
         </Box>

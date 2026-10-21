@@ -89,6 +89,31 @@ export const QuestionPicker = React.memo(function QuestionPicker({
         return;
       }
 
+      // The option list is numbered in the UI; accept the same number keys
+      // for quick selection without changing the arrow-key flow.
+      const number = Number(_input);
+      if (Number.isInteger(number) && number >= 1 && number <= options.length) {
+        const next = number - 1;
+        if (allowOther && next === otherIndex) {
+          setCursor(next);
+          setOtherMode(true);
+          return;
+        }
+        if (multiSelect) {
+          setCursor(next);
+          setChecked((prev) => {
+            const nextChecked = new Set(prev);
+            if (nextChecked.has(next)) nextChecked.delete(next);
+            else nextChecked.add(next);
+            return nextChecked;
+          });
+        } else {
+          const label = options[next]?.label;
+          if (label) onSubmit(label);
+        }
+        return;
+      }
+
       const isOther = allowOther && cursor === otherIndex;
 
       if (key.return) {
