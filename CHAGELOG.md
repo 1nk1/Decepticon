@@ -15,6 +15,23 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Review corrections for [PR #1035](https://github.com/BitterSecurity/Decepticon/pull/1035):
+  retain runtime fallback examples for MCP and infracontrol help, and apply
+  command suggestions through the actual startup validator with its existing
+  three-edit threshold. Remove the unused parallel classifier; preserve positional resume
+  IDs and side-effect-free invalid-argument errors. Isolate the readiness test
+  helper from host clipboard-tool discovery without changing product deadlines.
+  Source only, unreleased.
+
+- Proposed [PR #1035](https://github.com/BitterSecurity/Decepticon/pull/1035):
+  finish the launcher CLI docs pass — Long descriptions and Example blocks for doctor,
+  update, stop, remove, onboard, skill, mcp, kg-health and serve (logs/status/start landed
+  earlier), a root-help recipe block covering session selection and stack management, and
+  unknown-command suggestions on the root command (typo'd commands now suggest the nearest
+  command name via alias-aware edit distance before falling back to the resume hint;
+  root keeps ArbitraryArgs so `--resume` + positional thread ID still work). No flag
+  semantics or human output-format changes. Addresses the remainder of issue #1018.
+
 - Proposed [PR #1047](https://github.com/BitterSecurity/Decepticon/pull/1047):
   update certifi to 2026.10.19 for PYSEC-2026-4320 / GHSA-6q48-6c7w-9gw2.
   Require the fixed minimum in published package metadata as well as the
