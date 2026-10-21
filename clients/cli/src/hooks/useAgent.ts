@@ -74,6 +74,7 @@ function buildConfigurable(purpose: RolePurpose): Record<string, unknown> | unde
 
 interface LangChainMessage {
   type: string; // "human", "ai", "tool"
+  id?: string;
   name?: string; // tool name (on ToolMessage)
   content: string | Array<{ type: string; text?: string }>;
   tool_calls?: Array<{
@@ -101,7 +102,7 @@ interface UseAgentOptions {
   resumeThread?: boolean;
 }
 
-interface PendingTool {
+export interface PendingTool {
   name: string;
   args: Record<string, unknown>;
 }
@@ -135,6 +136,8 @@ interface UseAgentReturn {
   /** Derived from runState for backward compatibility. */
   isStreaming: boolean;
   pendingTool: PendingTool | null;
+  /** Live token-delta text from the "messages" stream mode; "" when idle. */
+  streamingText: string;
   streamStats: StreamStats | null;
   /** Currently active agent name (e.g. "decepticon", "recon"). */
   activeAgent: string | null;
@@ -196,6 +199,10 @@ export function useAgent({
   const [events, setEvents] = useState<AgentEvent[]>([]);
   const [runState, setRunState] = useState<RunState>("idle");
   const [pendingTool, setPendingTool] = useState<PendingTool | null>(null);
+  // Token-delta buffer from the "messages" stream mode. Rendered live in the
+  // dynamic area and cleared when the authoritative values snapshot lands.
+  const [streamingText, setStreamingText] = useState<string>("");
+  const streamingIdRef = useRef<string | null>(null);
   const [streamStats, setStreamStats] = useState<StreamStats | null>(null);
   const [activeAgent, setActiveAgent] = useState<string | null>(null);
   const [assistantId, setAssistantId] = useState<string>(INITIAL_ASSISTANT_ID);
@@ -292,6 +299,8 @@ export function useAgent({
     runStateRef.current = "idle";
     setRunState("idle");
     setPendingTool(null);
+    setStreamingText("");
+    streamingIdRef.current = null;
     setStreamStats(null);
     setActiveAgent(null);
   }, []);
@@ -559,6 +568,27 @@ export function useAgent({
           continue;
         }
 
+        // Token deltas from the "messages" stream mode: [chunk, metadata]
+        // tuples. Accumulate AI text into the live buffer that REPL renders
+        // above the activity indicator; the authoritative values snapshot
+        // below finalizes (and clears) it. Tool-call chunks carry no text
+        // and are skipped — pendingTool covers their display.
+        if (event.event === "messages") {
+          const tuples = event.data as
+            | Array<[LangChainMessage, unknown]>
+            | undefined;
+          if (Array.isArray(tuples)) {
+            for (const [chunk] of tuples) {
+              if (chunk?.type !== "ai") continue;
+              const delta = extractText(chunk.content);
+              if (!delta) continue;
+              if (chunk.id) streamingIdRef.current = chunk.id;
+              setStreamingText((prev) => prev + delta);
+            }
+          }
+          continue;
+        }
+
         if (event.event !== "values") continue;
 
         const data = event.data as {
@@ -589,6 +619,14 @@ export function useAgent({
             const text = stripResultTags(extractText(msg.content));
             if (text) {
               addEvent({ type: "ai_message", content: text });
+            }
+
+            // The values snapshot is authoritative: finalize any live
+            // token buffer for this message (or a stale one from an
+            // earlier message) so the completed event replaces it.
+            if (streamingIdRef.current !== null) {
+              setStreamingText("");
+              streamingIdRef.current = null;
             }
 
             const invalidToolCount = msg.invalid_tool_calls?.length ?? 0;
@@ -1297,6 +1335,7 @@ export function useAgent({
     runState,
     isStreaming,
     pendingTool,
+    streamingText,
     streamStats,
     activeAgent,
     assistantId,
