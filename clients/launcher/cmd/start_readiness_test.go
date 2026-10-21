@@ -27,6 +27,9 @@ func TestStartupReadinessChecksSelectedConsumer(t *testing.T) {
 	t.Setenv("DECEPTICON_STARTUP_TIMEOUT_SECONDS", "")
 	t.Setenv("DECEPTICON_STARTUP_PROBE_TEST", "1")
 	t.Setenv("GORACE", "atexit_sleep_ms=0")
+	// The absolute test executable needs no external tools. Keep inherited WSL
+	// clipboard-tool PATH discovery outside the readiness deadline under test.
+	t.Setenv("PATH", t.TempDir())
 	oldTimeout, oldPoll := health.LangGraphTimeout, health.PollInterval
 	health.LangGraphTimeout, health.PollInterval = 500*time.Millisecond, 5*time.Millisecond
 	defer func() { health.LangGraphTimeout, health.PollInterval = oldTimeout, oldPoll }()

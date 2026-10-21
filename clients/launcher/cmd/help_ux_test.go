@@ -36,6 +36,19 @@ func TestLauncherHelpDescribesCommands(t *testing.T) {
 	}
 }
 
+func TestRootArgumentSuggestionRejectsDistantTypos(t *testing.T) {
+	// Given a root argument four edits away from start.
+	old := resumeThread
+	t.Cleanup(func() { resumeThread = old })
+	resumeThread = ""
+	// When the actual startup validator classifies the argument.
+	err := validateRootArgs([]string{"staaaaart"})
+	// Then it retains resume guidance without an overly distant command suggestion.
+	if err == nil || strings.Contains(err.Error(), "did you mean") || !strings.Contains(err.Error(), "--resume=THREAD_ID") {
+		t.Fatalf("distant typo: %v", err)
+	}
+}
+
 func TestDocumentedLogService(t *testing.T) {
 	if !isDocumentedLogService("langgraph") || isDocumentedLogService("postgresx") {
 		t.Fatal("service catalog mismatch")
