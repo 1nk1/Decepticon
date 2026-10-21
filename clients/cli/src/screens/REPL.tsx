@@ -32,7 +32,7 @@ import { CoordinatorPanel } from "../components/agents/CoordinatorPanel.js";
 import { ScreenProvider } from "../components/shell/ScreenContext.js";
 import { ExpandOutputProvider } from "../components/shell/ExpandOutputContext.js";
 import { SubAgentProvider } from "../components/shell/SubAgentContext.js";
-import { parseSlashCommand, findCommand } from "../commands/registry.js";
+import { parseSlashCommand, findCommand, suggestCommand } from "../commands/registry.js";
 import { groupConsecutiveTools } from "../utils/groupEvents.js";
 import { formatDuration } from "../utils/format.js";
 import { GLYPH_DOT, GLYPH_HOOK, GLYPH_SEP, AGENT_COLORS } from "../utils/theme.js";
@@ -157,8 +157,11 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
           });
           return;
         }
-        // Unknown command — show error
-        agent.addSystemEvent(`Unknown command: /${parsed.name}. Type /help for available commands.`);
+        // Unknown command — show error, with a nearest-command suggestion when
+        // the name looks like a typo (alias-aware, same as the launcher CLI).
+        const suggestion = suggestCommand(parsed.name);
+        const hint = suggestion ? ` Did you mean /${suggestion}?` : "";
+        agent.addSystemEvent(`Unknown command: /${parsed.name}.${hint} Type /help for available commands.`);
         return;
       }
 

@@ -46,6 +46,42 @@ export function findCommand(input: string): Command | undefined {
  *   "/clear"       → { name: "clear", args: "" }
  *   "/unknown foo" → { name: "unknown", args: "foo" }
  */
+/**
+ * Nearest registered command for a mistyped name, or null when nothing is
+ * close enough. Mirrors the launcher's alias-aware suggestion pattern
+ * (clients/launcher/cmd/root.go) so both CLIs behave the same way.
+ */
+export function suggestCommand(input: string): string | null {
+  const name = input.replace(/^\//, "").toLowerCase();
+  if (name.length === 0 || name.length > 32) return null;
+  const distance = (left: string, right: string): number => {
+    const a = [...left], b = [...right];
+    const row = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+      let carry = row[0]!;
+      row[0] = i;
+      for (let j = 1; j <= b.length; j++) {
+        const temp = row[j]!;
+        row[j] = Math.min(row[j]! + 1, row[j - 1]! + 1, carry + (a[i - 1] === b[j - 1] ? 0 : 1));
+        carry = temp;
+      }
+    }
+    return row[b.length]!;
+  };
+  let best: string | null = null;
+  let bestDistance = 3; // suggestion threshold (<= 2)
+  for (const command of COMMANDS) {
+    for (const candidate of [command.name, ...(command.aliases ?? [])]) {
+      const d = distance(name, candidate.toLowerCase());
+      if (d < bestDistance) {
+        bestDistance = d;
+        best = command.name;
+      }
+    }
+  }
+  return best;
+}
+
 export function parseSlashCommand(
   input: string,
 ): { name: string; args: string } | null {
