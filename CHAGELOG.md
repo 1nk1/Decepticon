@@ -15,6 +15,12 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #1046](https://github.com/BitterSecurity/Decepticon/pull/1046):
+  add read-only runtime diagnostics — `decepticon doctor --deep` reports the
+  middleware slot matrix for every role (KG/HITL/model_fallback previously
+  failed silently), KG reachability, Skillogy health and MCP auth mode.
+  Addresses issue #1040.
+
 - Proposed [PR #1031](https://github.com/BitterSecurity/Decepticon/pull/1031):
   simplify the README demo area by removing the repeated OSS capability list and
   trailing decorative image. Add acknowledgements for integrated open-source
