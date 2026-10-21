@@ -10,7 +10,10 @@
  * Empty string == no override.
  */
 
-let _override = "";
+// A launcher `--model` flag (DECEPTICON_MODEL_OVERRIDE) seeds the same
+// override the /model command writes, so a flag-launched session starts
+// on the requested model and /model can still switch mid-run.
+let _override = (process.env.DECEPTICON_MODEL_OVERRIDE ?? "").trim();
 
 export function setModelOverride(id: string): void {
   _override = id.trim();
