@@ -52,6 +52,11 @@ Keep proposed and unmerged changes out of released sections.
   finalized by the matching values snapshot, and in-flight tool calls render as a compact
   `● Tool(args…) …` header. Pure Ink primitives, no platform-specific terminal behavior.
   Addresses issue #1032.
+- Proposed [PR #1045](https://github.com/BitterSecurity/Decepticon/pull/1045):
+  bind MCP `decepticon_start_engagement` to an explicit `workspace_path`
+  (default `/workspace`, traversal-validated) and return the binding in
+  `StartResult`, so coding agents start engagements against the workspace the
+  interactive CLI selected. Addresses issue #1042.
 
 - Proposed [PR #1031](https://github.com/BitterSecurity/Decepticon/pull/1031):
   simplify the README demo area by removing the repeated OSS capability list and
