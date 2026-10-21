@@ -15,6 +15,13 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #1036](https://github.com/BitterSecurity/Decepticon/pull/1036):
+  render token-level streaming output in the TUI — AI deltas from the already-subscribed
+  LangGraph `messages` stream mode now accumulate into a live buffer (previously dropped),
+  finalized by the values snapshot, and in-flight tool calls render as a compact
+  `● Tool(args…) …` header. Pure Ink primitives, no platform-specific terminal behavior.
+  Addresses issue #1032.
+
 - Proposed [PR #1031](https://github.com/BitterSecurity/Decepticon/pull/1031):
   simplify the README demo area by removing the repeated OSS capability list and
   trailing decorative image. Add acknowledgements for integrated open-source
