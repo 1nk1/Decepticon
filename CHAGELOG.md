@@ -15,6 +15,15 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #1035](https://github.com/BitterSecurity/Decepticon/pull/1035):
+  finish the launcher CLI docs pass — Long descriptions and Example blocks for doctor,
+  update, stop, remove, onboard, skill, mcp, kg-health and serve (logs/status/start landed
+  earlier), a root-help recipe block covering session selection and stack management, and
+  unknown-command suggestions on the root command (typo'd commands now suggest the nearest
+  command name via alias-aware edit distance before falling back to the resume hint;
+  root keeps ArbitraryArgs so `--resume` + positional thread ID still work). No flag
+  semantics or human output-format changes. Addresses the remainder of issue #1018.
+
 - Proposed [PR #1031](https://github.com/BitterSecurity/Decepticon/pull/1031):
   simplify the README demo area by removing the repeated OSS capability list and
   trailing decorative image. Add acknowledgements for integrated open-source
