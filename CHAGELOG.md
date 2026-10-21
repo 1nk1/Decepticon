@@ -32,6 +32,13 @@ Keep proposed and unmerged changes out of released sections.
   root keeps ArbitraryArgs so `--resume` + positional thread ID still work). No flag
   semantics or human output-format changes. Addresses the remainder of issue #1018.
 
+- Proposed [PR #1047](https://github.com/BitterSecurity/Decepticon/pull/1047):
+  update certifi to 2026.10.19 for PYSEC-2026-4320 / GHSA-6q48-6c7w-9gw2.
+  Require the fixed minimum in published package metadata as well as the
+  workspace lock so pip installations upgrade vulnerable transitive copies.
+  Rebuild container images when released; existing images are not changed by
+  this source update. No product version bump or release is included.
+
 - Proposed [PR #1031](https://github.com/BitterSecurity/Decepticon/pull/1031):
   simplify the README demo area by removing the repeated OSS capability list and
   trailing decorative image. Add acknowledgements for integrated open-source
