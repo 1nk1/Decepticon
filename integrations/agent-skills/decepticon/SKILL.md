@@ -56,11 +56,13 @@ terminal, not in the shell or the MCP bridge.
 - For an existing CLI engagement, call `decepticon_list_engagements`, identify
   its `thread_id`, then read `decepticon_engagement_state` and
   `decepticon_transcript`. Keep the returned `next_index` for later reads.
-- `decepticon_start_engagement` exists, but the installed MCP bridge does not
-  currently bind a new thread to the CLI's selected `/workspace` engagement.
-  Use it only when the server's workspace mapping is explicitly configured and
-  confirmed for that engagement. Otherwise start the engagement in the
-  interactive CLI and observe its thread through MCP.
+- `decepticon_start_engagement` binds the run to a workspace via
+  `workspace_path` (default `/workspace`). To share the workspace binding the
+  interactive CLI selected, pass the same binding explicitly — the binding is
+  returned in the result's `workspace_path` field. The run still requires the
+  workspace mapping on the server to exist and be authorized for that
+  engagement; when in doubt, start the engagement in the interactive CLI and
+  observe its thread through MCP.
 - A local repository path in MCP `targets` is passed as text. It is not copied
   into the sandbox; confirm the target code is actually mounted before asking
   Decepticon to analyze it.

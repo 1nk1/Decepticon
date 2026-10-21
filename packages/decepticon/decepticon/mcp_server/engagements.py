@@ -149,6 +149,7 @@ class EngagementClient:
         assistant: str,
         workflow_id: str | None = None,
         workflow_version: str | None = None,
+        workspace_path: str = "/workspace",
     ) -> StartResult:
         """Dispatch a background engagement run and return its handle."""
         scope_payload: dict[str, Any] = {
@@ -161,7 +162,7 @@ class EngagementClient:
         run_config: dict[str, Any] = {
             "configurable": {
                 "engagement_name": engagement_name,
-                "workspace_path": "/workspace",
+                "workspace_path": workspace_path,
                 "scan_mode": scan_mode,
             },
         }
@@ -190,7 +191,7 @@ class EngagementClient:
         run = await client.runs.create(
             thread_id,
             assistant_id=assistant,
-            input=_engagement_input(scope_payload, engagement_name),
+            input=_engagement_input(scope_payload, engagement_name, workspace_path),
             config=run_config,
         )
         log.info("dispatched engagement %s on thread %s", engagement_name, thread_id)
@@ -201,6 +202,7 @@ class EngagementClient:
             assistant=assistant,
             status=str(run.get("status", "pending")),
             langgraph_url=self._config.langgraph_url,
+            workspace_path=workspace_path,
         )
 
     async def send_message(
@@ -263,7 +265,9 @@ class EngagementClient:
         )
 
 
-def _engagement_input(scope_payload: dict[str, Any], engagement_name: str) -> dict[str, Any]:
+def _engagement_input(
+    scope_payload: dict[str, Any], engagement_name: str, workspace_path: str
+) -> dict[str, Any]:
     return {
         "messages": [
             {
@@ -275,7 +279,7 @@ def _engagement_input(scope_payload: dict[str, Any], engagement_name: str) -> di
             }
         ],
         "engagement_name": engagement_name,
-        "workspace_path": "/workspace",
+        "workspace_path": workspace_path,
         "scan_scope": scope_payload,
     }
 

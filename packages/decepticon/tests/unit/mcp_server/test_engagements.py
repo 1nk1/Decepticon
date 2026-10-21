@@ -109,6 +109,25 @@ async def test_start_dispatches_background_run_with_scope() -> None:
     assert "Out of scope" in scope["instruction"]
 
 
+async def test_start_binds_explicit_workspace_path() -> None:
+    fake = _FakeClient()
+    client = EngagementClient(_config(), client=fake)
+
+    result = await client.start(
+        targets=["https://example.com"],
+        instruction="In scope: example.com.",
+        scan_mode="standard",
+        engagement_name="eng-2",
+        assistant="decepticon",
+        workspace_path="/workspace/eng-2",
+    )
+
+    assert result.workspace_path == "/workspace/eng-2"
+    call = fake.runs.create_calls[0]
+    assert call["input"]["workspace_path"] == "/workspace/eng-2"
+    assert call["config"]["configurable"]["workspace_path"] == "/workspace/eng-2"
+
+
 async def test_send_message_enqueues_and_resolves_assistant_from_thread() -> None:
     fake = _FakeClient(runs=[{"run_id": "r-old", "assistant_id": "recon", "status": "success"}])
     client = EngagementClient(_config(), client=fake)
