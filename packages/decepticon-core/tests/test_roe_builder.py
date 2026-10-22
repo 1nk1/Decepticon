@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 import pytest
 
 from decepticon_core.types.roe import (
@@ -49,7 +51,47 @@ def test_wildcard_apex_deduped_with_explicit_target() -> None:
 
 def test_malformed_wildcard_adds_nothing() -> None:
     roe = build_engagement_roe("eng", ["*", "*..elice.io"])
-    assert roe["machine_enforcement"]["in_scope"] == ["*", "*..elice.io"]
+    assert roe["machine_enforcement"]["in_scope"] == ["*"]
+
+
+def test_scheme_relative_url_reduces_to_host() -> None:
+    roe = build_engagement_roe("eng", ["//elice.io/path"])
+    assert roe["machine_enforcement"]["in_scope"] == ["elice.io"]
+
+
+def test_embedded_list_targets_split() -> None:
+    roe = build_engagement_roe(
+        "eng", ["elice.io, api.elice.io", "lms.elice.io redash.elice.io"]
+    )
+    assert roe["machine_enforcement"]["in_scope"] == [
+        "elice.io",
+        "api.elice.io",
+        "lms.elice.io",
+        "redash.elice.io",
+    ]
+
+
+def test_case_and_trailing_dot_normalized() -> None:
+    roe = build_engagement_roe("eng", ["ELICE.io.", "App.ELICE.io"])
+    assert roe["machine_enforcement"]["in_scope"] == ["elice.io", "app.elice.io"]
+
+
+def test_bare_ipv6_brackets_and_port_stripped() -> None:
+    roe = build_engagement_roe("eng", ["[2001:db8::1]:8443"])
+    assert roe["machine_enforcement"]["in_scope"] == ["2001:db8::1"]
+
+
+def test_unicode_hostname_idna_encoded() -> None:
+    roe = build_engagement_roe("eng", ["엘리스.io"])
+    host = roe["machine_enforcement"]["in_scope"][0]
+    assert host.startswith("xn--") and host.endswith(".io")
+
+
+def test_dead_patterns_dropped_with_warning(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING, logger="decepticon_core.types.roe"):
+        roe = build_engagement_roe("eng", ["*.", "elice..io", "*..elice.io", "elice.io"])
+    assert roe["machine_enforcement"]["in_scope"] == ["elice.io"]
+    assert any("no DNS/IP target can match" in r.message for r in caplog.records)
 
 
 def test_dedupe_and_drop_empty() -> None:

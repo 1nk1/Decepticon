@@ -41,12 +41,15 @@ Design choices:
 from __future__ import annotations
 
 import ipaddress
+import logging
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
 from typing import Any, Iterable
 from urllib.parse import urlsplit
+
+log = logging.getLogger(__name__)
 
 
 class EnforcementMode(StrEnum):
@@ -153,21 +156,55 @@ def _parse_rules(items: Iterable[Any]) -> list[ScopeRule]:
     return rules
 
 
+def split_scope_targets(targets: Iterable[str]) -> list[str]:
+    """Split operator target entries that embed lists (``a, b`` / ``a b``).
+
+    Orchestrators frequently pass several targets inside one string; a joined
+    string would otherwise become a single scope rule no DNS name matches.
+    """
+    fragments: list[str] = []
+    for raw in targets:
+        fragments.extend(part for part in re.split(r"[,\s]+", raw or "") if part)
+    return fragments
+
+
+def _normalize_hostname(host: str) -> str:
+    """Lowercase, strip the DNS trailing dot, and IDNA-encode non-ASCII.
+
+    Parser matching is already case- and trailing-dot tolerant, but the egress
+    DNS allowlist compares with ``fnmatchcase`` and CT logs / DNS spell names
+    in lowercase punycode — the generated scope is normalized to that form.
+    An IDNA failure keeps the lowercased raw value.
+    """
+    value = (host or "").strip().rstrip(".").lower()
+    if not value:
+        return ""
+    try:
+        value.encode("ascii")
+    except UnicodeEncodeError:
+        try:
+            value = value.encode("idna").decode("ascii")
+        except UnicodeError:
+            return value
+    return value
+
+
 def _normalize_scope_target(raw: str) -> str:
     """Reduce an engagement target to a scope-rule pattern.
 
-    URLs collapse to their hostname (the parser/egress match on host, not path);
-    hostnames, CIDRs and ``*.`` globs pass through unchanged.
+    URLs (and scheme-relative ``//host`` forms) collapse to their hostname —
+    the parser/egress match on host, not path. CIDRs normalize to the canonical
+    network address (``10.0.0.5/24`` -> ``10.0.0.0/24``); only values carrying a
+    ``/`` are treated as networks, so a bare IP/host is not silently rewritten
+    to ``/32``. A ``host:port`` target authorizes the host on **all ports** —
+    the RoE is host-scoped and ports are not part of the network enforcement.
     """
     value = (raw or "").strip()
     if not value:
         return ""
-    if "://" in value:
+    if "://" in value or value.startswith("//"):
         host = urlsplit(value).hostname
-        return host or ""
-    # Normalize CIDR to its canonical network address (10.0.0.5/24 -> 10.0.0.0/24).
-    # Only values carrying a ``/`` are treated as networks, so a bare IP/host is
-    # not silently rewritten to ``/32``.
+        return _normalize_hostname(host or "")
     if "/" in value:
         try:
             return str(ipaddress.ip_network(value, strict=False))
@@ -175,9 +212,17 @@ def _normalize_scope_target(raw: str) -> str:
             pass
     # A bare ``host:port`` or ``host/path`` — keep only the host.
     value = value.split("/", 1)[0]
-    if ":" in value and not _looks_like_ipv6(value):
+    if value.startswith("["):
+        # Bracketed bare IPv6, optionally with a port: [2001:db8::1]:8443.
+        value = value[1:].partition("]")[0]
+    elif ":" in value and not _looks_like_ipv6(value):
         value = value.split(":", 1)[0]
-    return value
+    if set(value) <= {"*", "."}:
+        # Pathological wildcard/dot forms ("*", "*.", "*.."): leave them for
+        # the dead-pattern check — trailing-dot stripping would collapse the
+        # dead ``*.``, into the dangerously broad ``*``.
+        return value
+    return _normalize_hostname(value)
 
 
 def _looks_like_ipv6(value: str) -> bool:
@@ -206,12 +251,42 @@ def wildcard_base_domain(pattern: str) -> str:
     return base
 
 
+_HOST_SCOPE_CHARS = frozenset("abcdefghijklmnopqrstuvwxyz0123456789.-*?:")
+
+
+def _is_dead_pattern(pattern: str) -> bool:
+    """True when a normalized pattern can never match a real DNS/IP target.
+
+    Host rules match DNS names by equality, globs match hostnames, CIDRs match
+    addresses — patterns with empty labels (``elice..io``, ``*..x``), a bare
+    ``*.``, or characters a DNS name / IP literal cannot contain are dead
+    weight in the authorization document.
+    """
+    try:
+        ipaddress.ip_network(pattern, strict=False)
+        return False
+    except ValueError:
+        pass
+    if not pattern or any(c not in _HOST_SCOPE_CHARS for c in pattern):
+        return True
+    if pattern.startswith("*."):
+        body = pattern[2:]
+        return not body or any(part == "" for part in body.split("."))
+    if "*" in pattern or "?" in pattern:
+        return False
+    return any(part == "" for part in pattern.split("."))
+
+
 def _dedupe_targets(targets: Iterable[str]) -> list[str]:
     seen: dict[str, None] = {}
-    for raw in targets:
+    for raw in split_scope_targets(targets):
         norm = _normalize_scope_target(raw)
-        if norm:
-            seen.setdefault(norm, None)
+        if not norm:
+            continue
+        if _is_dead_pattern(norm):
+            log.warning("dropping RoE target %r: no DNS/IP target can match it", raw)
+            continue
+        seen.setdefault(norm, None)
     return list(seen)
 
 
@@ -223,10 +298,16 @@ def build_engagement_roe(
     """Build an always-enforced, machine-enforceable RoE from creation data.
 
     The engagement-creation inputs *are* the scope: each target becomes an
-    in-scope ``ScopeRule`` (host / CIDR / glob auto-detected). The result always
-    enforces — there is no audit/warn mode. Raises ``ValueError`` when no usable
-    in-scope target can be derived, so an engagement with no scope fails closed
-    instead of running unscoped.
+    in-scope ``ScopeRule`` (host / CIDR / glob auto-detected). Targets are
+    normalized mechanically first — embedded lists split, URLs and
+    scheme-relative ``//host`` collapse to the hostname, CIDRs canonicalize,
+    ``host:port`` authorizes the host on all ports (the RoE is host-scoped),
+    hostnames lowercase / lose the DNS trailing dot / IDNA-encode, bracketed
+    bare IPv6 drops the brackets, and patterns no real DNS/IP target can match
+    are dropped with a warning. The result always enforces — there is no
+    audit/warn mode. Raises ``ValueError`` when no usable in-scope target can
+    be derived, so an engagement with no scope fails closed instead of running
+    unscoped.
     """
     in_scope = _dedupe_targets(targets)
     if not in_scope:

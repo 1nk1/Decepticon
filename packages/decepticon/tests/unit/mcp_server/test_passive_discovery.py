@@ -60,6 +60,12 @@ def test_expand_graceful_failure_keeps_targets() -> None:
     assert expand_targets(["elice.io"], fetch=_failing_fetch) == ["elice.io"]
 
 
+def test_expand_splits_embedded_targets() -> None:
+    body = _ct_body(["app.elice.io"])
+    out = expand_targets(["elice.io, api.elice.io"], fetch=_static_fetch(body))
+    assert out == ["elice.io", "api.elice.io", "app.elice.io"]
+
+
 def test_discovery_caps_discovered_hosts(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(passive_discovery, "_MAX_DISCOVERED", 2)
     body = _ct_body([f"h{i}.elice.io" for i in range(10)])

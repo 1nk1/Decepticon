@@ -17,10 +17,15 @@ Keep proposed and unmerged changes out of released sections.
 
 - Proposed: RoE unification phase 1 — engagement creation now mechanically
   generates the enforced `plan/roe.json` from the creation data only (MCP
-  `start_engagement`: `targets` + optional `out_of_scope`). URL targets reduce
-  to their hostname, CIDRs normalize to the canonical network address
-  (`10.0.0.5/24` -> `10.0.0.0/24`), and a `*.subdomain` glob adds its apex so
-  the bare domain stays reachable. Plain-hostname and glob targets are
+  `start_engagement`: `targets` + optional `out_of_scope`). Creation targets
+  are normalized before they become scope rules: embedded lists split
+  (`"a, b"`), URLs and scheme-relative `//host` collapse to their hostname,
+  CIDRs normalize to the canonical network address (`10.0.0.5/24` ->
+  `10.0.0.0/24`), `host:port` authorizes the host on all ports (the RoE is
+  host-scoped), hostnames lowercase / lose the DNS trailing dot / IDNA-encode,
+  bracketed bare IPv6 drops the brackets, a `*.subdomain` glob adds its apex
+  so the bare domain stays reachable, and patterns no real DNS/IP target can
+  match are dropped with a warning. Plain-hostname and glob targets are
   passively enriched with Certificate-Transparency subdomains (crt.sh, bounded
   and root-filtered, best-effort — discovery failure degrades to the
   operator-provided targets and never blocks creation). An engagement with no

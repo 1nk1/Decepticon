@@ -80,6 +80,21 @@ creation from the creation data only.**
    (`HITL_APPROVAL` slot / `HumanInTheLoopMiddleware`); on approval the RoE is
    extended and the audit ledger records the operator decision.
 
+### Target normalization (generation-time)
+
+Every creation input is normalized mechanically before it becomes a scope
+rule, so the generated RoE reads the way DNS, CT logs and the egress
+allowlist compare names: embedded lists split (`"a, b"`), URLs and
+scheme-relative `//host` forms collapse to their hostname, CIDRs
+canonicalize to the network address, `host:port` authorizes the host on
+**all ports** (the RoE is host-scoped; a port restriction is not expressible
+and must not silently narrow), hostnames lowercase / lose the DNS trailing
+dot / IDNA-encode, bracketed bare IPv6 drops the brackets, a `*.` glob adds
+its apex (the glob does not match the bare domain), and patterns no real
+DNS/IP target can match (empty labels, a bare `*.`) are dropped with a
+warning instead of sitting as dead rules in the authorization document.
+Passive CT discovery uses the same normalization before querying.
+
 ### Consciously accepted consequences
 
 - **Authorization model simplifies to "engagement creation = authorization."**
