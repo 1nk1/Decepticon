@@ -161,7 +161,7 @@ func ScanEngagements(home string) ([]EngagementEntry, error) {
 			continue
 		}
 		scope := readScopeSummary(filepath.Join(root, slug))
-		entry := engagementEntry{Slug: slug, Ready: scope.Enforced, Scope: scope}
+		entry := EngagementEntry{Slug: slug, Ready: scope.Enforced, Scope: scope}
 		if entry.Ready {
 			if st, err := os.Stat(filepath.Join(root, slug, "plan", "roe.json")); err == nil {
 				entry.mtime = st.ModTime().Unix()
