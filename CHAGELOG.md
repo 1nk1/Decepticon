@@ -15,6 +15,13 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #1050](https://github.com/BitterSecurity/Decepticon/pull/1050):
+  page `assistants.search` in the MCP `decepticon_list_graphs` tool so every
+  exposed graph is returned. The LangGraph SDK defaults to `limit=10`, which
+  silently hid agents (`recon`, `soundwave`, the `decepticon` orchestrator, …)
+  on installs shipping more than ten graphs — the `standard` bundle ships 22.
+  Source only, unreleased.
+
 - Review corrections for [PR #1036](https://github.com/BitterSecurity/Decepticon/pull/1036):
   decode cumulative SDK `messages/partial` and `messages/complete` events and
   single message tuples correctly. Retire live text by message ID, ignore late
