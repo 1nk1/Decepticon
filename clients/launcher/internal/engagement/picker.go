@@ -544,6 +544,49 @@ func choiceForEngagement(home, slug string) Choice {
 // shared normalization contract, and shows the generated scope for explicit
 // confirmation before the engagement is created — the review sees exactly
 // what the authorization will enforce.
+// promptScopeSuggestions shows the discovery recommendations as a
+// pre-checked multi-select (unchecking removes an entry from the scope)
+// plus a free-text field for hosts the sources missed. Cancelling the form
+// skips the suggestions entirely — the operator's typed targets remain the
+// baseline either way.
+func promptScopeSuggestions(recommendations []string) (accepted []string, additional string, err error) {
+	if len(recommendations) == 0 {
+		return nil, "", nil
+	}
+	selected := append([]string(nil), recommendations...)
+	options := make([]huh.Option[string], 0, len(recommendations))
+	for _, recommendation := range recommendations {
+		options = append(options, huh.NewOption(recommendation, recommendation).Selected(true))
+	}
+	height := len(options)
+	if height > 12 {
+		height = 12
+	}
+	form := huh.NewForm(
+		huh.NewGroup(
+			huh.NewMultiSelect[string]().
+				Title("Recommended in-scope entries").
+				Description("Passive discovery (CT logs + passive DNS) found these hosts in the target's zone.\nSPACE toggles, ENTER confirms — unchecked entries stay out of scope.\nYour typed targets remain in scope regardless.").
+				Filterable(true).
+				Height(height).
+				Options(options...).
+				Value(&selected),
+			huh.NewInput().
+				Title("Additional in-scope (optional)").
+				Description("Anything the discovery missed — same format as the target scope.").
+				Placeholder("admin.decepticon.red, 10.0.0.0/24").
+				Value(&additional),
+		).Title("Scope suggestions"),
+	).WithTheme(huh.ThemeFunc(ui.DecepticonTheme))
+	if err := form.Run(); err != nil {
+		return nil, "", fmt.Errorf("scope suggestions cancelled: %w", err)
+	}
+	if selected == nil {
+		selected = []string{}
+	}
+	return selected, additional, nil
+}
+
 func promptNewEngagement(home string) (string, scopeLists, error) {
 	var slug, targets, outOfScope string
 	form := huh.NewForm(
@@ -599,6 +642,36 @@ func promptNewEngagement(home string) (string, scopeLists, error) {
 	if _, _, err := dedupeScopeTargets(splitScopeTargets([]string{outOfScope})); err != nil {
 		return "", scopeLists{}, err
 	}
+
+	// Passive discovery: CT logs + passive DNS suggest in-scope entries for
+	// the first hostname target. Strictly optional — the network never
+	// blocks creation; a timeout or degradation folds back to the typed
+	// targets (the operator always owns what goes in scope).
+	if zone := discoveryZone(in); zone != "" {
+		discovery := DiscoverScope(zone, scopeDiscoveryBudget)
+		switch {
+		case len(discovery.Recommended) > 0 && len(discovery.Notes) > 0:
+			ui.Info(fmt.Sprintf("Passive discovery partial: %s.", strings.Join(discovery.Notes, "; ")))
+		case len(discovery.Recommended) == 0:
+			ui.Info(fmt.Sprintf("Passive discovery found nothing: %s. Continuing with your typed targets.", strings.Join(discovery.Notes, "; ")))
+		default:
+			ui.Info(fmt.Sprintf("Passive discovery: %d suggestion(s) in the %s zone.", len(discovery.Recommended), zone))
+		}
+		if accepted, additional, suggestErr := promptScopeSuggestions(discovery.Recommended); suggestErr == nil {
+			// A cancelled suggestion form counts as "skip suggestions" and
+			// keeps the typed targets — only accepted entries merge in.
+			if len(accepted) > 0 {
+				targets = strings.TrimSpace(targets + " " + strings.Join(accepted, " "))
+			}
+			if extra := strings.TrimSpace(additional); extra != "" {
+				targets = strings.TrimSpace(targets + " " + extra)
+			}
+			if in, _, err = dedupeScopeTargets(splitScopeTargets([]string{targets})); err != nil {
+				return "", scopeLists{}, err
+			}
+		}
+	}
+
 	lists, err := buildScopeLists([]string{targets}, []string{outOfScope})
 	if err != nil {
 		return "", scopeLists{}, err
