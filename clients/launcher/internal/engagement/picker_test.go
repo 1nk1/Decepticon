@@ -1,8 +1,6 @@
 package engagement
 
 import (
-	"crypto/sha256"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -13,12 +11,8 @@ func mkApprovedScope(t *testing.T, home, slug string) {
 	t.Helper()
 	mkPlan(t, home, slug)
 	root := filepath.Join(home, "workspace", slug)
-	roe := []byte(`{"in_scope":[{"target":"https://example.com"}],"authorization_reference":"signed contract 123"}`)
+	roe := []byte(`{"engagement_name":"` + slug + `","machine_enforcement":{"mode":"enforce","in_scope":["example.com"],"out_of_scope":[]}}` + "\n")
 	if err := os.WriteFile(filepath.Join(root, "plan", "roe.json"), roe, 0o600); err != nil {
-		t.Fatal(err)
-	}
-	marker := fmt.Sprintf("roe:%x\n", sha256.Sum256(roe))
-	if err := os.WriteFile(filepath.Join(root, ".red-approved"), []byte(marker), 0o600); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -68,7 +62,7 @@ func TestScanEngagements_ApprovedAndUnapproved(t *testing.T) {
 	if len(got) != 3 {
 		t.Fatalf("expected 3 entries, got %d (%v)", len(got), got)
 	}
-	byName := map[string]engagementEntry{got[0].Slug: got[0], got[1].Slug: got[1], got[2].Slug: got[2]}
+	byName := map[string]EngagementEntry{got[0].Slug: got[0], got[1].Slug: got[1], got[2].Slug: got[2]}
 	if !byName["alpha"].Ready {
 		t.Errorf("alpha should be ready, got %v", byName["alpha"])
 	}
@@ -141,27 +135,43 @@ func TestUnapprovedBundleDoesNotEnableRed(t *testing.T) {
 	mkPlan(t, home, "partial", "roe.json", "conops.json")
 
 	for _, slug := range []string{"complete", "partial", "missing"} {
-		if isRedApproved(home, slug) {
-			t.Errorf("unapproved %s enabled Red", slug)
+		if scopeReady(home, slug) {
+			t.Errorf("machine-scope-less %s enabled Red", slug)
 		}
 	}
 }
 
-func TestIsRedApprovedRequiresMatchingBundle(t *testing.T) {
+func TestScopeReadyRequiresEnforcedMachineScope(t *testing.T) {
 	home := t.TempDir()
-	mkPlan(t, home, "reviewed", planningDocuments...)
-	marker := filepath.Join(home, "workspace", "reviewed", ".red-approved")
-	if err := os.WriteFile(marker, []byte("23bb0ad057e96e5098d6c8ef731ce1afadd9e1957f6adf6b720196ad35409418"), 0o600); err != nil {
+	// A pre-unification dual-form document with an object-form machine block
+	// stays selectable; audit mode and human-only documents do not enable Red.
+	root := filepath.Join(home, "workspace", "legacy")
+	if err := os.MkdirAll(filepath.Join(root, "plan"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if !isRedApproved(home, "reviewed") {
-		t.Fatal("approved bundle was not selected for Red")
-	}
-	if err := os.WriteFile(filepath.Join(home, "workspace", "reviewed", "plan", "roe.json"), []byte(`{"changed":true}`), 0o600); err != nil {
+	legacy := filepath.Join(root, "plan", "roe.json")
+	legacyDoc := []byte(`{"in_scope":[{"target":"https://example.com"}],"authorization_reference":"signed contract 123","machine_enforcement":{"mode":"enforce","in_scope":[{"target":"https://example.com","type":"auto"}],"authorized_windows":[{"start":"2026-10-22T00:00:00Z","end":"2026-10-29T00:00:00Z"}]}}`)
+	if err := os.WriteFile(legacy, legacyDoc, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if isRedApproved(home, "reviewed") {
-		t.Fatal("changed bundle retained Red approval")
+	if !scopeReady(home, "legacy") {
+		t.Fatal("legacy dual-form machine scope was not recognized")
+	}
+	if err := os.WriteFile(legacy, []byte(`{"in_scope":[{"target":"https://example.com"}],"authorization_reference":"contract"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if scopeReady(home, "legacy") {
+		t.Fatal("human-only scope enabled Red")
+	}
+	// A legacy "mode":"audit" document: the post-unification runtime ignores
+	// the mode key and enforces every machine block unconditionally, so the
+	// launcher's readiness must match the runtime and report ready.
+	audit := []byte(`{"machine_enforcement":{"mode":"audit","in_scope":["example.com"]}}`)
+	if err := os.WriteFile(legacy, audit, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if !scopeReady(home, "legacy") {
+		t.Fatal("legacy audit-mode machine scope was not recognized as ready")
 	}
 }
 
@@ -169,18 +179,24 @@ func TestDirectScopePinsTargetAndRoE(t *testing.T) {
 	home := t.TempDir()
 	root := filepath.Join(home, "workspace", "direct")
 	mkApprovedScope(t, home, "direct")
-	if !isRedApproved(home, "direct") {
-		t.Fatal("direct approval was not recognized")
+	if !scopeReady(home, "direct") {
+		t.Fatal("machine scope was not recognized")
 	}
-	if target, confirmed := readScopeTarget(root); target != "https://example.com" || !confirmed {
-		t.Fatalf("scope target was not restored: %q confirmed=%v", target, confirmed)
+	if summary := readScopeSummary(root); summary.Target != "example.com" || !summary.Enforced {
+		t.Fatalf("scope summary was not restored: %+v", summary)
 	}
-	roe := filepath.Join(root, "plan", "roe.json")
-	if err := os.WriteFile(roe, []byte(`{"changed":true}`), 0o600); err != nil {
+	// A legacy dual-form document still yields its first human target.
+	if err := os.WriteFile(filepath.Join(root, "plan", "roe.json"), []byte(`{"in_scope":[{"target":"https://legacy.example.com"}],"authorization_reference":"contract"}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if isRedApproved(home, "direct") {
-		t.Fatal("changed RoE retained approval")
+	if summary := readScopeSummary(root); summary.Target != "https://legacy.example.com" || summary.Enforced {
+		t.Fatalf("legacy scope summary was not restored: %+v", summary)
+	}
+	if err := os.WriteFile(filepath.Join(root, "plan", "roe.json"), []byte(`{"changed":true}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if scopeReady(home, "direct") {
+		t.Fatal("machine-block-less document enabled Red")
 	}
 }
 
@@ -282,40 +298,55 @@ func TestPromptNewEngagement_RejectsEndOfInputBeforeName(t *testing.T) {
 	}
 }
 
-func TestChoiceForEngagement_OpensRedWithoutGrantingApproval(t *testing.T) {
-	for _, state := range []string{"empty", "unapproved", "approved", "changed"} {
+func TestChoiceForEngagement_OpensRedWithScopeState(t *testing.T) {
+	for _, state := range []string{"empty", "machine", "legacy", "human-only"} {
 		t.Run(state, func(t *testing.T) {
-			// Given a workspace with independent scope and approval state.
+			// Given a workspace whose roe.json carries the state's shape.
 			home := t.TempDir()
 			mkBareDir(t, home, state)
 			if state != "empty" {
-				mkApprovedScope(t, home, state)
-				if state == "unapproved" {
-					if err := os.Remove(filepath.Join(home, "workspace", state, ".red-approved")); err != nil {
-						t.Fatal(err)
-					}
+				mkPlan(t, home, state)
+				roePath := filepath.Join(home, "workspace", state, "plan", "roe.json")
+				var doc string
+				switch state {
+				case "machine":
+					doc = `{"engagement_name":"machine","machine_enforcement":{"mode":"enforce","in_scope":["example.com"]}}`
+				case "legacy":
+					doc = `{"in_scope":[{"target":"https://legacy.example.com"}],"authorization_reference":"contract","machine_enforcement":{"mode":"enforce","in_scope":[{"target":"https://legacy.example.com","type":"auto"}]}}`
+				case "human-only":
+					doc = `{"in_scope":[{"target":"https://human.example.com"}],"authorization_reference":"contract"}`
 				}
-				if state == "changed" {
-					if err := os.WriteFile(filepath.Join(home, "workspace", state, "plan", "roe.json"), []byte(`{"in_scope":[{"target":"https://new.example.com"}],"authorization_reference":"new contract"}`), 0o600); err != nil {
-						t.Fatal(err)
-					}
+				if err := os.WriteFile(roePath, []byte(doc), 0o600); err != nil {
+					t.Fatal(err)
 				}
 			}
 			// When the picker translates that engagement into launch context.
 			choice := choiceForEngagement(home, state)
-			// Then Red is selected independently from authorization.
+			// Then Red is selected independently from the scope shape.
 			if choice.AssistantID != AssistantDecepticon || choice.Mode != "red" {
 				t.Fatalf("expected Red, got %+v", choice)
 			}
 			if choice.AuthorizationConfirmed != (state != "empty") {
 				t.Fatalf("unexpected authorization declaration: %+v", choice)
 			}
-			if isRedApproved(home, state) != (state == "approved") {
-				t.Fatalf("unexpected Red approval for %s", state)
-			}
 			if choice.WorkspacePath != filepath.Join(home, "workspace", state) {
 				t.Fatalf("wrong workspace: %+v", choice)
 			}
+			// Then only an enforced machine scope marks the engagement ready.
+			if scopeReady(home, state) != (state == "machine" || state == "legacy") {
+				t.Fatalf("unexpected readiness for %s", state)
+			}
 		})
+	}
+}
+
+func TestPickerItem_Description_ShowsScopeSummary(t *testing.T) {
+	ready := pickerItem{slug: "alpha", ready: true, scope: scopeSummary{Target: "example.com", InCount: 3, DenyCount: 1, Enforced: true}}
+	if got := ready.Description(); got != "Red ready · 3 in scope · 1 denied · example.com" {
+		t.Fatalf("unexpected ready description: %q", got)
+	}
+	progress := pickerItem{slug: "bravo", inProgress: true}
+	if got := progress.Description(); got == "" || got == "Authorized Red scope available" {
+		t.Fatalf("unexpected in-progress description: %q", got)
 	}
 }

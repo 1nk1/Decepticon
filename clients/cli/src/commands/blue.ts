@@ -232,6 +232,12 @@ const blue: Command = {
   name: "blue",
   description: "Run the always-on local Blue Cell sensor and incident monitor",
   argumentHint: "<up|status|verify|sources|events|incidents|metrics|analyze|stop> [local port] [--logs /host/path]",
+  complete: (args) =>
+    args.includes(" ")
+      ? []
+      : ["up", "status", "verify", "sources", "events", "incidents", "metrics", "analyze", "stop"].filter(
+          (choice) => choice.startsWith(args),
+        ),
   async execute(args, context: CommandContext) {
     const [action = "status", value = ""] = args.trim().split(/\s+/);
     try {

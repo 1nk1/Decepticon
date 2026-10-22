@@ -29,7 +29,7 @@ it("uses the guarded mode transition when /plan is selected", async () => {
   // When the convenience command runs
   await findCommand("plan")?.execute("", ctx);
   // Then it selects planning without sending a message or approving scope
-  expect(ctx.selectAssistant).toHaveBeenCalledWith("soundwave", undefined);
+  expect(ctx.selectAssistant).toHaveBeenCalledWith("soundwave");
   expect(ctx.submit).not.toHaveBeenCalled();
 });
 

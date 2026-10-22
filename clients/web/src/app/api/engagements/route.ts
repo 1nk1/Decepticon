@@ -4,7 +4,7 @@ import { SLUG_RE, VALID_TARGET_TYPES } from "@/lib/workspace";
 import { NextRequest, NextResponse } from "next/server";
 import * as fs from "fs/promises";
 import * as path from "path";
-import { directApproval, directRoe, validateDirectTarget } from "@/lib/direct-scope";
+import { directRoe, validateDirectTarget } from "@/lib/direct-scope";
 import { isValidEngagementSlug } from "@/lib/engagement-slug";
 
 const WORKSPACE = process.env.WORKSPACE_PATH ?? path.join(process.env.HOME ?? "", ".decepticon", "workspace");
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
     const { userId } = await requireAuth();
 
     const body = await req.json();
-    const { name, targetType, targetValue, authorizationConfirmed, authorizationReference, initialMode } = body;
+    const { name, targetType, targetValue, authorizationConfirmed, initialMode } = body;
 
     if (!name || !targetType || !targetValue) {
       return NextResponse.json(
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
     let normalizedTarget: string;
     try {
       normalizedTarget = validateDirectTarget(targetType, targetValue);
-      roeBytes = Buffer.from(`${JSON.stringify(directRoe(name, targetType, normalizedTarget, authorizationReference ?? ""), null, 2)}\n`);
+      roeBytes = Buffer.from(`${JSON.stringify(directRoe(name, targetType, normalizedTarget), null, 2)}\n`);
     } catch (error) {
       return NextResponse.json({ error: error instanceof Error ? error.message : "Invalid direct scope" }, { status: 400 });
     }
@@ -140,9 +140,6 @@ export async function POST(req: NextRequest) {
     try {
       await Promise.all(WORKSPACE_SUBDIRS.map((sub) => fs.mkdir(path.join(wsPath, sub), { mode: 0o700 })));
       await fs.writeFile(path.join(wsPath, "plan", "roe.json"), roeBytes, { flag: "wx", mode: 0o600 });
-      if (initialMode !== "plan" && initialMode !== "blue") {
-        await fs.writeFile(path.join(wsPath, ".red-approved"), directApproval(roeBytes), { flag: "wx", mode: 0o600 });
-      }
       const engagement = await prisma.engagement.create({
         data: {
           name,

@@ -10,6 +10,12 @@ import (
 var stopCmd = &cobra.Command{
 	Use:   "stop",
 	Short: "Stop all Decepticon services",
+	Long: `Stop every Decepticon service, including the opscontrol daemon.
+
+Stops and removes all Compose containers across every workload
+profile, then tears down the opscontrol daemon. Conversations and
+workspace data are kept; only the running services are stopped.`,
+	Example: `  decepticon stop    Stop all Decepticon services and the daemon`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		c := compose.New()
 		ui.Info("Stopping Decepticon services...")

@@ -27,6 +27,18 @@ var resetFlag bool
 var onboardCmd = &cobra.Command{
 	Use:   "onboard",
 	Short: "Configure Decepticon (auth methods, model profile, observability)",
+	Long: `Run the interactive setup wizard for Decepticon.
+
+It configures an authentication method (Anthropic, OpenAI, Gemini,
+OpenRouter, Ollama local, or a custom OpenAI-compatible endpoint), a
+model profile, and observability settings, then writes them to
+~/.decepticon/.env and downloads the configuration files needed to
+boot the stack.
+
+Safe to re-run: with --reset it reconfigures even when .env already
+exists; without it the wizard is skipped when .env already exists.`,
+	Example: `  decepticon onboard           Run the setup wizard for a new install
+  decepticon onboard --reset   Reconfigure an existing installation`,
 	RunE:  runOnboard,
 }
 

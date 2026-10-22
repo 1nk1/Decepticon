@@ -211,7 +211,7 @@ function Composer({ runState, onSubmit, activeAgent = null, assistantId = "decep
       {lineCount > 3 && <Text dimColor>{lineCount} lines · {value.length} characters · Ctrl+G opens editor</Text>}
       <Text dimColor>{"─".repeat(columns)}</Text>
       {search !== null && <Text>History search: {search} · {matches[searchIndex] ?? "No match"}</Text>}
-      {choices.slice(menuStart, menuStart + 6).map((choice, index) => <Text key={choice.value} bold={index + menuStart === selected} dimColor={index + menuStart !== selected}>{index + menuStart === selected ? "› " : "  "}{choice.value} — {choice.description}</Text>)}
+      {choices.slice(menuStart, menuStart + 6).map((choice, index) => <Text key={choice.value} bold={index + menuStart === selected} dimColor={index + menuStart !== selected}>{index + menuStart === selected ? "› " : "  "}{choice.value} — {choice.description}{choice.hint ? <Text dimColor> [{choice.hint}]</Text> : null}</Text>)}
       <Text><Text bold>{mode}</Text>{" · "}{labelForAgent(activeAgent ?? assistantId)}{columns >= 70 ? ` · ${engagement}` : ""}{columns >= 100 ? ` · ${model || getModelOverride() || "default model"}` : ""}{connectionStatus ? ` · ${connectionStatus}` : ""}</Text>
       {help && KEYBOARD_HELP.map((line) => <Text key={line} dimColor>{line}</Text>)}
       <Text dimColor>{isActive ? "Esc / Ctrl+C pause · Ctrl+C twice cancel · /queue edit · ? shortcuts" : runState === "paused" ? "/resume continue · Ctrl+C cancel · ? shortcuts" : "Enter send · Shift+Enter newline · ↑/↓ history · ? shortcuts"}</Text>

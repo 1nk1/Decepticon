@@ -13,6 +13,17 @@ import (
 var mcpCmd = &cobra.Command{
 	Use:   "mcp",
 	Short: "Connect coding agents to a running Decepticon instance",
+	Long: `Expose Decepticon's MCP tools to coding agents over the Model
+Context Protocol (MCP).
+
+Start Decepticon first ('decepticon start'), then point your coding
+agent at this MCP server so it can drive a running Decepticon
+instance: check status and health, read logs, and follow engagement
+workflows.`,
+	Example: `  decepticon mcp serve             Serve Decepticon MCP tools over stdio
+
+  # Register with Claude Code (run after 'decepticon start'):
+  claude mcp add decepticon -- decepticon mcp serve`,
 }
 
 var mcpServeCmd = &cobra.Command{

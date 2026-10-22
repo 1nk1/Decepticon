@@ -27,7 +27,7 @@ func validateRootArgs(args []string) error {
 		}
 	}
 	if bestName != "" && bestDistance <= 3 {
-		return fmt.Errorf("unknown command %q; did you mean %q?", word, bestName)
+		return fmt.Errorf("unknown command %q; did you mean %q? Run 'decepticon help' for the command list", word, bestName)
 	}
 	return fmt.Errorf("unexpected arguments; use --resume=THREAD_ID, --resume to pick a session, or --continue")
 }

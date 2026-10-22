@@ -34,7 +34,22 @@ type doctorReport struct {
 }
 
 func init() {
-	command := &cobra.Command{Use: "doctor", Short: "Read-only installation and service diagnostics", Args: cobra.NoArgs}
+	command := &cobra.Command{
+		Use:   "doctor",
+		Short: "Read-only installation and service diagnostics",
+		Long: `Run read-only diagnostics on the Decepticon installation.
+
+It checks (in order): Docker presence and daemon response, Docker
+Compose V2, configuration (.env and docker-compose.yml) and
+authentication, LangGraph readiness, the opscontrol Unix socket and
+daemon health, and optional blue-team monitoring endpoints.
+
+Nothing is modified. The command exits non-zero when a required check
+fails; optional checks are reported but do not affect the exit code.`,
+		Example: `  decepticon doctor           Run all diagnostics and print a report
+  decepticon doctor --json    Print a machine-readable report for CI`,
+		Args: cobra.NoArgs,
+	}
 	command.Flags().Bool("json", false, "Print a machine-readable report")
 	command.RunE = func(cmd *cobra.Command, _ []string) error {
 		report := diagnose(cmd.Context())

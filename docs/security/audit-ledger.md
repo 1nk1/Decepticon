@@ -38,7 +38,7 @@ chain fields on append.
 | `reason_detail` | Human-readable explanation of the decision. |
 | `risk` | `low` / `medium` / `high`. |
 | `matched_targets` | List of the rule patterns or destinations that matched. |
-| `mode` | The enforcement mode in effect (`audit` / `warn` / `enforce`). |
+| `mode` | The enforcement mode in effect (always enforced). |
 | `command_excerpt` | The command text, truncated to 512 characters. |
 
 The audit write is wrapped so an audit-sink failure logs an error but

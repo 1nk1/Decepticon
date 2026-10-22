@@ -1,11 +1,10 @@
-import { createHash } from "node:crypto";
 import { mkdtemp, mkdir, readFile, readdir, stat, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { scope } from "./scope.js";
 import { validRoe, validationServer } from "./__fixtures__/validationServer.js";
-import { approveRedMode, assertRedApproved } from "./planMode.js";
+import { assertRedApproved } from "./planMode.js";
 import { validateRoe } from "./roeValidation.js";
 import type { CommandContext } from "./types.js";
 
@@ -26,10 +25,8 @@ describe("operator scope registration", () => {
   });
   afterEach(async () => { await server.close(); vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 
-  it.each(["candidate.json", "absolute"])("imports %s bytes privately without execution approval", async (input) => {
-    // Given stale authorization and an operator candidate.
-    await writeFile(path.join(root, ".red-approved"), "stale");
-    await writeFile(path.join(root, ".planning-draft-ready"), "stale");
+  it.each(["candidate.json", "absolute"])("imports %s bytes privately as the enforced scope", async (input) => {
+    // Given an operator candidate document.
     // When the operator confirms import.
     await scope.execute(`import ${input === "absolute" ? path.join(root, "candidate.json") : input} --confirm`, ctx);
     // Then canonical validation sees the exact bytes and only RoE is installed.
@@ -37,22 +34,12 @@ describe("operator scope registration", () => {
     expect(await readFile(path.join(root, "plan", "roe.json"))).toEqual(validRoe);
     expect((await stat(path.join(root, "plan", "roe.json"))).mode & 0o777).toBe(0o600);
     expect(await readdir(path.join(root, "plan"))).toEqual(["roe.json"]);
-    for (const marker of [".red-approved", ".planning-draft-ready"]) await expect(stat(path.join(root, marker))).rejects.toMatchObject({ code: "ENOENT" });
-    await expect(assertRedApproved()).rejects.toThrow();
+    // The imported human-only document has no machine block yet, so Red stays
+    // gated until an updated scope with one is installed.
+    await expect(assertRedApproved()).rejects.toThrow("no enforced machine block");
   });
 
-  it("approves an imported direct RoE without Plan documents", async () => {
-    // Given an imported, unapproved scope.
-    await scope.execute("import candidate.json --confirm", ctx);
-    // When the operator approves Red.
-    await approveRedMode();
-    // Then approval is bound to the exact RoE and no Plan bundle is required.
-    expect(await readFile(path.join(root, ".red-approved"), "utf8")).toBe(`roe:${createHash("sha256").update(validRoe).digest("hex")}`);
-    await expect(assertRedApproved()).resolves.toBeUndefined();
-    expect(await readdir(path.join(root, "plan"))).toEqual(["roe.json"]);
-  });
-
-  it.each(["existing", "symlink destination", "symlink directory"])("preserves scope and markers for %s", async (scenario) => {
+  it.each(["existing", "symlink destination", "symlink directory"])("preserves the installed scope for %s", async (scenario) => {
     // Given a destination that must not be overwritten.
     const outside = path.join(root, "outside");
     await mkdir(outside);
@@ -62,11 +49,9 @@ describe("operator scope registration", () => {
       if (scenario === "existing") await writeFile(path.join(root, "plan", "roe.json"), "original");
       else { await writeFile(path.join(outside, "roe.json"), "original"); await symlink(path.join(outside, "roe.json"), path.join(root, "plan", "roe.json")); }
     }
-    await writeFile(path.join(root, ".red-approved"), "original approval");
     // When import is attempted.
     await scope.execute("import candidate.json --confirm", ctx);
-    // Then neither authorization nor destination is replaced.
-    expect(await readFile(path.join(root, ".red-approved"), "utf8")).toBe("original approval");
+    // Then the destination is not replaced.
     if (scenario !== "symlink directory") expect(await readFile(path.join(root, "plan", "roe.json"), "utf8")).toBe("original");
     else expect(await readdir(outside)).toEqual([]);
     expect(messages.at(-1)).toMatch(/Refusing|already exists/);
@@ -79,9 +64,8 @@ describe("operator scope registration", () => {
     if (scenario === "pause failed") ctx.mutateWorkspace = async () => false;
     // When import is requested.
     await scope.execute(`import candidate.json${scenario === "no confirmation" ? "" : " --confirm"}`, ctx);
-    // Then no scope or approval exists.
+    // Then no scope exists.
     await expect(stat(path.join(root, "plan", "roe.json"))).rejects.toMatchObject({ code: "ENOENT" });
-    await expect(stat(path.join(root, ".red-approved"))).rejects.toMatchObject({ code: "ENOENT" });
   });
 
   it("rejects a validator response for different bytes", async () => {

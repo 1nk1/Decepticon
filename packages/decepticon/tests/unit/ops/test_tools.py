@@ -127,8 +127,10 @@ def test_ops_start_unreachable_diagnostic(monkeypatch) -> None:
     )
     out = ops_start.invoke({"workload": "ad"})
     data = json.loads(out)
-    assert data["error"] == "opscontrol_unreachable"
-    assert "ADR-0006" in data["hint"]
+    assert data["is_error"] is True
+    assert data["tool"] == "ops_start"
+    assert "opscontrol_unreachable" in data["cause"]
+    assert "ADR-0006" in data["recovery"]
 
 
 def test_ops_start_http_error_propagates(monkeypatch) -> None:
@@ -142,8 +144,10 @@ def test_ops_start_http_error_propagates(monkeypatch) -> None:
     monkeypatch.setattr("decepticon.tools.ops.tools.OpsControlClient", factory)
     out = ops_start.invoke({"workload": "bogus"})
     data = json.loads(out)
-    assert data["error"] == "opscontrol_http_error"
-    assert data["status_code"] == 400
+    assert data["is_error"] is True
+    assert data["tool"] == "ops_start"
+    assert "opscontrol_http_error 400" in data["cause"]
+    assert "not in allowlist" in data["cause"]
 
 
 def test_ops_stop_returns_envelope(patch_client) -> None:
