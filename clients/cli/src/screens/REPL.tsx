@@ -20,6 +20,7 @@ import { useSubAgentSessions } from "../hooks/useSubAgentSessions.js";
 import { useGlobalKeybindings } from "../hooks/useGlobalKeybindings.js";
 import { useAppState } from "../state/AppState.js";
 import { Banner } from "../components/Banner.js";
+import { BudgetFooter } from "../components/BudgetFooter.js";
 import { EventItem } from "../components/EventItem.js";
 import { AIMessage } from "../components/messages/AIMessage.js";
 import { PendingToolMessage } from "../components/messages/PendingToolMessage.js";
@@ -32,7 +33,7 @@ import { CoordinatorPanel } from "../components/agents/CoordinatorPanel.js";
 import { ScreenProvider } from "../components/shell/ScreenContext.js";
 import { ExpandOutputProvider } from "../components/shell/ExpandOutputContext.js";
 import { SubAgentProvider } from "../components/shell/SubAgentContext.js";
-import { parseSlashCommand, findCommand } from "../commands/registry.js";
+import { parseSlashCommand, findCommand, suggestCommand } from "../commands/registry.js";
 import { groupConsecutiveTools } from "../utils/groupEvents.js";
 import { formatDuration } from "../utils/format.js";
 import { GLYPH_DOT, GLYPH_HOOK, GLYPH_SEP, AGENT_COLORS } from "../utils/theme.js";
@@ -157,8 +158,11 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
           });
           return;
         }
-        // Unknown command — show error
-        agent.addSystemEvent(`Unknown command: /${parsed.name}. Type /help for available commands.`);
+        // Unknown command — show error, with a nearest-command suggestion when
+        // the name looks like a typo (alias-aware, same as the launcher CLI).
+        const suggestion = suggestCommand(parsed.name);
+        const hint = suggestion ? ` Did you mean /${suggestion}?` : "";
+        agent.addSystemEvent(`Unknown command: /${parsed.name}.${hint} Type /help for available commands.`);
         return;
       }
 
@@ -241,7 +245,7 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
               events={agent.events}
               sessions={sessions}
             />
-            {agent.error && <ErrorMessage content={agent.error} />}
+            {agent.error && <ErrorMessage content={agent.error} onDismiss={agent.clearError} />}
           </Box>
         </Box>
       </ScreenProvider>
@@ -301,7 +305,7 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
             <OpplanStatus opplan={opplan} />
           )}
 
-          {agent.error && <ErrorMessage content={agent.error} />}
+          {agent.error && <ErrorMessage content={agent.error} onDismiss={agent.clearError} />}
 
           {/* No global "(ctrl+o to expand)" hint here: the Prompt footer
               already shows "ctrl+o: expand" persistently while idle, and
@@ -336,7 +340,12 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
             />
           )}
           <Box flexDirection="column" marginTop={1}>
-            <Text dimColor wrap="truncate-end">Blue {blue.status} · collector {blue.collectorStatus} · AI {blue.aiStatus} · unread {blue.unreadCount} · /alerts</Text>
+            {blue.status === "connected" || blue.unreadCount > 0 ? (
+              <Text dimColor wrap="truncate-end">
+                Blue · collector {blue.collectorStatus} · AI {blue.aiStatus} · unread {blue.unreadCount} · /alerts
+              </Text>
+            ) : null}
+            <BudgetFooter usage={agent.budgetUsage} />
             {agent.queuedMessages.length > 0 && <Text dimColor>{agent.queuedMessages.length} waiting · /queue to edit or remove</Text>}
           </Box>
         </Box>

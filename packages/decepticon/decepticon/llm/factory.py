@@ -1576,6 +1576,26 @@ def _reraise_with_actionable_message(exc: Exception, model_name: str) -> None:
             f"DECEPTICON_AUTH_PRIORITY.\nUnderlying: {safe_msg}"
         ) from exc
 
+    # LiteLLM raises RouterRateLimitError ("No deployments available ...
+    # cooldown_list=[...]") once it has *cooled down* a deployment after
+    # repeated failures. That cooldown is frequently triggered by a FATAL
+    # upstream error (e.g. a 404 model_not_found or a 401) on the previous
+    # attempt, not a true quota rate limit — but the outer error still reads
+    # "429", so the plain rate-limit branch below would mislabel it and hide the
+    # real cause. Surface it distinctly and point at the proxy logs where the
+    # cooled-down deployment's underlying exception is recorded. See issue:
+    # a 404 from a custom OpenAI endpoint surfaced to the user as a 429.
+    if "no deployments available" in msg_lower or "cooldown" in msg_lower:
+        raise RuntimeError(
+            f"Model '{model_name}' has no available deployments — LiteLLM cooled it "
+            f"down after repeated failures. This is usually a masked upstream error "
+            f"(e.g. a 400/401/404 from the provider on the previous attempt), not a true "
+            f"quota rate limit, so retrying alone may not clear it. Check the LiteLLM "
+            f"proxy logs for the cooled-down deployment's underlying exception and fix the "
+            f"root cause (model id, endpoint URL, or credentials), or add a fallback "
+            f"method to DECEPTICON_AUTH_PRIORITY.\nUnderlying: {safe_msg}"
+        ) from exc
+
     if "ratelimit" in err_type.lower() or "code: 429" in msg_lower:
         raise RuntimeError(
             f"Model '{model_name}' hit the provider's rate limit (429). "

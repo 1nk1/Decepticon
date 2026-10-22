@@ -38,6 +38,7 @@ class StartResult(BaseModel):
     assistant: str
     status: str
     langgraph_url: str
+    workspace_path: str = "/workspace"
 
 
 class RunHandle(BaseModel):

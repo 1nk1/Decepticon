@@ -44,9 +44,9 @@ type Choice struct {
 	AuthorizationConfirmed bool
 }
 
-// engagementEntry pairs a slug with metadata used for picker rendering and
+// EngagementEntry pairs a slug with metadata used for picker rendering and
 // downstream assistant selection.
-type engagementEntry struct {
+type EngagementEntry struct {
 	Slug  string
 	Ready bool
 	Scope scopeSummary
@@ -141,7 +141,7 @@ func scopeEntryTarget(raw json.RawMessage) (string, bool) {
 	return "", false
 }
 
-func ScanEngagements(home string) ([]engagementEntry, error) {
+func ScanEngagements(home string) ([]EngagementEntry, error) {
 	root := filepath.Join(home, "workspace")
 	entries, err := os.ReadDir(root)
 	if err != nil {
@@ -151,7 +151,7 @@ func ScanEngagements(home string) ([]engagementEntry, error) {
 		return nil, fmt.Errorf("read workspace: %w", err)
 	}
 
-	var out []engagementEntry
+	var out []EngagementEntry
 	for _, e := range entries {
 		if !e.IsDir() {
 			continue
@@ -330,7 +330,7 @@ func (m pickerModel) renderConfirmOverlay() string {
 	return confirmStyle.Render(body)
 }
 
-func newPickerModel(home string, entries []engagementEntry) pickerModel {
+func newPickerModel(home string, entries []EngagementEntry) pickerModel {
 	items := buildItems(entries)
 	delegate := list.NewDefaultDelegate()
 	l := list.New(items, delegate, 0, 0)
@@ -347,7 +347,7 @@ func newPickerModel(home string, entries []engagementEntry) pickerModel {
 	return pickerModel{home: home, list: l, keys: keys}
 }
 
-func buildItems(entries []engagementEntry) []list.Item {
+func buildItems(entries []EngagementEntry) []list.Item {
 	items := []list.Item{pickerItem{isNew: true}}
 	for _, e := range entries {
 		items = append(items, pickerItem{

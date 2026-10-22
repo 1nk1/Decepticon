@@ -64,6 +64,7 @@ var (
 	skipUpdate     bool
 	resumeThread   string
 	continueThread bool
+	backgroundRun  bool
 )
 
 var startCmd = &cobra.Command{
@@ -98,16 +99,23 @@ func init() {
 	rootCmd.MarkFlagsMutuallyExclusive("resume", "continue")
 	startCmd.MarkFlagsMutuallyExclusive("resume", "continue")
 
+	startCmd.Flags().BoolVar(&backgroundRun, "background", false,
+		"Start services and prepare the engagement without opening the interactive CLI; attach later with 'decepticon attach <name>'")
+
 	rootCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		return runStart(cmd, args)
 	}
 }
 
 func runStart(cmd *cobra.Command, args []string) error {
-	return runStartMode(cmd, args, "")
+	return runStartMode(cmd, args, "", false)
 }
 
-func runStartMode(cmd *cobra.Command, args []string, existingEngagement string) error {
+// runStartMode boots the stack for one of three callers: plain `start`
+// (existingEngagement == ""), the desktop agent service (`serve`, which
+// returns once services are ready), and `attach` (attachInteractive, which
+// drops the operator into the interactive CLI on an existing engagement).
+func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, attachInteractive bool) error {
 	if cmd == rootCmd {
 		if err := validateRootArgs(args); err != nil {
 			return err
@@ -391,7 +399,10 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string) 
 		return fmt.Errorf("service readiness: %w; inspect `decepticon doctor` and `decepticon logs` (services kept)", err)
 	}
 
-	if existingEngagement != "" {
+	// The desktop agent service ends here — it serves host clients and has
+	// no terminal. Attach keeps going: its whole point is the interactive
+	// CLI on the existing engagement.
+	if existingEngagement != "" && !attachInteractive {
 		ui.Success("Desktop agent service ready for " + choice.Engagement)
 		fmt.Println("DECEPTICON_DESKTOP_ASSISTANT=" + choice.AssistantID)
 		return nil
@@ -421,6 +432,14 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string) 
 	}
 	if port := config.Get(env, "WEB_PORT", "3000"); port != "" {
 		cliEnv["WEB_PORT"] = port
+	}
+
+	// Background mode: services are up and the engagement workspace is bound;
+	// skip the interactive CLI and let the operator attach later.
+	if backgroundRun {
+		ui.Success("Engagement " + choice.Engagement + " ready in the background (thread: " + threadOrPickerHint(thread) + ").")
+		ui.DimText("Attach with 'decepticon attach " + choice.Engagement + "'. Services kept running.")
+		return nil
 	}
 
 	// Pass through terminal. Services are intentionally left running on CLI exit
@@ -587,4 +606,11 @@ func candidateProbeURLs(raw string) []string {
 	}
 	add("127.0.0.1")
 	return candidates
+}
+
+func threadOrPickerHint(thread string) string {
+	if thread != "" && thread != "picker" {
+		return thread
+	}
+	return "created on first attach"
 }
