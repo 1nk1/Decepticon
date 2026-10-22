@@ -61,8 +61,17 @@ class _FakeRuns:
 
 
 class _FakeAssistants:
-    async def search(self) -> list[dict[str, Any]]:
-        return [{"assistant_id": "a-1", "graph_id": "decepticon", "name": "decepticon"}]
+    def __init__(self, assistants: list[dict[str, Any]] | None = None) -> None:
+        self._assistants = (
+            assistants
+            if assistants is not None
+            else [{"assistant_id": "a-1", "graph_id": "decepticon", "name": "decepticon"}]
+        )
+        self.search_calls: list[tuple[int, int]] = []
+
+    async def search(self, *, limit: int = 10, offset: int = 0) -> list[dict[str, Any]]:
+        self.search_calls.append((limit, offset))
+        return self._assistants[offset : offset + limit]
 
 
 class _FakeClient:
@@ -72,10 +81,11 @@ class _FakeClient:
         runs: list[dict[str, Any]] | None = None,
         threads: list[dict[str, Any]] | None = None,
         stream: list[_Part] | None = None,
+        assistants: list[dict[str, Any]] | None = None,
     ) -> None:
         self.threads = _FakeThreads(threads)
         self.runs = _FakeRuns(runs, stream)
-        self.assistants = _FakeAssistants()
+        self.assistants = _FakeAssistants(assistants)
 
 
 def _config() -> ServerConfig:
@@ -213,3 +223,18 @@ async def test_list_graphs_maps_assistants() -> None:
     graphs = await client.list_graphs()
     assert graphs[0].graph_id == "decepticon"
     assert graphs[0].assistant_id == "a-1"
+
+
+async def test_list_graphs_pages_past_sdk_default_limit() -> None:
+    # More graphs than the LangGraph SDK's default page size — the client must
+    # page to the end instead of silently returning only the first page.
+    many = [
+        {"assistant_id": f"a-{n}", "graph_id": f"g{n}", "name": f"g{n}"} for n in range(150)
+    ]
+    fake = _FakeClient(assistants=many)
+    client = EngagementClient(_config(), client=fake)
+    graphs = await client.list_graphs()
+    assert len(graphs) == 150
+    assert graphs[-1].graph_id == "g149"
+    # Explicit limit/offset paging, not a single bare search() call.
+    assert fake.assistants.search_calls == [(100, 0), (100, 100)]
