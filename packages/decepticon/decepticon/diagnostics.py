@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import json
 import os
-import sys
 from typing import Any
 
 from decepticon_core.contracts.slots import SLOTS_PER_ROLE, MiddlewareSlot
@@ -29,7 +28,11 @@ log = get_logger("diagnostics")
 
 
 def _truthy(value: str | None) -> bool:
-    return str(value).strip().lower() not in ("", "0", "false", "no", "off")
+    # An unset variable is not "enabled": str(None) would read "none" and
+    # silently pass the falsy set below, reporting absent slots as OK.
+    if value is None:
+        return False
+    return value.strip().lower() not in ("", "0", "false", "no", "off")
 
 
 def _hitl_status() -> dict[str, Any]:
@@ -43,18 +46,38 @@ def _hitl_status() -> dict[str, Any]:
 
 
 def _model_fallback_status() -> dict[str, Any]:
+    """Resolve fallback chains through the real config source.
+
+    ``ModelFallbackMiddleware`` is fed from ``LLMFactory.get_fallback_models``
+    — the credential-chain mapping resolved at assembly time. No
+    ``DECEPTICON_MODEL_<ROLE>_FALLBACK`` env var exists; checking one always
+    reported "no chains" regardless of the operator's actual credentials.
+    """
+    try:
+        from decepticon.llm.factory import LLMFactory
+
+        factory = LLMFactory()
+    except Exception as exc:  # noqa: BLE001 — diagnostics must not crash
+        return {"ok": False, "detail": f"model router unavailable: {exc}"}
+
     roles: dict[str, Any] = {}
     any_chain = False
     for role in SLOTS_PER_ROLE:
-        chain = os.environ.get(f"DECEPTICON_MODEL_{role.upper()}_FALLBACK", "").strip()
-        roles[role] = chain
+        try:
+            # Same guard condition the assembly path uses: an empty chain
+            # means the conditional slot returns None and stays absent.
+            chain = factory.get_fallback_models(role)
+        except Exception as exc:  # noqa: BLE001
+            roles[role] = f"unresolved: {exc}"
+            continue
+        roles[role] = len(chain)
         if chain:
             any_chain = True
     return {
         "ok": any_chain,
         "detail": "fallback chains configured for at least one role"
         if any_chain
-        else "no DECEPTICON_MODEL_<ROLE>_FALLBACK chains — slot will be absent",
+        else "no fallback chains in the credential mapping — slot will be absent",
         "roles": roles,
     }
 
@@ -63,8 +86,8 @@ def _kg_status() -> dict[str, Any]:
     """KG store resolution + reachability. Lazy import: neo4j is an optional extra."""
     from decepticon.middleware.kg_internal.store import (
         KGStoreConfig,
-        KGStoreUnavailableError,
         KGStoreConfigError,
+        KGStoreUnavailableError,
     )
 
     try:
@@ -171,9 +194,7 @@ def deep_report() -> dict[str, Any]:
         "skillogy": skillogy,
         "mcp_auth": mcp,
     }
-    required_ok = all(
-        components[name]["ok"] for name in ("kg", "skillogy") if name in components
-    )
+    required_ok = all(components[name]["ok"] for name in ("kg", "skillogy") if name in components)
     return {
         "ok": required_ok,
         "components": components,
