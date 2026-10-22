@@ -228,9 +228,7 @@ async def test_list_graphs_maps_assistants() -> None:
 async def test_list_graphs_pages_past_sdk_default_limit() -> None:
     # More graphs than the LangGraph SDK's default page size — the client must
     # page to the end instead of silently returning only the first page.
-    many = [
-        {"assistant_id": f"a-{n}", "graph_id": f"g{n}", "name": f"g{n}"} for n in range(150)
-    ]
+    many = [{"assistant_id": f"a-{n}", "graph_id": f"g{n}", "name": f"g{n}"} for n in range(150)]
     fake = _FakeClient(assistants=many)
     client = EngagementClient(_config(), client=fake)
     graphs = await client.list_graphs()
