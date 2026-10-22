@@ -35,6 +35,7 @@ interface Props {
   modalActive?: boolean;
   draftHasText?: boolean;
   onClearDraft?: () => void;
+  onModelPicker?: () => void;
 }
 
 const DOUBLE_PRESS_MS = 500;
@@ -50,10 +51,12 @@ export function useGlobalKeybindings({
   modalActive = false,
   draftHasText = false,
   onClearDraft,
+  onModelPicker,
 }: Props): void {
   const screen = useAppState((s) => s.screen);
   const setAppState = useSetAppState();
   const lastCtrlCRef = useRef(0);
+  const lastCtrlDRef = useRef<number | null>(null);
 
   const toggleScreen = useCallback(() => {
     setAppState((prev) => ({
@@ -68,6 +71,15 @@ export function useGlobalKeybindings({
 
   useInput((input, key) => {
     if (modalActive) return;
+    if (key.meta && input === "p") { onModelPicker?.(); return; }
+    if (key.ctrl && input === "d" && runState === "idle" && !draftHasText && !hasQueuedMessage && screen === "prompt") {
+      const now = Date.now();
+      if (lastCtrlDRef.current !== null && now - lastCtrlDRef.current < 800) onExit();
+      else addSystemEvent?.("Press Ctrl+D again within 800ms to exit.");
+      lastCtrlDRef.current = now;
+      return;
+    }
+    lastCtrlDRef.current = null;
     // ctrl+o: toggle transcript (expand/collapse all)
     if (key.ctrl && input === "o") {
       toggleScreen();
@@ -77,6 +89,11 @@ export function useGlobalKeybindings({
     // Escape in transcript → return to prompt
     if (screen === "transcript" && key.escape) {
       exitTranscript();
+      return;
+    }
+
+    if (key.escape && (runState === "streaming" || runState === "connecting")) {
+      onInterrupt();
       return;
     }
 

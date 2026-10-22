@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { isIP } from "node:net";
 
 export function validateDirectTarget(type: string, value: string): string {
@@ -25,26 +24,14 @@ export function validateDirectTarget(type: string, value: string): string {
   throw new Error("Unsupported target type");
 }
 
-export function directRoe(name: string, type: string, value: string, reference: string) {
+// The generated RoE is the machine scope alone: creating the engagement with
+// a declared target IS the authorization, and the middleware enforces this
+// block unconditionally. There is no separate human scope document and no
+// approval marker.
+export function directRoe(name: string, type: string, value: string) {
   const target = validateDirectTarget(type, value);
-  const authorizationReference = reference.trim();
-  if (!authorizationReference || authorizationReference.length > 200 || /[\u0000-\u001f\u007f]/.test(authorizationReference)) {
-    throw new Error("Authorization reference must be 1–200 characters without control characters");
-  }
-  const today = new Date().toISOString().slice(0, 10);
   return {
     engagement_name: name,
-    client: "Operator-attested direct scope",
-    start_date: today,
-    end_date: today,
-    engagement_type: "external",
-    testing_window: "Operator-confirmed current session",
-    in_scope: [{ target, type }],
-    authorization_reference: authorizationReference,
-    machine_enforcement: { mode: "enforce", in_scope: [target] },
+    machine_enforcement: { mode: "enforce", in_scope: [target], out_of_scope: [] },
   };
-}
-
-export function directApproval(roeBytes: Buffer): string {
-  return `roe:${createHash("sha256").update(roeBytes).digest("hex")}\n`;
 }

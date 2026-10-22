@@ -30,7 +30,7 @@ export default function EngagementLayout({
   const [mode, setMode] = useState<RunMode>("red");
   const [visitedModes, setVisitedModes] = useState<RunMode[]>([]);
   const [threadIds, setThreadIds] = useState<Partial<Record<RunMode, string>>>({});
-  const [redApproved, setRedApproved] = useState(false);
+  const [scopeReady, setScopeReady] = useState(false);
   const [modeNotice, setModeNotice] = useState<string | null>(null);
   const agentId = MODE_ASSISTANTS[mode];
   const threadId = threadIds[mode] ?? null;
@@ -56,11 +56,11 @@ export default function EngagementLayout({
         const planDocs = planRes?.ok ? ((await planRes.json()) as Record<string, unknown>) : {};
         if (cancelled) return;
         setEngagement(eng);
-        const approved = planDocs.redApproved === true;
-        setRedApproved(approved);
+        const ready = planDocs.scopeReady === true;
+        setScopeReady(ready);
         const requested = new URLSearchParams(window.location.search).get("mode");
-        const next: RunMode = requested === "plan" || requested === "blue" || (requested === "red" && approved)
-          ? requested : approved ? "red" : "plan";
+        const next: RunMode = requested === "plan" || requested === "blue" || (requested === "red" && ready)
+          ? requested : ready ? "red" : "plan";
         setMode(next);
         setVisitedModes([next]);
         if (threadsRes?.ok) {
@@ -90,17 +90,12 @@ export default function EngagementLayout({
     try {
       if (next === "red") {
         const response = await fetch(`/api/engagements/${engagementId}/plan-docs`);
-        const docs = response.ok ? await response.json() as { redApproved?: boolean } : {};
-        if (!docs.redApproved) {
-          if (!window.confirm("Approve the validated Plan documents for Red? Review the Plan tab before continuing.")) return;
-          const approval = await fetch(`/api/engagements/${engagementId}/plan-docs`, { method: "POST" });
-          if (!approval.ok) {
-            const detail = await approval.json().catch(() => ({})) as { error?: string };
-            setModeNotice(detail.error ?? "Red needs an approved scope.");
-            return;
-          }
+        const docs = response.ok ? await response.json() as { scopeReady?: boolean } : {};
+        if (!docs.scopeReady) {
+          setModeNotice("No enforced engagement scope: create the engagement with targets, or import plan/roe.json with /scope import <file> --confirm.");
+          return;
         }
-        setRedApproved(true);
+        setScopeReady(true);
       }
       if (next === "blue") {
         const response = await fetch("/api/blue/status");
@@ -154,7 +149,7 @@ export default function EngagementLayout({
               </div>
               <span className="text-xs text-muted-foreground">{mode === "plan" ? "Soundwave planning" : mode === "red" ? "Authorized testing" : "Defensive investigation"}</span>
               {modeNotice && <span role="status" className="text-xs text-amber-800 dark:text-amber-400">{modeNotice}</span>}
-              {!redApproved && mode === "plan" && <span className="text-xs text-muted-foreground">Red scope pending review</span>}
+              {!scopeReady && mode === "plan" && <span className="text-xs text-muted-foreground">No enforced scope — declare targets to enable Red</span>}
             </div>
           )}
           <div className="min-h-0 flex-1 overflow-auto">{children}</div>

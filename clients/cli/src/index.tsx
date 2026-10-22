@@ -18,6 +18,7 @@ const initialMessage = process.env.DECEPTICON_INITIAL_MESSAGE || undefined;
 const instance = render(<App initialMessage={initialMessage} resumeThread={resumeThread} />, {
   patchConsole: true,
   exitOnCtrlC: false,
+  kittyKeyboard: { mode: "auto" },
 });
 
 try {

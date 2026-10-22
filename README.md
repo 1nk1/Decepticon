@@ -45,38 +45,6 @@
 
 <br/>
 
-## What the OSS agent does
-
-- **Start directly in Red:** enter an engagement name and target web URL. The
-  launcher creates the RoE and direct approval automatically, then opens Red;
-  no prewritten scope file, manual approval command or Plan session is needed.
-  Use `/mode plan` explicitly for optional planning, or `/mode blue` for connected local sensor
-  investigation. The web dashboard has its own setup form and mode selector.
-  [Engagement workflow](docs/engagement-workflow.md).
-- **Terminal controls:** searchable mode/model/session pickers, multiline prompts,
-  private draft/history persistence, queued messages, independent Blue monitoring
-  status, incident details, conversation export and read-only `decepticon doctor`.
-  [CLI reference](docs/cli-reference.md) · [Upgrade notes](docs/cli-experience.md).
-- **Runs specialist operations:** agents cover reconnaissance, vulnerability
-  research, exploitation, Active Directory, cloud, and other domains. They
-  execute in an isolated sandbox; BloodHound CE, Sliver C2, and other specialist
-  workloads start when needed. [Agent roster](docs/agents.md) ·
-  [Architecture](docs/architecture.md).
-- **Autonomous reverse engineering:** when a binary found during an engagement
-  needs deeper analysis, the Reverser starts the optional REA workload and
-  uses its **Ghidra provider** through discovered MCP tools. REA keeps the
-  binary-bound analysis session and saves the original Evidence bundle before
-  results reach the agent. [How REA reversing works](docs/features/rea-reversing.md).
-- **Blue Cell defense:** a local sensor observes requests to your web service
-  and optional application logs. A resident defensive agent investigates
-  suspicious events and reports incidents in the CLI alongside the Red
-  engagement. It observes and reports; it does not automatically block traffic.
-  [Blue Cell setup and coverage](docs/features/blue-cell.md).
-- **Makes work reviewable:** the workspace and knowledge graph retain findings
-  and attack context. The optional web dashboard streams agent activity and
-  shows the plan, findings, and attack graph. [Web dashboard](docs/web-dashboard.md) ·
-  [Knowledge graph](docs/knowledge-graph.md).
-
 <div align="center">
   <p><strong>Commercial product demo</strong></p>
   <video src="https://github.com/user-attachments/assets/7a9b233c-fd72-4633-a408-03953c345a15" width="800" controls></video>
@@ -124,6 +92,36 @@ decepticon
 ```
 
 → **[Quick start](docs/getting-started.md)** · **[Full setup walkthrough](docs/setup-guide.md)**
+
+### Inside the interactive CLI
+
+Type `/` to browse commands, select with Up/Down, then press Enter. Tab completes
+the selected command; aliases also appear in help and autocomplete.
+
+| Command | Use |
+|---------|-----|
+| `/help`, `/shortcuts` | Discover commands or keyboard shortcuts |
+| `/model`, `/status` | Choose a configured model or inspect session connections |
+| `/plan` | Enter optional Plan mode, then send your planning message |
+| `/mode red`, `/mode blue` | Return to Red or select Blue investigation |
+| `/new` | Start a fresh conversation in the same engagement and mode when idle |
+| `/sessions`, `/resume` | Browse saved conversations or continue paused work |
+| `/version` (`/about`), `/pwd` (`/cwd`) | Check the running version and workspace paths |
+| `/quit`, `/exit` | Leave the chat; services and server work keep running |
+
+Enter sends; Shift+Enter, Alt+Enter or Ctrl+J adds a line. Up/Down recalls input
+history at the first/last input row; Ctrl+R searches it. Esc closes focused UI
+first, then pauses active work; `/resume` continues it. Ctrl+A moves to the start
+of the current line. Use `/queue` to review waiting messages before `/new`.
+
+`/new` preserves saved conversations and terminal scrollback; it does not create
+another engagement or change target authorization. `/plan` and `/new` take no
+arguments. In the web terminal, use the dashboard's mode controls.
+
+The new shortcuts and slash conveniences above describe current `main`, including
+unreleased changes. A source merge does not update installed images. See
+[version history](CHAGELOG.md), the [complete CLI reference](docs/cli-reference.md#slash-commands)
+and [upgrade behavior](docs/cli-experience.md#upgrade-behavior).
 
 ### Use from Claude Code or Codex
 
@@ -296,6 +294,28 @@ Do not use this project on any system or network without explicit written author
 
 ---
 
-<div align="center">
-  <img src="assets/main.png" alt="Decepticon">
-</div>
+## Acknowledgements
+
+Thanks to the maintainers and contributors of the projects Decepticon builds on,
+integrates, and learns from.
+
+| Project | Role in Decepticon |
+|---------|--------------------|
+| [REA](https://github.com/morluto/rea) and [Ghidra](https://github.com/NationalSecurityAgency/ghidra) | Optional reverse engineering workload and evidence-backed binary analysis. [Integration details](docs/features/rea-reversing.md). |
+| [Deep Agents](https://github.com/langchain-ai/deepagents) and [LangGraph](https://github.com/langchain-ai/langgraph) | Agent harness, orchestration, streaming and persistent execution state. |
+| [LiteLLM](https://github.com/BerriAI/litellm) | Model gateway and provider routing. |
+| [insane-search](https://github.com/fivetaku/insane-search) | Upstream engine adapted for sandbox web access. [Adaptation notice](packages/decepticon/decepticon/sandbox_web/NOTICE.md). |
+| [Playwright](https://github.com/microsoft/playwright) | Browser automation for web investigation. |
+| [Caddy](https://github.com/caddyserver/caddy) and [Fluent Bit](https://github.com/fluent/fluent-bit) | Local Blue sensor ingress and log collection. [Blue Cell architecture](docs/features/blue-cell.md). |
+| [Ink](https://github.com/vadimdemedes/ink), [Bubble Tea](https://github.com/charmbracelet/bubbletea) and [Huh](https://github.com/charmbracelet/huh) | Interactive CLI rendering and launcher forms. |
+| [PayloadsAllTheThings](https://github.com/swisskyrepo/PayloadsAllTheThings), [h4cker](https://github.com/The-Art-of-Hacking/h4cker) and [Awesome-Hacking](https://github.com/Hack-with-Github/Awesome-Hacking) | Security knowledge and learning references. [Attribution details](THIRD_PARTY_LICENSES.md). |
+| [XBOW validation benchmarks](https://github.com/XBOW-engineering/validation-benchmarks) | Evaluation tasks used by the benchmark integration. [Results and methodology](benchmark/results/README.md). |
+
+For CLI interaction design, we also studied
+[Claude Code](https://code.claude.com/docs/en/interactive-mode),
+[Codex CLI](https://github.com/openai/codex) and
+[Gemini CLI](https://github.com/google-gemini/gemini-cli).
+The [CLI reference review](docs/cli-experience.md) records the resulting choices.
+
+Upstream licenses and attribution notices remain applicable; see
+[third-party licenses](THIRD_PARTY_LICENSES.md) and the notices alongside adapted code.

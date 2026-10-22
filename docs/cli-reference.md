@@ -75,13 +75,25 @@ The interactive CLI is built with React 19 + [Ink](https://github.com/vadimdemed
 |-----|--------|
 | Enter | Send the prompt or confirm the selected command/menu item |
 | Tab | Complete the selected command or argument |
-| Ctrl+J / Alt+Enter | Insert a newline |
+| Shift+Enter / Alt+Enter / Ctrl+J | Insert a newline; `\` then Enter also works |
 | Up / Down | Move through suggestions, multiline input, or prompt history |
 | Ctrl+R | Search prompt history; Enter restores a match, Esc returns |
 | Ctrl+G | Edit the prompt in `$VISUAL` or `$EDITOR` |
+| Left / Right, Home / End | Move by character or to the current line start/end |
+| Ctrl+Left / Right, Alt+B / F | Move by word; punctuation separates words |
+| Backspace / Delete | Delete before/after the cursor |
+| Ctrl/Alt+Backspace, Ctrl+Delete / Alt+D | Cut the previous/next word when the terminal reports modifiers |
+| Ctrl+A / E | Current line start/end (terminal convention, not Select All) |
+| Ctrl+K / U / W, Ctrl+Y | Cut to line end/start or previous whitespace token; paste the last cut |
+| Ctrl+_ | Undo the last input edit and restore the cursor |
+| Alt+P | Open the configured model picker, preserving the draft |
+| `?` on empty input | Toggle keyboard help; `?` inside a prompt stays literal |
+| Ctrl+D on empty idle input | Press twice within 800 ms to exit; with text, delete forward |
 | Ctrl+O | Toggle compact output and transcript detail |
 | Ctrl+C | Pause a run; press again within 500 ms to cancel. When idle, clear the draft before exiting |
-| Esc | Close the current picker/search, return from transcript, or clear waiting messages |
+| Esc | Close the focused menu/search first; otherwise pause an active run without discarding queued messages. Return from transcript before pausing; idle Esc can clear waiting messages |
+
+Shift+Enter needs a distinct terminal key sequence. Compatible Kitty/WezTerm/Ghostty terminals negotiate enhanced keys automatically; unsupported terminals keep their existing input mode. If a terminal sends ordinary Enter for Shift+Enter, use `\` then Enter or Ctrl+J. Decepticon does not rewrite terminal settings.
 
 Drafts and the latest 200 distinct prompts persist per API endpoint and engagement.
 They are private local files beneath `DECEPTICON_STATE_DIR`, `DECEPTICON_HOME`, or
@@ -124,12 +136,16 @@ remain available through `/blue incidents` and the monitor's APIs.
 
 | Command | Description |
 |---------|-------------|
-| `/help` | List registered commands and shortcuts |
-| `/clear` | Start a fresh conversation; saved server-side conversations remain |
+| `/help`, `/?` | List registered commands, aliases and shortcuts |
+| `/shortcuts` | Show the keyboard shortcut reference |
+| `/version`, `/about` | Show the running deployment version and CLI runtime |
+| `/pwd`, `/cwd` | Show the target workspace and CLI process directory separately |
+| `/clear`, `/new` | Start a fresh conversation when idle with no queued messages; saved server-side conversations remain |
 | `/file <path>` | Read a prompt from a file |
 | `/resume [message]` | Continue a paused run, or choose an existing conversation |
 | `/sessions [all \| legacy]` | Browse saved conversations |
 | `/mode [plan \| red [approve] \| blue]` | Select the conversation mode |
+| `/plan` | Enter optional Plan mode; send the planning message afterward |
 | `/model [model-id \| clear]` | Search the model catalog and select an override |
 | `/agent` | Inspect or select an orchestrator |
 | `/plugins` | List or toggle agent bundles |
@@ -140,11 +156,42 @@ remain available through `/blue incidents` and the monitor's APIs.
 | `/web [up \| down \| url]` | Manage the optional web dashboard |
 | `/blue up 127.0.0.1:3000` | Connect the local sensor to a running service |
 | `/blue status \| verify \| sources \| events \| incidents \| metrics \| analyze \| stop` | Inspect or manage Blue collection |
-| `/quit` | Exit the chat; services stay running |
+| `/quit`, `/exit` | Exit the chat; services stay running |
 
 `/model` displays a catalog, not a claim that all providers are authenticated.
 The footer shows a session override when present; automatic routing is labeled as
 such, rather than guessing which model will serve the next request.
+
+Aliases appear in both `/help` and slash autocomplete. `/plan` takes no arguments;
+send your planning message after the mode changes. `/new` takes no title or prompt
+argument and resets the active conversation's event state and thread, like `/clear`.
+Previously printed terminal scrollback remains available.
+It does not delete saved sessions or change the engagement, target scope or mode.
+Finish or cancel paused/active work and handle `/queue` before using it.
+`/quit` and `/exit` disconnect the CLI stream; server work continues. Messages
+still waiting in the local queue are not submitted after exit.
+
+#### Example: optional planning, then a separate conversation
+
+1. Enter `/plan`, then send a planning message after the mode changes.
+2. Use `/status` to inspect the current session and connections.
+3. Finish or cancel the run and review `/queue`. Use `/sessions` to find saved
+   conversations if you need to return to them later.
+4. Enter `/new` to start another conversation in the same mode and engagement.
+   This does not switch back to Red; use `/mode red` explicitly when appropriate.
+
+These commands describe current `main`, including unreleased changes. Compare
+`/version` with [version history](../CHAGELOG.md); merging source does not update
+an installed launcher or CLI image. See [upgrade behavior](cli-experience.md#upgrade-behavior).
+
+These conveniences follow the official [Claude Code commands](https://code.claude.com/docs/en/commands),
+[Codex CLI commands](https://learn.chatgpt.com/docs/developer-commands?surface=cli)
+and [Gemini CLI commands](https://geminicli.com/docs/reference/commands/).
+Their similarly named commands can have broader behavior: Decepticon's `/plan`
+selects its existing optional planner, `/about` reports version/runtime, and `/pwd`
+distinguishes the mounted target workspace from the CLI process directory.
+Context compaction, chat forking and permission controls require separate runtime
+support; no shortcuts for those capabilities are registered here.
 
 ### Read-only diagnosis and export
 

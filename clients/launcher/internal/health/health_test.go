@@ -203,3 +203,38 @@ func TestCheckWeb_Success(t *testing.T) {
 		t.Errorf("CheckWeb() unexpected error: %v", err)
 	}
 }
+
+func TestProbeLangGraphUsesComposeProcessPort(t *testing.T) {
+	var requests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+		if r.URL.Path == "/assistants/search" {
+			_, _ = w.Write([]byte(`[{"graph_id":"decepticon"}]`))
+		}
+	}))
+	defer server.Close()
+	port := strings.TrimPrefix(server.URL, "http://127.0.0.1:")
+	t.Setenv("LANGGRAPH_PORT", port)
+	// Compose uses the process environment before --env-file. A stale file
+	// port must not redirect readiness away from the published endpoint.
+	if err := ProbeLangGraph(context.Background(), map[string]string{"LANGGRAPH_PORT": "invalid-file-port"}); err != nil {
+		t.Fatalf("process-selected published endpoint was not probed: %v", err)
+	}
+	if requests.Load() != 2 {
+		t.Fatalf("expected health and assistant requests, got %d", requests.Load())
+	}
+	t.Setenv("LANGGRAPH_PORT", "invalid-process-port")
+	if err := ProbeLangGraph(context.Background(), map[string]string{"LANGGRAPH_PORT": port}); err == nil || !strings.Contains(err.Error(), "invalid LANGGRAPH_PORT") {
+		t.Fatalf("invalid Compose process port was ignored: %v", err)
+	}
+}
+
+func TestProbeLangGraphEmptyProcessPortUsesComposeDefault(t *testing.T) {
+	t.Setenv("LANGGRAPH_PORT", "")
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	err := ProbeLangGraph(ctx, map[string]string{"LANGGRAPH_PORT": "invalid-file-port"})
+	if err == nil || !strings.Contains(err.Error(), "http://127.0.0.1:2024/ok") {
+		t.Fatalf("empty process value must select the Compose default: %v", err)
+	}
+}

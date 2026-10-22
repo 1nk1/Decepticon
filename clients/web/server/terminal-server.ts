@@ -30,7 +30,6 @@ import * as pty from "node-pty";
 import { resolve, dirname } from "path";
 import { join } from "path";
 import { fileURLToPath } from "url";
-import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -73,25 +72,28 @@ function sessionKey(slug: string, assistant: string): string {
   return `${slug}:${assistant}`;
 }
 
-const PLAN_DOCUMENTS = ["roe.json", "threat-profile.json", "conops.json", "deconfliction.json", "contact.json", "data-handling.json", "abort.json", "cleanup.json"];
-
-async function approvedScope(slug: string): Promise<{ target: string; type: string; redApproved: boolean } | null> {
+async function scopeState(slug: string): Promise<{ target: string; type: string; scopeReady: boolean } | null> {
   const root = join(process.env.WORKSPACE_PATH ?? "/workspace", slug);
   try {
     const roeBytes = await readFile(join(root, "plan", "roe.json"));
-    const roe = JSON.parse(roeBytes.toString()) as { in_scope?: Array<{ target?: string; type?: string }>; authorization_reference?: string };
-    const target = roe.in_scope?.[0]?.target;
-    if (!target || !roe.authorization_reference?.trim()) return null;
-    const marker = (await readFile(join(root, ".red-approved"), "utf-8").catch(() => "")).trim();
-    const direct = `roe:${createHash("sha256").update(roeBytes).digest("hex")}`;
-    const bundle = createHash("sha256");
-    let bundleComplete = true;
-    for (const filename of PLAN_DOCUMENTS) {
-      try {
-        bundle.update(filename).update("\0").update(await readFile(join(root, "plan", filename))).update("\0");
-      } catch { bundleComplete = false; break; }
+    const roe = JSON.parse(roeBytes.toString()) as {
+      in_scope?: Array<{ target?: string; type?: string }>;
+      machine_enforcement?: { mode?: string; in_scope?: Array<string | { target?: string }> };
+    };
+    // Machine scope first (string-form and legacy object-form entries); the
+    // legacy human list still yields a target for display.
+    let target: string | undefined;
+    let ready = false;
+    if (roe.machine_enforcement && Array.isArray(roe.machine_enforcement.in_scope)) {
+      const first = roe.machine_enforcement.in_scope[0];
+      target = typeof first === "string" ? first : first?.target;
+      ready = roe.machine_enforcement.mode === "enforce" && Boolean(target);
     }
-    return { target, type: roe.in_scope?.[0]?.type ?? "", redApproved: marker === direct || (bundleComplete && marker === bundle.digest("hex")) };
+    if (!target) target = roe.in_scope?.[0]?.target;
+    if (!target) return null;
+    const humanFirst = roe.in_scope?.[0];
+    const type = typeof humanFirst === "object" ? humanFirst?.type ?? "" : "";
+    return { target, type, scopeReady: ready };
   } catch { return null; }
 }
 
@@ -198,11 +200,11 @@ wss.on("connection", async (ws: WebSocket, req) => {
     ws.close(1008, "Unsupported run mode");
     return;
   }
-  const scope = await approvedScope(engagementSlug);
+  const scope = await scopeState(engagementSlug);
   // A disconnect during startup has no session close handler yet.
   if (ws.readyState !== WebSocket.OPEN) return;
-  if (agentId === "decepticon" && !scope?.redApproved) {
-    ws.close(1008, "Red scope is not approved");
+  if (agentId === "decepticon" && !scope?.scopeReady) {
+    ws.close(1008, "Red has no enforced engagement scope");
     return;
   }
   const key = sessionKey(engagementSlug, agentId);

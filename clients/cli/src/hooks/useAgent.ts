@@ -30,6 +30,7 @@ import { restoredQuestion } from "../utils/sessionQuestion.js";
 import { blueMonitorReady } from "../commands/blue.js";
 import { rolePurpose, type RolePurpose } from "../commands/rolePurpose.js";
 import { assertRedApproved } from "../commands/planMode.js";
+import { LiveMessageText } from "../utils/liveMessageText.js";
 
 function workflowSetting(name: string, version = false): string | undefined {
   const value = process.env[name];
@@ -74,6 +75,7 @@ function buildConfigurable(purpose: RolePurpose): Record<string, unknown> | unde
 
 interface LangChainMessage {
   type: string; // "human", "ai", "tool"
+  id?: string;
   name?: string; // tool name (on ToolMessage)
   content: string | Array<{ type: string; text?: string }>;
   tool_calls?: Array<{
@@ -101,7 +103,7 @@ interface UseAgentOptions {
   resumeThread?: boolean;
 }
 
-interface PendingTool {
+export interface PendingTool {
   name: string;
   args: Record<string, unknown>;
 }
@@ -135,6 +137,10 @@ interface UseAgentReturn {
   /** Derived from runState for backward compatibility. */
   isStreaming: boolean;
   pendingTool: PendingTool | null;
+  /** Live token-delta text from the "messages" stream mode; "" when idle. */
+  streamingText: string;
+  /** Budget usage from BudgetMiddleware's budget_warning event; null when idle. */
+  budgetUsage: { spent: number; cap: number; pct: number } | null;
   streamStats: StreamStats | null;
   /** Currently active agent name (e.g. "decepticon", "recon"). */
   activeAgent: string | null;
@@ -152,6 +158,8 @@ interface UseAgentReturn {
   answerQuestion: (value: string | string[]) => void;
   error: string | null;
   clearEvents: () => void;
+  /** Dismiss the current error banner (esc-to-dismiss). */
+  clearError: () => void;
   addSystemEvent: (content: string) => void;
   selectAssistant: (assistantId: string, commit?: () => Promise<void>) => Promise<boolean>;
   mutateWorkspace: (commit: () => Promise<void>) => Promise<boolean>;
@@ -189,11 +197,18 @@ export function useAgent({
   const streamReadyResolveRef = useRef<(() => void) | null>(null);
   const queuedMessageRef = useRef<string[]>([]);
 
+  useEffect(() => () => {
+    abortRef.current?.abort();
+  }, []);
+
   const [events, setEvents] = useState<AgentEvent[]>([]);
   const [runState, setRunState] = useState<RunState>("idle");
   const [pendingTool, setPendingTool] = useState<PendingTool | null>(null);
+  const [streamingText, setStreamingText] = useState<string>("");
   const [streamStats, setStreamStats] = useState<StreamStats | null>(null);
   const [activeAgent, setActiveAgent] = useState<string | null>(null);
+  // Budget usage from the BudgetMiddleware's budget_warning custom event.
+  const [budgetUsage, setBudgetUsage] = useState<{spent: number; cap: number; pct: number} | null>(null);
   const [assistantId, setAssistantId] = useState<string>(INITIAL_ASSISTANT_ID);
   const [error, setError] = useState<string | null>(null);
   const [queuedMessages, setQueuedMessages] = useState<string[]>([]);
@@ -288,6 +303,7 @@ export function useAgent({
     runStateRef.current = "idle";
     setRunState("idle");
     setPendingTool(null);
+    setStreamingText("");
     setStreamStats(null);
     setActiveAgent(null);
   }, []);
@@ -329,6 +345,7 @@ export function useAgent({
       // LangGraph SDK emits: { event: "metadata", data: { run_id, thread_id } }
       const toolCallArgs = new Map<string, Record<string, unknown>>();
       const toolCallNames = new Map<string, string>();
+      const liveText = new LiveMessageText();
       let cumTotal = 0;
       let cumPrompt = 0;
       let cumCompletion = 0;
@@ -337,6 +354,16 @@ export function useAgent({
 
 
       const handleCustomEvent = (data: SubagentCustomEvent) => {
+        // Budget warning from BudgetMiddleware — outside SubagentEventType.
+        if ((data as {type?: string}).type === "budget_warning") {
+          const d = data as unknown as {spent_usd?: number; cap_usd?: number; used_pct?: number};
+          setBudgetUsage({
+            spent: d.spent_usd ?? 0,
+            cap: d.cap_usd ?? 0,
+            pct: d.used_pct ?? 0,
+          });
+          return;
+        }
         switch (data.type) {
           case "subagent_start":
             setActiveAgent(data.agent);
@@ -555,12 +582,22 @@ export function useAgent({
           continue;
         }
 
+        // Server "messages" mode emits cumulative partial/complete snapshots;
+        // messages-tuple emits one [chunk, metadata] delta. Child namespace
+        // events stay with the existing subagent custom-event renderer.
+        const live = liveText.update(event.event, event.data);
+        if (live !== undefined) {
+          setStreamingText(live);
+          continue;
+        }
+
         if (event.event !== "values") continue;
 
         const data = event.data as {
           messages?: LangChainMessage[];
         };
         const messages = data.messages ?? [];
+        setStreamingText(liveText.finalize(messages));
         const newMessages = messages.slice(lastCountRef.current);
         lastCountRef.current = messages.length;
 
@@ -699,6 +736,7 @@ export function useAgent({
       if (abortController.signal.aborted) return;
       streamReadyResolveRef.current?.();
       streamReadyResolveRef.current = null;
+      setStreamingText("");
 
       // The stream ended because the backend tool called langgraph.interrupt
       // and is waiting for the operator's pick. Keep runState=paused so the
@@ -824,8 +862,17 @@ export function useAgent({
 
   // ── Clear ──────────────────────────────────────────────────────
 
+  /** Dismiss the current error banner (esc). Next submit also clears it. */
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
   const clearEvents = useCallback(() => {
     if (switchingRef.current || restoringRef.current) return;
+    if (abortRef.current || runStateRef.current !== "idle" || activeQuestionRef.current || queuedMessageRef.current.length > 0) {
+      addSystemEvent("Finish or cancel the current run and handle /queue before starting a fresh conversation.");
+      return;
+    }
     eventsRef.current = [];
     setEvents([]);
     threadIdRef.current = null;
@@ -836,7 +883,7 @@ export function useAgent({
     setActiveQuestion(null);
     askedQuestionIds.current.clear();
     setRunState("idle");
-  }, []);
+  }, [addSystemEvent]);
 
   const selectAssistant = useCallback(async (next: string, commit?: () => Promise<void>): Promise<boolean> => {
     if (restoringRef.current) {
@@ -1007,6 +1054,7 @@ export function useAgent({
 
         setRunState("streaming");
         setPendingTool(null);
+        setBudgetUsage(null);
         setActiveAgent(selectedAssistant);
         setStreamStats({ startTime: Date.now(), totalTokens: 0, promptTokens: 0, completionTokens: 0 });
 
@@ -1289,6 +1337,8 @@ export function useAgent({
     runState,
     isStreaming,
     pendingTool,
+    streamingText,
+    budgetUsage,
     streamStats,
     activeAgent,
     assistantId,
@@ -1300,6 +1350,7 @@ export function useAgent({
     activeQuestion,
     answerQuestion,
     error,
+    clearError,
     clearEvents,
     addSystemEvent,
     selectAssistant,
