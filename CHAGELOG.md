@@ -15,6 +15,13 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #1039](https://github.com/BitterSecurity/Decepticon/pull/1039):
+  TUI error-recovery polish — esc-to-dismiss error banners, number-key question
+  selection (including the "Other" free-text entry, previously only reachable with
+  the arrow keys), a Blue footer that only renders while monitoring is relevant, removal of
+  dead client code (SessionPicker, SpinnerIcon) and English blue notification templates.
+  Auto-reconnect and transcript interactivity are deferred as designed follow-ups.
+  Partially addresses issue #1034.
 - Proposed [PR #1052](https://github.com/BitterSecurity/Decepticon/pull/1052):
   stop mislabelling a LiteLLM cooldown (`RouterRateLimitError` — "No deployments
   available ... cooldown_list") as a provider rate limit. A fatal upstream error
