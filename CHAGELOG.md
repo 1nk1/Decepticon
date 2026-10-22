@@ -15,6 +15,14 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #1051](https://github.com/BitterSecurity/Decepticon/pull/1051):
+  structured tool errors — the ops tools report failures as
+  `{is_error, tool, cause, recovery}` envelopes built by
+  `decepticon.tools.errors.tool_error`, and the TUI routes tool results
+  that carry that envelope to the structured error display (cause and
+  recovery rendered separately) instead of dumping raw JSON. Removes an
+  internal design note accidentally committed at the repository root.
+  Source only, unreleased.
 - Proposed [PR #1038](https://github.com/BitterSecurity/Decepticon/pull/1038):
   TUI slash-command UX parity — completion, suggestions, /help grouping.
   Path completions for `/file` keep the typed directory prefix, so

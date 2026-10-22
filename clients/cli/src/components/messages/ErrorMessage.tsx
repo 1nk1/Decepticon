@@ -3,6 +3,8 @@
  *
  * Claude Code pattern: MAX_API_ERROR_CHARS = 1000, head/tail split,
  * red color coding, "(ctrl+o to expand)" hint on truncation.
+ * When the tool result is a structured error (from tools/errors.py),
+ * cause and recovery are displayed separately for readability.
  * Esc dismisses the banner when onDismiss is provided.
  */
 
@@ -12,6 +14,31 @@ import { CtrlOToExpand } from "../shell/CtrlOToExpand.js";
 import { useScreen } from "../shell/ScreenContext.js";
 
 const MAX_ERROR_CHARS = 1000;
+
+interface StructuredError {
+  is_error: true;
+  tool: string;
+  cause: string;
+  recovery?: string;
+}
+
+export function parseStructured(content: string): StructuredError | null {
+  try {
+    const parsed = JSON.parse(content);
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      parsed.is_error === true &&
+      typeof parsed.tool === "string" &&
+      typeof parsed.cause === "string"
+    ) {
+      return parsed as StructuredError;
+    }
+  } catch {
+    // not JSON
+  }
+  return null;
+}
 
 interface Props {
   content: string;
@@ -37,6 +64,24 @@ export const ErrorMessage = React.memo(function ErrorMessage({
     },
     { isActive: onDismiss !== undefined },
   );
+
+  const structured = parseStructured(display);
+
+  if (structured) {
+    return (
+      <Box flexDirection="column" marginTop={1}>
+        <Text>
+          <Text color="red" bold>{"error> "}</Text>
+          <Text bold color="yellow">{`[${structured.tool}] `}</Text>
+          <Text color="red" wrap="wrap">{structured.cause}</Text>
+        </Text>
+        {structured.recovery && (
+          <Text dimColor wrap="wrap">{`  Recovery: ${structured.recovery}`}</Text>
+        )}
+        {onDismiss && <Text dimColor>{"  esc to dismiss"}</Text>}
+      </Box>
+    );
+  }
 
   return (
     <Box flexDirection="column" marginTop={1}>

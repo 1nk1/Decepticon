@@ -20,6 +20,7 @@ from typing import Any
 
 from langchain_core.tools import tool
 
+from decepticon.tools.errors import tool_error
 from decepticon.tools.ops.client import (
     OpsControlClient,
     OpsControlError,
@@ -39,28 +40,31 @@ def _envelope(payload: dict[str, Any]) -> str:
     return json.dumps(payload, sort_keys=True, default=str)
 
 
-def _diagnose_unreachable(exc: OpsControlUnreachableError) -> str:
+def _diagnose_unreachable(exc: OpsControlUnreachableError, tool_name: str) -> str:
     return _envelope(
-        {
-            "error": "opscontrol_unreachable",
-            "message": str(exc),
-            "hint": (
+        tool_error(
+            tool_name,
+            cause=f"opscontrol_unreachable: {exc}",
+            recovery=(
                 "The opscontrol daemon owns the docker socket per ADR-0006. "
                 "If you reached this from `make dev` / `make smoke` the stack "
                 "is daemon-less by design — bring it up via `decepticon start` "
                 "to enable workload spawning."
             ),
-        }
+        )
     )
 
 
-def _diagnose_http(exc: OpsControlError) -> str:
+def _diagnose_http(exc: OpsControlError, tool_name: str) -> str:
     return _envelope(
-        {
-            "error": "opscontrol_http_error",
-            "status_code": exc.status_code,
-            "body": exc.body,
-        }
+        tool_error(
+            tool_name,
+            cause=f"opscontrol_http_error {exc.status_code}: {exc.body}",
+            recovery=(
+                "The request reached the opscontrol daemon but was rejected. "
+                "Check the daemon logs and the workload allowlist."
+            ),
+        )
     )
 
 
@@ -118,9 +122,9 @@ def ops_start(workload: str) -> str:
     try:
         return _envelope(OpsControlClient().start(workload, engagement_id))
     except OpsControlUnreachableError as exc:
-        return _diagnose_unreachable(exc)
+        return _diagnose_unreachable(exc, "ops_start")
     except OpsControlError as exc:
-        return _diagnose_http(exc)
+        return _diagnose_http(exc, "ops_start")
 
 
 @tool
@@ -135,9 +139,9 @@ def ops_stop(workload: str) -> str:
     try:
         return _envelope(OpsControlClient().stop(workload))
     except OpsControlUnreachableError as exc:
-        return _diagnose_unreachable(exc)
+        return _diagnose_unreachable(exc, "ops_stop")
     except OpsControlError as exc:
-        return _diagnose_http(exc)
+        return _diagnose_http(exc, "ops_stop")
 
 
 @tool
@@ -175,9 +179,9 @@ def ops_cleanup_engagement() -> str:
     try:
         return _envelope(OpsControlClient().cleanup_engagement(engagement_id))
     except OpsControlUnreachableError as exc:
-        return _diagnose_unreachable(exc)
+        return _diagnose_unreachable(exc, "ops_cleanup_engagement")
     except OpsControlError as exc:
-        return _diagnose_http(exc)
+        return _diagnose_http(exc, "ops_cleanup_engagement")
 
 
 @tool
@@ -202,9 +206,9 @@ def ops_status() -> str:
             }
         )
     except OpsControlUnreachableError as exc:
-        return _diagnose_unreachable(exc)
+        return _diagnose_unreachable(exc, "ops_status")
     except OpsControlError as exc:
-        return _diagnose_http(exc)
+        return _diagnose_http(exc, "ops_status")
 
 
 OPS_TOOLS = [ops_start, ops_stop, ops_cleanup_engagement, ops_status]
