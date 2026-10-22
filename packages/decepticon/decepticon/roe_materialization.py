@@ -13,16 +13,13 @@ import json
 import logging
 import os
 import tempfile
-from collections.abc import Callable
 from pathlib import Path
 
-from decepticon.passive_discovery import expand_targets
+from decepticon.passive_discovery import Fetcher, expand_targets
 from decepticon_core.types.roe import build_engagement_roe, split_scope_targets
 from decepticon_core.utils.engagement_scope import is_valid_engagement_label
 
 log = logging.getLogger(__name__)
-
-Fetcher = Callable[[str], str]
 
 
 def engagement_workspace(engagement_name: str) -> Path:
@@ -56,13 +53,27 @@ def _is_path_target(fragment: str) -> bool:
     Only targets that actually resolve on disk classify as paths — a
     non-existent absolute path is operator error, and classifying it as a path
     would silently downgrade the engagement to an empty network scope.
-    Relative fragments resolve against the creating process's cwd.
+    Relative fragments resolve against the creating process's cwd, which keeps
+    the scan CLI's documented relative-path contract (the GitHub Actions
+    composite scans ``./``) intact.
     """
-    if fragment.startswith("~"):
-        return Path(fragment).expanduser().exists()
-    if fragment.startswith("/"):
-        return Path(fragment).exists()
-    return Path(fragment).exists() and not fragment.startswith((".", "./"))
+    if not Path(fragment).expanduser().exists():
+        return False
+    if (
+        fragment.startswith(("~", "/", "./", "../"))
+        or "/" in fragment
+        or fragment.startswith(".")
+    ):
+        return True
+    # A bare existing name ("src", "elice.io") is ambiguous between a hostname
+    # and a path; the scan CLI's own validation accepts it as a path, so path
+    # wins — but say so, a URL form scopes a host unambiguously.
+    log.warning(
+        "treating existing fragment %r as a filesystem path; pass a URL "
+        "(https://...) to scope a network host instead",
+        fragment,
+    )
+    return True
 
 
 def materialize_engagement_roe(

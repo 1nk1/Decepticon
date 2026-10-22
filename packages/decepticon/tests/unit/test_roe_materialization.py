@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import Callable
 from pathlib import Path
 
@@ -106,3 +107,33 @@ def test_nonexistent_absolute_path_is_not_a_path_target(workspace: Path) -> None
     with pytest.raises(ValueError, match="in-scope"):
         materialize_engagement_roe("eng9", ["/nonexistent/scan/dir"], fetch=_no_discovery)
     assert not _roe_path(workspace).exists()
+
+
+def test_relative_dot_target_is_a_path(
+    workspace: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "src").mkdir()
+    materialize_engagement_roe("eng10", ["./"], fetch=_no_discovery)
+    roe = json.loads(_roe_path(workspace).read_text())
+    assert roe["machine_enforcement"]["in_scope"] == []
+
+
+def test_bare_existing_fragment_is_path_with_warning(
+    workspace: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "src").mkdir()
+    # The decepticon boot logger stops propagation to root, where caplog listens.
+    monkeypatch.setattr(logging.getLogger("decepticon"), "propagate", True)
+    with caplog.at_level(logging.WARNING, logger="decepticon.roe_materialization"):
+        materialize_engagement_roe("eng11", ["src"], fetch=_no_discovery)
+    roe = json.loads(_roe_path(workspace).read_text())
+    assert roe["machine_enforcement"]["in_scope"] == []
+    assert any("filesystem path" in r.message for r in caplog.records)
+
+
+def test_nonexistent_hostname_stays_network_target(workspace: Path) -> None:
+    materialize_engagement_roe("eng12", ["unregistered-host.example"], fetch=_no_discovery)
+    roe = json.loads(_roe_path(workspace).read_text())
+    assert roe["machine_enforcement"]["in_scope"] == ["unregistered-host.example"]
