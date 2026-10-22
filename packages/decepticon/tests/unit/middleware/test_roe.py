@@ -461,7 +461,6 @@ class TestRoEMiddleware:
         mw.wrap_tool_call(req, handler)
         assert handler.called
 
-
     def test_audit_records_carry_engagement_and_command(self, tmp_path: Path) -> None:
         _write_roe(tmp_path, {"in_scope": ["10.0.0.0/24"]})
         sink = RoEAuditSink(path=tmp_path / "audit.jsonl")
@@ -830,7 +829,6 @@ class TestNetworkToolGating:
         return {"applied": True, "detail": "ok"}
 
 
-
 class TestSlotRegistration:
     def test_slot_is_in_enum_and_safety_critical(self) -> None:
         from decepticon_core.contracts.slots import (
@@ -916,9 +914,7 @@ class TestFqdnTrailingDotNormalization:
             assert decision.reason_code == "IN_SCOPE", host
 
     def test_trailing_dot_on_exact_in_scope_host(self) -> None:
-        rules = MachineEnforcement.from_dict(
-            {"in_scope": ["single-host.example"]}
-        )
+        rules = MachineEnforcement.from_dict({"in_scope": ["single-host.example"]})
         assert evaluate_target("single-host.example.", rules).allow is True
         # An unrelated FQDN-form host is still refused (not in scope).
         assert evaluate_target("other.example.", rules).allow is False
@@ -949,8 +945,6 @@ class TestLoadRulesFallback:
 
 
 class TestToTextFlattening:
-
-
     def test_to_text_direct(self) -> None:
         assert _to_text("plain") == "plain"
         assert _to_text(["a", "b"]) == "ab"

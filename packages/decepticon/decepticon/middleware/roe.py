@@ -506,11 +506,15 @@ class RoEGuardrailMiddleware(AgentMiddleware):
         workspace = get("workspace_path") or None
         rules = _load_rules_for_workspace(workspace)
         if not rules.configured:
-            return Decision.refuse(
-                code="ROE_CONFIG_MISSING",
-                detail="machine-readable RoE is missing or invalid; gated tool execution is fail-closed",
-                risk="high",
-            ), rules, tool_name
+            return (
+                Decision.refuse(
+                    code="ROE_CONFIG_MISSING",
+                    detail="machine-readable RoE is missing or invalid; gated tool execution is fail-closed",
+                    risk="high",
+                ),
+                rules,
+                tool_name,
+            )
         time_decision = evaluate_time_window(self._now(), rules)
         if not time_decision.allow:
             return time_decision, rules, tool_name

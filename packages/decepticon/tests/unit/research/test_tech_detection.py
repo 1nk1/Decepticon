@@ -255,7 +255,6 @@ async def test_enforce_mode_allows_in_scope_host() -> None:
 
 
 @pytest.mark.asyncio
-
 @pytest.mark.asyncio
 async def test_invalid_url_returns_error_without_egress() -> None:
     out = json.loads(await detect_tech_stack.ainvoke({"url": "not-a-url"}))

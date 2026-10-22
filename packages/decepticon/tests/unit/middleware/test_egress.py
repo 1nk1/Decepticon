@@ -69,8 +69,7 @@ def test_signed_root_url_compiles_to_host_allowlist():
 
 def test_path_specific_url_cannot_open_egress():
     pol = compile_egress_policy(
-        _rules( in_scope=[{"target": "https://decepticon.red/admin", "type": "auto"}]
-        )
+        _rules(in_scope=[{"target": "https://decepticon.red/admin", "type": "auto"}])
     )
 
     assert "decepticon.red" not in pol.allowed_hosts
@@ -103,9 +102,7 @@ def test_cloud_metadata_denied_by_default():
 
 
 def test_cloud_metadata_opt_out_removes_default_denies():
-    pol = compile_egress_policy(
-        _rules(in_scope=["10.0.0.0/24"], allow_cloud_metadata=True)
-    )
+    pol = compile_egress_policy(_rules(in_scope=["10.0.0.0/24"], allow_cloud_metadata=True))
     assert "169.254.169.254" not in pol.denied_cidrs
 
 
@@ -159,9 +156,7 @@ def test_render_resolved_host_ips_added_to_allow_set():
 
 
 def test_render_denies_precede_allows():
-    pol = compile_egress_policy(
-        _rules(in_scope=["10.0.0.0/8"], out_of_scope=["10.1.2.0/24"])
-    )
+    pol = compile_egress_policy(_rules(in_scope=["10.0.0.0/8"], out_of_scope=["10.1.2.0/24"]))
     script = render_nftables(pol)
     # Denylist precedence: an out-of-scope subnet inside an in-scope
     # supernet must be dropped, so the deny rule has to come first.
@@ -175,9 +170,7 @@ def test_render_allows_dns_resolver_for_name_resolution():
 
 
 def test_dns_allowlist_lists_in_scope_hosts_only():
-    pol = compile_egress_policy(
-        _rules(in_scope=["*.acme.com", "prod.acme.com", "10.0.0.0/24"])
-    )
+    pol = compile_egress_policy(_rules(in_scope=["*.acme.com", "prod.acme.com", "10.0.0.0/24"]))
     allow = set(render_dns_allowlist(pol))
     # In-scope hosts resolve (alongside the always-allowed OSINT search providers).
     assert {"*.acme.com", "prod.acme.com"} <= allow
