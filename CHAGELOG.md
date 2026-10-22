@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed: mechanical engagement creation across the Go launcher. The
+- Proposed [PR #1058](https://github.com/BitterSecurity/Decepticon/pull/1058): mechanical engagement creation across the Go launcher. The
   launcher now generates the same machine-enforceable `plan/roe.json` the MCP
   bridge and CLI scan produce, from a broadened creation grammar — multiple
   targets (URLs, hostnames, CIDRs, `*.domain` globs) plus an optional
