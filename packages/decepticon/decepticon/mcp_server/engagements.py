@@ -98,9 +98,24 @@ class EngagementClient:
         return self._client
 
     async def list_graphs(self) -> list[GraphInfo]:
-        """Return the engagement graphs (assistants) the connected server exposes."""
+        """Return the engagement graphs (assistants) the connected server exposes.
+
+        Pages through ``assistants.search`` to the end. The LangGraph SDK
+        defaults to ``limit=10``, so a single call silently truncated installs
+        that expose more than ten graphs (the OSS ``standard`` bundle alone
+        ships 22), hiding agents such as ``recon``, ``soundwave`` and the
+        ``decepticon`` orchestrator from callers.
+        """
         client = self._ensure_client()
-        assistants = await client.assistants.search()
+        page_size = 100
+        assistants: list[Any] = []
+        offset = 0
+        while True:
+            page = await client.assistants.search(limit=page_size, offset=offset)
+            assistants.extend(page)
+            if len(page) < page_size:
+                break
+            offset += page_size
         return [
             GraphInfo(
                 assistant_id=str(entry.get("assistant_id", "")),
