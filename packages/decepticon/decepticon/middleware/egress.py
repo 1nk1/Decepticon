@@ -47,7 +47,6 @@ from decepticon.sandbox_kernel.egress import (
     render_nftables,
 )
 from decepticon_core.types.roe import (
-    EnforcementMode,
     MachineEnforcement,
     ScopeRule,
     network_scope_pattern,
@@ -109,7 +108,7 @@ def compile_egress_policy(rules: MachineEnforcement) -> EgressPolicy:
     parser's ``evaluate_target`` (which constrains to the allowlist only
     when ``in_scope`` is non-empty).
     """
-    enforce = rules.mode == EnforcementMode.ENFORCE
+    enforce = True
 
     allowed_cidrs, allowed_hosts = _classify(_rule_patterns(rules.in_scope))
     denied_cidrs, denied_hosts = _classify(
