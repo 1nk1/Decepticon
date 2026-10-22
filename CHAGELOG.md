@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed: RoE unification phase 1 — engagement creation now mechanically
+- Proposed [PR #1057](https://github.com/BitterSecurity/Decepticon/pull/1057): RoE unification phase 1 — engagement creation now mechanically
   generates the enforced `plan/roe.json` from the creation data only (MCP
   `start_engagement`: `targets` + optional `out_of_scope`). Creation targets
   are normalized before they become scope rules: embedded lists split
