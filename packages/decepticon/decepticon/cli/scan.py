@@ -38,6 +38,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from decepticon.roe_materialization import materialize_engagement_roe
+
 log = logging.getLogger(__name__)
 
 
@@ -120,6 +122,16 @@ def _build_parser() -> argparse.ArgumentParser:
         "--engagement-name",
         default=None,
         help="Override engagement slug; defaults to a timestamped scan name.",
+    )
+    p.add_argument(
+        "--out-of-scope",
+        action="append",
+        default=[],
+        help=(
+            "Out-of-scope entry (host, CIDR, glob, or URL) the scan must never "
+            "touch; takes precedence over any --target. Repeatable or "
+            "comma-separated."
+        ),
     )
     p.add_argument(
         "--timeout",
@@ -389,6 +401,20 @@ def main(argv: list[str] | None = None) -> int:
             )
 
     engagement_name = _resolve_engagement_name(args.engagement_name)
+
+    # Generate the enforced RoE from the creation scope before any run is
+    # dispatched — the CLI is a first-class engagement surface and must leave
+    # the same plan/roe.json the MCP bridge does.
+    try:
+        materialize_engagement_roe(
+            engagement_name,
+            args.target,
+            out_of_scope=list(args.out_of_scope) or None,
+        )
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_CONFIG
+
     mode_cfg = _MODE_DEFAULTS[args.scan_mode]
     timeout = args.timeout or mode_cfg["timeout"]
 

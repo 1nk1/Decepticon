@@ -5,6 +5,7 @@
  * red color coding, "(ctrl+o to expand)" hint on truncation.
  * When the tool result is a structured error (from tools/errors.py),
  * cause and recovery are displayed separately for readability.
+ * Esc dismisses the banner when onDismiss is provided.
  */
 
 import React from "react";
@@ -88,7 +89,7 @@ export const ErrorMessage = React.memo(function ErrorMessage({
         <Text color="red" bold>{"error> "}</Text>
         <Text color="red" wrap="wrap">{display}</Text>
       </Text>
-      {onDismiss && <Text dimColor>{"  esc to dismiss"}</Text>}
+      {onDismiss && <Text dimColor>{isTruncated ? "ctrl+o to expand · esc to dismiss" : "esc to dismiss"}</Text>}
       {isTruncated && <CtrlOToExpand />}
     </Box>
   );

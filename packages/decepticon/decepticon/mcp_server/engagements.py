@@ -18,6 +18,7 @@ import json
 import os
 import re
 from collections.abc import Sequence
+from pathlib import Path
 from typing import Any, assert_never
 
 from decepticon.mcp_server.config import ServerConfig
@@ -97,9 +98,24 @@ class EngagementClient:
         return self._client
 
     async def list_graphs(self) -> list[GraphInfo]:
-        """Return the engagement graphs (assistants) the connected server exposes."""
+        """Return the engagement graphs (assistants) the connected server exposes.
+
+        Pages through ``assistants.search`` to the end. The LangGraph SDK
+        defaults to ``limit=10``, so a single call silently truncated installs
+        that expose more than ten graphs (the OSS ``standard`` bundle alone
+        ships 22), hiding agents such as ``recon``, ``soundwave`` and the
+        ``decepticon`` orchestrator from callers.
+        """
         client = self._ensure_client()
-        assistants = await client.assistants.search()
+        page_size = 100
+        assistants: list[Any] = []
+        offset = 0
+        while True:
+            page = await client.assistants.search(limit=page_size, offset=offset)
+            assistants.extend(page)
+            if len(page) < page_size:
+                break
+            offset += page_size
         return [
             GraphInfo(
                 assistant_id=str(entry.get("assistant_id", "")),
@@ -149,8 +165,15 @@ class EngagementClient:
         assistant: str,
         workflow_id: str | None = None,
         workflow_version: str | None = None,
+        workspace_path: str = "/workspace",
     ) -> StartResult:
         """Dispatch a background engagement run and return its handle."""
+        if workspace_path != "/workspace" and Path(workspace_path).name != engagement_name:
+            raise ValueError(
+                f"workspace_path {workspace_path!r} is not bound to engagement "
+                f"{engagement_name!r}; a non-default workspace must be the "
+                "engagement's own directory (ending in /<engagement_name>)"
+            )
         scope_payload: dict[str, Any] = {
             "targets": list(targets),
             "scope_mode": "full",
@@ -161,7 +184,7 @@ class EngagementClient:
         run_config: dict[str, Any] = {
             "configurable": {
                 "engagement_name": engagement_name,
-                "workspace_path": "/workspace",
+                "workspace_path": workspace_path,
                 "scan_mode": scan_mode,
             },
         }
@@ -190,7 +213,7 @@ class EngagementClient:
         run = await client.runs.create(
             thread_id,
             assistant_id=assistant,
-            input=_engagement_input(scope_payload, engagement_name),
+            input=_engagement_input(scope_payload, engagement_name, workspace_path),
             config=run_config,
         )
         log.info("dispatched engagement %s on thread %s", engagement_name, thread_id)
@@ -201,6 +224,7 @@ class EngagementClient:
             assistant=assistant,
             status=str(run.get("status", "pending")),
             langgraph_url=self._config.langgraph_url,
+            workspace_path=workspace_path,
         )
 
     async def send_message(
@@ -263,7 +287,9 @@ class EngagementClient:
         )
 
 
-def _engagement_input(scope_payload: dict[str, Any], engagement_name: str) -> dict[str, Any]:
+def _engagement_input(
+    scope_payload: dict[str, Any], engagement_name: str, workspace_path: str
+) -> dict[str, Any]:
     return {
         "messages": [
             {
@@ -275,7 +301,7 @@ def _engagement_input(scope_payload: dict[str, Any], engagement_name: str) -> di
             }
         ],
         "engagement_name": engagement_name,
-        "workspace_path": "/workspace",
+        "workspace_path": workspace_path,
         "scan_scope": scope_payload,
     }
 

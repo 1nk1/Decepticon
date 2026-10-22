@@ -1,0 +1,90 @@
+{
+  "description": "Shared RoE target-normalization vectors, consumed by both the Python builder tests (decepticon_core.types.roe) and the Go launcher tests (clients/launcher/internal/engagement). A case's expected lists are what the mechanical generator must produce after normalization: embedded-list split, URL and scheme-relative collapse to hostname, CIDR canonicalization, userinfo/bracket/port stripping, lowercase and trailing-dot removal, wildcard apex addition, dead-pattern dropping (silently dropped entries are listed in 'dropped'; an input with no surviving target is an error in both implementations). IDNA handling is intentionally excluded: Python IDNA-encodes non-ASCII hosts, Go rejects them with an actionable message.",
+  "cases": [
+    {
+      "name": "plain hosts",
+      "targets": ["elice.io", "api.elice.io"],
+      "out_of_scope": [],
+      "in_scope": ["elice.io", "api.elice.io"],
+      "out": []
+    },
+    {
+      "name": "url and scheme-relative reduce to host",
+      "targets": ["https://elice.io/login?x=1", "//elice.io/path"],
+      "out_of_scope": [],
+      "in_scope": ["elice.io"],
+      "out": []
+    },
+    {
+      "name": "cidr canonicalizes",
+      "targets": ["10.0.0.5/24"],
+      "out_of_scope": [],
+      "in_scope": ["10.0.0.0/24"],
+      "out": []
+    },
+    {
+      "name": "userinfo git remote reduces to host",
+      "targets": ["git@github.com:org/repo.git"],
+      "out_of_scope": [],
+      "in_scope": ["github.com"],
+      "out": []
+    },
+    {
+      "name": "host with port keeps the host",
+      "targets": ["elice.io:8443"],
+      "out_of_scope": [],
+      "in_scope": ["elice.io"],
+      "out": []
+    },
+    {
+      "name": "bracketed ipv6 with port",
+      "targets": ["[2001:db8::1]:8443"],
+      "out_of_scope": [],
+      "in_scope": ["2001:db8::1"],
+      "out": []
+    },
+    {
+      "name": "case and trailing dot normalize",
+      "targets": ["ELICE.io.", "App.ELICE.io"],
+      "out_of_scope": [],
+      "in_scope": ["elice.io", "app.elice.io"],
+      "out": []
+    },
+    {
+      "name": "embedded lists split",
+      "targets": ["elice.io, api.elice.io", "lms.elice.io redash.elice.io"],
+      "out_of_scope": [],
+      "in_scope": ["elice.io", "api.elice.io", "lms.elice.io", "redash.elice.io"],
+      "out": []
+    },
+    {
+      "name": "wildcard adds its apex",
+      "targets": ["*.elice.io"],
+      "out_of_scope": [],
+      "in_scope": ["*.elice.io", "elice.io"],
+      "out": []
+    },
+    {
+      "name": "wildcard apex dedupes with explicit target",
+      "targets": ["elice.io", "*.elice.io"],
+      "out_of_scope": [],
+      "in_scope": ["elice.io", "*.elice.io"],
+      "out": []
+    },
+    {
+      "name": "denylist passes through",
+      "targets": ["*.elice.io"],
+      "out_of_scope": ["admin.elice.io"],
+      "in_scope": ["*.elice.io", "elice.io"],
+      "out": ["admin.elice.io"]
+    },
+    {
+      "name": "dead patterns drop with warning",
+      "targets": ["*.", "elice..io", "*..elice.io", "elice.io"],
+      "out_of_scope": [],
+      "in_scope": ["elice.io"],
+      "out": [],
+      "dropped": ["*.", "elice..io", "*..elice.io"]
+    }
+  ]
+}

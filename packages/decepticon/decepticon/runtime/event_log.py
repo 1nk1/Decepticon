@@ -97,6 +97,9 @@ class EventType(str, Enum):
     LLM_RESPONSE = "llm.response"
     FINDING_CREATED = "finding.created"
     OPPLAN_UPDATE = "opplan.update"
+    COMPACT_START = "compact.start"
+    COMPACT_END = "compact.end"
+    SUMMARIZATION_SKIPPED = "compact.summarization_skipped"
 
 
 @dataclass(frozen=True, slots=True)
