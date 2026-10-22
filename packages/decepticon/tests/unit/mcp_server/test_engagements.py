@@ -10,6 +10,8 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from typing import Any
 
+import pytest
+
 from decepticon.mcp_server.config import ServerConfig
 from decepticon.mcp_server.engagements import EngagementClient
 
@@ -117,6 +119,58 @@ async def test_start_dispatches_background_run_with_scope() -> None:
     scope = call["input"]["scan_scope"]
     assert scope["targets"] == ["https://example.com"]
     assert "Out of scope" in scope["instruction"]
+
+
+async def test_start_binds_explicit_workspace_path() -> None:
+    fake = _FakeClient()
+    client = EngagementClient(_config(), client=fake)
+
+    result = await client.start(
+        targets=["https://example.com"],
+        instruction="In scope: example.com.",
+        scan_mode="standard",
+        engagement_name="eng-2",
+        assistant="decepticon",
+        workspace_path="/workspace/eng-2",
+    )
+
+    assert result.workspace_path == "/workspace/eng-2"
+    call = fake.runs.create_calls[0]
+    assert call["input"]["workspace_path"] == "/workspace/eng-2"
+    assert call["config"]["configurable"]["workspace_path"] == "/workspace/eng-2"
+
+
+async def test_start_rejects_workspace_bound_to_other_engagement() -> None:
+    fake = _FakeClient()
+    client = EngagementClient(_config(), client=fake)
+
+    with pytest.raises(ValueError, match="not bound to engagement 'eng-2'"):
+        await client.start(
+            targets=["https://example.com"],
+            instruction="In scope: example.com.",
+            scan_mode="standard",
+            engagement_name="eng-2",
+            assistant="decepticon",
+            workspace_path="/workspace/eng-other",
+        )
+    assert fake.runs.create_calls == []
+
+
+async def test_start_allows_default_workspace_for_any_engagement() -> None:
+    fake = _FakeClient()
+    client = EngagementClient(_config(), client=fake)
+
+    result = await client.start(
+        targets=["https://example.com"],
+        instruction="In scope: example.com.",
+        scan_mode="standard",
+        engagement_name="eng-2",
+        assistant="decepticon",
+        workspace_path="/workspace",
+    )
+
+    assert result.workspace_path == "/workspace"
+    assert fake.runs.create_calls[0]["input"]["workspace_path"] == "/workspace"
 
 
 async def test_send_message_enqueues_and_resolves_assistant_from_thread() -> None:

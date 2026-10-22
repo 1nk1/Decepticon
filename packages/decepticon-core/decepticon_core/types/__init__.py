@@ -11,7 +11,7 @@ Four submodules:
   * ``kg`` — knowledge-graph node / edge types and helpers. Was
     ``decepticon/tools/research/graph.py``.
   * ``roe`` — machine-readable Rules-of-Engagement *enforcement* schema
-    (``EnforcementMode``, ``ScopeRule``, ``MachineEnforcement``,
+    (``ScopeRule``, ``MachineEnforcement``,
     ``Decision``, ``evaluate_target``, ``evaluate_command``). The
     evaluation layer that decides allow/deny for a target or command;
     consumed by the framework's RoE-enforcement middleware. Distinct from
