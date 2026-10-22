@@ -312,9 +312,9 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 	}
 	ui.Info("Mode: Red · Decepticon")
 	if !choice.AuthorizationConfirmed {
-		ui.Info("Scope not ready: import reviewed scope with /scope import <file> --confirm, then /mode red approve. Optional planning: /mode plan.")
+		ui.Info("No engagement scope: create the engagement with targets, or import plan/roe.json with /scope import <file> --confirm. Optional planning: /mode plan.")
 	} else {
-		ui.Info("Target scope loaded. Red checks its current approval before execution; /mode plan is optional.")
+		ui.Info("Target scope loaded. Red enforces this scope; /mode plan is optional.")
 	}
 	// Export the bind path. composeEnv() forwards os.Environ(), so docker
 	// compose interpolates ${DECEPTICON_ENGAGEMENT_WORKSPACE} from this var.
