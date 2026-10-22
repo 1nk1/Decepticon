@@ -20,6 +20,53 @@ Keep proposed and unmerged changes out of released sections.
   Path completions for `/file` keep the typed directory prefix, so
   `sub/bri<tab>` completes to `sub/brief.md` and `~/`-relative suggestions
   stay home-anchored instead of collapsing to a bare entry name.
+- Proposed [PR #1050](https://github.com/BitterSecurity/Decepticon/pull/1050):
+  page `assistants.search` in the MCP `decepticon_list_graphs` tool so every
+  exposed graph is returned. The LangGraph SDK defaults to `limit=10`, which
+  silently hid agents (`recon`, `soundwave`, the `decepticon` orchestrator, …)
+  on installs shipping more than ten graphs — the `standard` bundle ships 22.
+  Source only, unreleased.
+- Proposed [PR #1054](https://github.com/BitterSecurity/Decepticon/pull/1054):
+  surface budget usage in the REPL footer from BudgetMiddleware's
+  `budget_warning` custom event. The footer line is extracted into a
+  `BudgetFooter` component so it is testable with real Ink rendering;
+  `ink-testing-library` is added to the CLI devDependencies (the test
+  suite could not load without it under CI's `npm ci`). Source only,
+  unreleased.
+- Proposed [PR #1053](https://github.com/BitterSecurity/Decepticon/pull/1053):
+  emit `compact.start` / `compact.end` / `compact.summarization_skipped`
+  lifecycle events from the summarization slot so a silent skip becomes
+  observable. The emitter now writes through `EventLog.for_workspace`
+  (the flat `<workspace>/events.jsonl` the dashboard, shutdown.py and
+  resume read) and resolves engagement/workspace scope from
+  `request.state` then `DECEPTICON_ENGAGEMENT_ID` — mirroring
+  `EventLogMiddleware._resolve_scope` — instead of an orphaned
+  `engagements/<id>/events.jsonl` keyed on a non-existent env var.
+  Source only, unreleased.
+- Proposed [PR #1057](https://github.com/BitterSecurity/Decepticon/pull/1057): RoE unification phase 1 — engagement creation now mechanically
+  generates the enforced `plan/roe.json` from the creation data only (MCP
+  `start_engagement`: `targets` + optional `out_of_scope`). Creation targets
+  are normalized before they become scope rules: embedded lists split
+  (`"a, b"`), URLs and scheme-relative `//host` collapse to their hostname,
+  CIDRs normalize to the canonical network address (`10.0.0.5/24` ->
+  `10.0.0.0/24`), `host:port` authorizes the host on all ports (the RoE is
+  host-scoped), hostnames lowercase / lose the DNS trailing dot / IDNA-encode,
+  bracketed bare IPv6 drops the brackets, a `*.subdomain` glob adds its apex
+  so the bare domain stays reachable, and patterns no real DNS/IP target can
+  match are dropped with a warning. Plain-hostname targets, URL and git-remote
+  hosts, and glob base domains are passively enriched with
+  Certificate-Transparency subdomains (crt.sh, bounded and root-filtered,
+  best-effort — discovery failure degrades to the operator-provided targets
+  and never blocks creation). The CLI scan path (`decepticon-cli scan`) now
+  generates the same enforced `plan/roe.json` at creation (new
+  `--out-of-scope` flag) and engagements whose targets are all filesystem
+  paths materialize an empty network allowlist (denylist and forbidden
+  destinations still enforce). An engagement with no derivable in-scope
+  target is refused at creation (fail-closed) instead of running audit-only.
+  The legacy audit/warn/enforce `EnforcementMode` is removed — the RoE is
+  always fail-closed enforce, so `machine_enforcement` no longer carries a
+  `mode` key and `EnforcementMode` leaves the core public API
+  (`CORE_PUBLIC_API` 75 -> 74). Source only, unreleased.
 - Proposed [PR #1052](https://github.com/BitterSecurity/Decepticon/pull/1052):
   stop mislabelling a LiteLLM cooldown (`RouterRateLimitError` — "No deployments
   available ... cooldown_list") as a provider rate limit. A fatal upstream error
@@ -65,6 +112,13 @@ Keep proposed and unmerged changes out of released sections.
   finalized by the matching values snapshot, and in-flight tool calls render as a compact
   `● Tool(args…) …` header. Pure Ink primitives, no platform-specific terminal behavior.
   Addresses issue #1032.
+- Proposed [PR #1045](https://github.com/BitterSecurity/Decepticon/pull/1045):
+  bind MCP `decepticon_start_engagement` to an explicit `workspace_path`
+  (default `/workspace`, traversal-validated) and return the binding in
+  `StartResult`, so coding agents start engagements against the workspace the
+  interactive CLI selected. A non-default binding must be the engagement's own
+  directory (final segment = `engagement_name`), so one engagement's run can
+  never write into another engagement's workspace. Addresses issue #1042.
 
 - Proposed [PR #1031](https://github.com/BitterSecurity/Decepticon/pull/1031):
   simplify the README demo area by removing the repeated OSS capability list and

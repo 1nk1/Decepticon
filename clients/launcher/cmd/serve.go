@@ -27,7 +27,7 @@ programmatically. Requires --engagement; interactive users should use
 		if slug == "" {
 			return fmt.Errorf("choose an existing engagement with --engagement")
 		}
-		return runStartMode(cmd, args, slug)
+		return runStartMode(cmd, args, slug, false)
 	},
 }
 
