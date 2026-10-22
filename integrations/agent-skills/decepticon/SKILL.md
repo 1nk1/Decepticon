@@ -59,10 +59,13 @@ terminal, not in the shell or the MCP bridge.
 - `decepticon_start_engagement` binds the run to a workspace via
   `workspace_path` (default `/workspace`). To share the workspace binding the
   interactive CLI selected, pass the same binding explicitly — the binding is
-  returned in the result's `workspace_path` field. The run still requires the
-  workspace mapping on the server to exist and be authorized for that
-  engagement; when in doubt, start the engagement in the interactive CLI and
-  observe its thread through MCP.
+  returned in the result's `workspace_path` field. A non-default binding must
+  be the engagement's own directory (final segment = `engagement_name`, e.g.
+  `/workspace/<engagement_name>`); anything else is rejected so one
+  engagement's run cannot write into another engagement's workspace. The run
+  still requires the workspace mapping on the server to exist and be
+  authorized for that engagement; when in doubt, start the engagement in the
+  interactive CLI and observe its thread through MCP.
 - A local repository path in MCP `targets` is passed as text. It is not copied
   into the sandbox; confirm the target code is actually mounted before asking
   Decepticon to analyze it.

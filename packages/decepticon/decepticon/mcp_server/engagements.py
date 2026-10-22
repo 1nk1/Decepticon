@@ -18,6 +18,7 @@ import json
 import os
 import re
 from collections.abc import Sequence
+from pathlib import Path
 from typing import Any, assert_never
 
 from decepticon.mcp_server.config import ServerConfig
@@ -152,6 +153,12 @@ class EngagementClient:
         workspace_path: str = "/workspace",
     ) -> StartResult:
         """Dispatch a background engagement run and return its handle."""
+        if workspace_path != "/workspace" and Path(workspace_path).name != engagement_name:
+            raise ValueError(
+                f"workspace_path {workspace_path!r} is not bound to engagement "
+                f"{engagement_name!r}; a non-default workspace must be the "
+                "engagement's own directory (ending in /<engagement_name>)"
+            )
         scope_payload: dict[str, Any] = {
             "targets": list(targets),
             "scope_mode": "full",

@@ -81,7 +81,10 @@ def register_lifecycle_tools(
         ``workspace_path`` optionally binds the run to a specific engagement
         workspace (default: the container's ``/workspace``). When the operator
         selected an engagement in the interactive CLI, pass the same binding so
-        the thread and the CLI share one workspace.
+        the thread and the CLI share one workspace. A non-default binding must
+        be the engagement's own directory — its final segment has to equal
+        ``engagement_name`` (e.g. ``/workspace/<engagement_name>``) — so one
+        engagement's run can never write into another engagement's workspace.
 
         Returns immediately with a ``thread_id`` (the engagement handle). Drive
         everything else with that handle: ``decepticon_transcript`` to watch,
