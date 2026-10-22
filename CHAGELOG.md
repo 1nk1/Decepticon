@@ -15,6 +15,11 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #1046](https://github.com/BitterSecurity/Decepticon/pull/1046):
+  add read-only runtime diagnostics — `decepticon doctor --deep` reports the
+  middleware slot matrix for every role (KG/HITL/model_fallback previously
+  failed silently), KG reachability, Skillogy health and MCP auth mode.
+  Addresses issue #1040.
 - Proposed (launcher scope recommendations): engagement creation now runs
   passive discovery — certificate-transparency logs (crt.sh) and passive DNS
   (HackerTarget, both keyless) — against the first hostname target and
