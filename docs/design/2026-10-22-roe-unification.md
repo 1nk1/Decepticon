@@ -163,6 +163,26 @@ Passive CT discovery uses the same normalization before querying.
 5. **HITL scope expansion** — intercept a guardrail refusal and offer an
    operator approve-to-extend path.
 
+### Companion launcher PR (pulls parts of phases 2 and 4 forward)
+
+A companion launcher PR (`feat/launcher-roe-mechanical`) implements the same
+unification on the Go side, where the marker retirement lands early per the
+maintainer's OSS responsibility-model decision (the user declares the scope at
+creation and owns it; the control point is the always-enforced middleware, not
+an approval ceremony):
+
+- The launcher generates the minimal machine-form RoE from a broadened
+  creation grammar (multiple targets: URLs, hostnames, CIDRs, globs, plus an
+  optional out-of-scope denylist), pinned to this builder by shared golden
+  test vectors (`packages/decepticon-core/tests/testdata/roe-target-vectors.json`).
+- `.red-approved` and the Red-approval ceremony (`/mode red approve`, the web
+  plan-approval POST, `provision_roe --approve-red`) are retired everywhere;
+  readiness on the launcher picker, the TUI Red gate and the web dashboard is
+  "an enforced machine scope exists". Legacy dual-form documents remain
+  readable.
+- IDNA diverges: Python IDNA-encodes non-ASCII hosts, Go rejects them with an
+  actionable message (operators pass the punycode form).
+
 ## Test & verification plan
 
 - Unit: `build_engagement_roe` maps hosts/CIDRs/URLs/wildcards to the right

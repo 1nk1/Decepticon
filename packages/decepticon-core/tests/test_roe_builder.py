@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
+import json
 import logging
+from pathlib import Path
 
 import pytest
+
+_VECTORS = json.loads(
+    (Path(__file__).parent / "testdata" / "roe-target-vectors.json").read_text(encoding="utf-8")
+)
 
 from decepticon_core.types.roe import (
     EnforcementMode,
@@ -117,3 +123,11 @@ def test_generated_rules_enforce_scope() -> None:
     assert evaluate_target("app.elice.io", rules).allow is True
     assert evaluate_target("admin.elice.io", rules).allow is False
     assert evaluate_target("evil.com", rules).allow is False
+
+
+@pytest.mark.parametrize("case", _VECTORS["cases"], ids=lambda case: case["name"])
+def test_golden_vectors(case: dict) -> None:
+    """The shared vectors pin the builder and the Go launcher to one contract."""
+    roe = build_engagement_roe("eng", case["targets"], case["out_of_scope"])
+    assert roe["machine_enforcement"]["in_scope"] == case["in_scope"]
+    assert roe["machine_enforcement"]["out_of_scope"] == case["out"]
