@@ -21,6 +21,6 @@ def _roe_hermetic(
     """
     monkeypatch.setenv("DECEPTICON_ENGAGEMENT_WORKSPACE", str(tmp_path))
     monkeypatch.setattr(
-        "decepticon.mcp_server.tools_lifecycle.expand_targets",
+        "decepticon.roe_materialization.expand_targets",
         lambda targets, **_: list(targets),
     )

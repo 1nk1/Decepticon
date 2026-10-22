@@ -7,8 +7,8 @@ from collections.abc import Callable
 
 import pytest
 
-from decepticon.mcp_server import passive_discovery
-from decepticon.mcp_server.passive_discovery import discover_subdomains, expand_targets
+from decepticon import passive_discovery
+from decepticon.passive_discovery import discover_subdomains, expand_targets
 
 
 def _ct_body(hosts: list[str]) -> str:
@@ -64,6 +64,17 @@ def test_expand_splits_embedded_targets() -> None:
     body = _ct_body(["app.elice.io"])
     out = expand_targets(["elice.io, api.elice.io"], fetch=_static_fetch(body))
     assert out == ["elice.io", "api.elice.io", "app.elice.io"]
+
+
+def test_expand_discovers_url_target_host() -> None:
+    body = _ct_body(["app.elice.io"])
+    out = expand_targets(["https://elice.io/login"], fetch=_static_fetch(body))
+    assert out == ["https://elice.io/login", "app.elice.io"]
+
+
+def test_expand_skips_cidr_targets() -> None:
+    out = expand_targets(["10.0.0.0/24"], fetch=_static_fetch(_ct_body(["app.elice.io"])))
+    assert out == ["10.0.0.0/24"]
 
 
 def test_discovery_caps_discovered_hosts(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-import json
 import os
-import tempfile
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP
@@ -14,7 +11,6 @@ from mcp.server.fastmcp import FastMCP
 from decepticon.mcp_server.config import ServerConfig
 from decepticon.mcp_server.engagements import EngagementClient
 from decepticon.mcp_server.findings import (
-    engagement_workspace,
     load_findings_graph,
     summarize_findings,
 )
@@ -25,54 +21,12 @@ from decepticon.mcp_server.models import (
     StartResult,
     StatusResult,
 )
-from decepticon.mcp_server.passive_discovery import Fetcher, expand_targets
-from decepticon_core.types.roe import build_engagement_roe
+from decepticon.roe_materialization import engagement_workspace, materialize_engagement_roe
 from decepticon_core.utils.engagement_scope import is_valid_engagement_label
 
 
 def default_engagement_name() -> str:
     return "mcp-" + datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
-
-
-def materialize_engagement_roe(
-    engagement_name: str,
-    targets: list[str],
-    out_of_scope: list[str] | None = None,
-    *,
-    fetch: Fetcher | None = None,
-) -> None:
-    """Generate the engagement's enforced ``plan/roe.json`` from creation data.
-
-    The creation inputs *are* the scope: ``build_engagement_roe`` raises when no
-    in-scope target can be derived, so an engagement with no scope fails closed
-    (the caller surfaces the error and never starts a run). Hostname and
-    ``*.``-glob targets are passively enriched with Certificate-Transparency
-    subdomains (crt.sh, bounded and root-filtered, best-effort — discovery
-    failure degrades to the operator-provided targets and never blocks
-    creation). An already-present ``plan/roe.json`` is never overwritten — a
-    reviewed authorization wins.
-    """
-    roe = build_engagement_roe(
-        engagement_name, expand_targets(targets, fetch=fetch), out_of_scope or []
-    )
-    plan = engagement_workspace(engagement_name) / "plan"
-    plan.mkdir(parents=True, exist_ok=True)
-    destination = plan / "roe.json"
-    if destination.is_symlink():
-        raise ValueError("plan/roe.json must not be a symlink.")
-    if destination.exists():
-        return  # never overwrite an existing (possibly reviewed) authorization
-    payload = json.dumps(roe, indent=2, ensure_ascii=False).encode("utf-8")
-    with tempfile.NamedTemporaryFile(dir=plan, prefix=".roe-", delete=False) as staged:
-        staged_path = Path(staged.name)
-        try:
-            staged.write(payload)
-            staged.flush()
-            os.fsync(staged.fileno())
-            os.replace(staged_path, destination)
-        except BaseException:
-            staged_path.unlink(missing_ok=True)
-            raise
 
 
 async def selected_thread_state(engagements: EngagementClient, thread_id: str) -> dict[str, Any]:

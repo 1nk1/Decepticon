@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from decepticon.mcp_server.tools_lifecycle import materialize_engagement_roe
+from decepticon.roe_materialization import materialize_engagement_roe
 
 
 @pytest.fixture()
@@ -72,3 +72,37 @@ def test_wildcard_target_adds_apex_and_discovery(workspace: Path) -> None:
         "app.elice.io",
         "elice.io",
     ]
+
+
+def test_path_only_targets_produce_path_scoped_roe(workspace: Path) -> None:
+    scan_root = workspace / "repo"
+    scan_root.mkdir()
+    (scan_root / "app.py").write_text("x")
+    materialize_engagement_roe("eng6", [str(scan_root)], fetch=_no_discovery)
+    roe = json.loads(_roe_path(workspace).read_text())
+    assert roe["machine_enforcement"]["mode"] == "enforce"
+    assert roe["machine_enforcement"]["in_scope"] == []
+
+
+def test_mixed_path_and_host_targets_keep_network_scope(workspace: Path) -> None:
+    scan_root = workspace / "repo-mixed"
+    scan_root.mkdir()
+    materialize_engagement_roe(
+        "eng7", ["elice.io", str(scan_root)], fetch=_no_discovery
+    )
+    roe = json.loads(_roe_path(workspace).read_text())
+    assert roe["machine_enforcement"]["in_scope"] == ["elice.io"]
+
+
+def test_dead_network_targets_refuse_even_alongside_paths(workspace: Path) -> None:
+    scan_root = workspace / "repo-dead"
+    scan_root.mkdir()
+    with pytest.raises(ValueError, match="in-scope"):
+        materialize_engagement_roe("eng8", ["*.", str(scan_root)], fetch=_no_discovery)
+    assert not _roe_path(workspace).exists()
+
+
+def test_nonexistent_absolute_path_is_not_a_path_target(workspace: Path) -> None:
+    with pytest.raises(ValueError, match="in-scope"):
+        materialize_engagement_roe("eng9", ["/nonexistent/scan/dir"], fetch=_no_discovery)
+    assert not _roe_path(workspace).exists()

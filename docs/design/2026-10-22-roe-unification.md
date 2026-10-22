@@ -138,6 +138,21 @@ Passive CT discovery uses the same normalization before querying.
    machine-enforceable RoE dict; engagement creation writes
    `<workspace>/plan/roe.json` from it, and refuses when it would be empty. No
    removals yet; generated RoE is always `enforce`. *(This PR.)*
+
+   **Creation surfaces covered:** MCP `start_engagement` and the
+   `decepticon-cli scan` path share one materializer
+   (`decepticon.roe_materialization`, free of the `mcp` extra). The Go
+   launcher's direct-engagement flow (`internal/engagement.createDirectEngagement`)
+   already wrote its own enforce-mode `plan/roe.json` before the TUI enters —
+   its richer dual-form document (human scope + machine block +
+   `authorized_windows`) unifies with the minimal machine form in phase 2.
+   The TUI conversation surface takes no structured targets input; its
+   guardrail is the always-enforced middleware from phase 3. Filesystem-path
+   targets carry no network scope: an all-paths engagement materializes an
+   empty in-scope allowlist (denylist and forbidden destinations still
+   enforce), while network-shaped inputs that all die as unmatched patterns
+   are refused even alongside valid paths. Passive CT enrichment applies to
+   plain hostnames, URL/git-remote hosts, and glob base domains.
 2. **Unify the scope representation** — fold the human `in_scope`/`out_of_scope`
    into the single machine form; update `RoE`, `validate_operator_roe`,
    `event_logging` scope readers.

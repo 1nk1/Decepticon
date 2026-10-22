@@ -20,7 +20,11 @@ import urllib.request
 from collections.abc import Callable
 from urllib.parse import quote
 
-from decepticon_core.types.roe import split_scope_targets, wildcard_base_domain
+from decepticon_core.types.roe import (
+    normalize_scope_target,
+    split_scope_targets,
+    wildcard_base_domain,
+)
 
 log = logging.getLogger(__name__)
 
@@ -93,20 +97,17 @@ def expand_targets(
 ) -> list[str]:
     """Return ``targets`` plus CT-discovered subdomains for each hostname target.
 
-    Plain hostnames drive discovery directly; ``*.`` subdomain globs drive it
-    against their base domain (the glob itself stays in scope). Embedded lists
-    (``"a, b"``) split into their targets first. Order-preserving and deduped;
-    the original targets always come first so an operator-authored entry is
-    never dropped by discovery.
+    Plain hostnames, URLs, and git remotes drive discovery against their
+    normalized host; ``*.`` subdomain globs drive it against their base domain
+    (the glob itself stays in scope). Embedded lists (``"a, b"``) split into
+    their targets first. Order-preserving and deduped; the original targets
+    always come first so an operator-authored entry is never dropped by
+    discovery.
     """
     out: dict[str, None] = {t: None for t in split_scope_targets(targets)}
     for target in list(out):
-        candidate = target.strip()
-        if _is_plain_hostname(candidate):
-            # A ``host:port`` target discovers against its host part.
-            root = candidate.split(":", 1)[0]
-        else:
-            root = wildcard_base_domain(candidate)
+        candidate = normalize_scope_target(target)
+        root = candidate if _is_plain_hostname(candidate) else wildcard_base_domain(candidate)
         if root:
             for host in discover_subdomains(root, fetch=fetch, timeout=timeout):
                 out.setdefault(host, None)

@@ -25,12 +25,17 @@ Keep proposed and unmerged changes out of released sections.
   host-scoped), hostnames lowercase / lose the DNS trailing dot / IDNA-encode,
   bracketed bare IPv6 drops the brackets, a `*.subdomain` glob adds its apex
   so the bare domain stays reachable, and patterns no real DNS/IP target can
-  match are dropped with a warning. Plain-hostname and glob targets are
-  passively enriched with Certificate-Transparency subdomains (crt.sh, bounded
-  and root-filtered, best-effort — discovery failure degrades to the
-  operator-provided targets and never blocks creation). An engagement with no
-  derivable in-scope target is refused at creation (fail-closed) instead of
-  running audit-only. Source only, unreleased.
+  match are dropped with a warning. Plain-hostname targets, URL and git-remote
+  hosts, and glob base domains are passively enriched with
+  Certificate-Transparency subdomains (crt.sh, bounded and root-filtered,
+  best-effort — discovery failure degrades to the operator-provided targets
+  and never blocks creation). The CLI scan path (`decepticon-cli scan`) now
+  generates the same enforced `plan/roe.json` at creation (new
+  `--out-of-scope` flag) and engagements whose targets are all filesystem
+  paths materialize an empty network allowlist (denylist and forbidden
+  destinations still enforce). An engagement with no derivable in-scope
+  target is refused at creation (fail-closed) instead of running audit-only.
+  Source only, unreleased.
 
 - Review corrections for [PR #1036](https://github.com/BitterSecurity/Decepticon/pull/1036):
   decode cumulative SDK `messages/partial` and `messages/complete` events and

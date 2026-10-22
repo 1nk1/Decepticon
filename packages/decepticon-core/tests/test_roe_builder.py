@@ -87,6 +87,11 @@ def test_unicode_hostname_idna_encoded() -> None:
     assert host.startswith("xn--") and host.endswith(".io")
 
 
+def test_git_scp_remote_reduces_to_host() -> None:
+    roe = build_engagement_roe("eng", ["git@github.com:org/repo.git"])
+    assert roe["machine_enforcement"]["in_scope"] == ["github.com"]
+
+
 def test_dead_patterns_dropped_with_warning(caplog: pytest.LogCaptureFixture) -> None:
     with caplog.at_level(logging.WARNING, logger="decepticon_core.types.roe"):
         roe = build_engagement_roe("eng", ["*.", "elice..io", "*..elice.io", "elice.io"])

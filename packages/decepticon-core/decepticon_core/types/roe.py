@@ -189,7 +189,7 @@ def _normalize_hostname(host: str) -> str:
     return value
 
 
-def _normalize_scope_target(raw: str) -> str:
+def normalize_scope_target(raw: str) -> str:
     """Reduce an engagement target to a scope-rule pattern.
 
     URLs (and scheme-relative ``//host`` forms) collapse to their hostname —
@@ -212,6 +212,10 @@ def _normalize_scope_target(raw: str) -> str:
             pass
     # A bare ``host:port`` or ``host/path`` — keep only the host.
     value = value.split("/", 1)[0]
+    if "@" in value:
+        # scp-style / userinfo git remotes (git@github.com:org/repo.git): the
+        # network enforcement cares about the host, not the credential.
+        value = value.rpartition("@")[2]
     if value.startswith("["):
         # Bracketed bare IPv6, optionally with a port: [2001:db8::1]:8443.
         value = value[1:].partition("]")[0]
@@ -280,7 +284,7 @@ def _is_dead_pattern(pattern: str) -> bool:
 def _dedupe_targets(targets: Iterable[str]) -> list[str]:
     seen: dict[str, None] = {}
     for raw in split_scope_targets(targets):
-        norm = _normalize_scope_target(raw)
+        norm = normalize_scope_target(raw)
         if not norm:
             continue
         if _is_dead_pattern(norm):
@@ -294,6 +298,8 @@ def build_engagement_roe(
     engagement_name: str,
     targets: Iterable[str],
     out_of_scope: Iterable[str] = (),
+    *,
+    require_scope: bool = True,
 ) -> dict[str, Any]:
     """Build an always-enforced, machine-enforceable RoE from creation data.
 
@@ -307,11 +313,14 @@ def build_engagement_roe(
     are dropped with a warning. The result always enforces — there is no
     audit/warn mode. Raises ``ValueError`` when no usable in-scope target can
     be derived, so an engagement with no scope fails closed instead of running
-    unscoped.
+    unscoped. ``require_scope=False`` accepts an empty in-scope list for
+    engagements whose targets are all filesystem paths (path-scoped: no
+    network allowlist, the denylist and forbidden destinations still enforce).
     """
     in_scope = _dedupe_targets(targets)
     if not in_scope:
-        raise ValueError("engagement RoE requires at least one in-scope target")
+        if require_scope:
+            raise ValueError("engagement RoE requires at least one in-scope target")
     # A subdomain glob authorizes the operator's zone, and the apex is part of
     # that zone — host matching would otherwise never reach the bare domain
     # (``*.elice.io`` does not match ``elice.io``). Appended after the authored
