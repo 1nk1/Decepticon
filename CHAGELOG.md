@@ -15,6 +15,16 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed (launcher scope recommendations): engagement creation now runs
+  passive discovery — certificate-transparency logs (crt.sh) and passive DNS
+  (HackerTarget, both keyless) — against the first hostname target and
+  suggests in-scope entries through a pre-checked multi-select the operator
+  can trim, plus a free-text field for anything the sources missed. Results
+  are filtered to the target's own DNS zone (lookalikes never match),
+  normalized through the same pipeline as manual input, and the step is
+  strictly optional: a timeout or source failure folds back to the typed
+  targets with a note, so creation never blocks on the network.
+
 - Proposed [PR #1058](https://github.com/BitterSecurity/Decepticon/pull/1058): mechanical engagement creation across the Go launcher. The
   launcher now generates the same machine-enforceable `plan/roe.json` the MCP
   bridge and CLI scan produce, from a broadened creation grammar — multiple
