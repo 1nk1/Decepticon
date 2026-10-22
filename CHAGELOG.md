@@ -15,6 +15,17 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #1053](https://github.com/BitterSecurity/Decepticon/pull/1053):
+  emit `compact.start` / `compact.end` / `compact.summarization_skipped`
+  lifecycle events from the summarization slot so a silent skip becomes
+  observable. The emitter now writes through `EventLog.for_workspace`
+  (the flat `<workspace>/events.jsonl` the dashboard, shutdown.py and
+  resume read) and resolves engagement/workspace scope from
+  `request.state` then `DECEPTICON_ENGAGEMENT_ID` — mirroring
+  `EventLogMiddleware._resolve_scope` — instead of an orphaned
+  `engagements/<id>/events.jsonl` keyed on a non-existent env var.
+  Source only, unreleased.
+
 - Review corrections for [PR #1036](https://github.com/BitterSecurity/Decepticon/pull/1036):
   decode cumulative SDK `messages/partial` and `messages/complete` events and
   single message tuples correctly. Retire live text by message ID, ignore late

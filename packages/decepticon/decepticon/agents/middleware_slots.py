@@ -23,8 +23,8 @@ needs an entry in ``SLOTS_PER_ROLE``.
 from __future__ import annotations
 
 import copy
-import os
 import logging
+import os
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -311,20 +311,41 @@ class _SafeSummarizationProxy(AgentMiddleware):
         scoped_inner._lc_helper = scoped_helper
         return scoped_inner
 
-    def _emit_compact_event(self, event_type: str, detail: str) -> None:
+    def _emit_compact_event(self, request: Any, event_type: str, detail: str) -> None:
         """Emit a compaction event to the engagement event log.
 
         Never crashes the agent — event log failures are swallowed so
         summarization failures don't cascade (mirrors budget.py pattern).
+
+        Scope resolution mirrors ``EventLogMiddleware._resolve_scope``
+        (request.state -> ``DECEPTICON_ENGAGEMENT_ID`` -> default) and the
+        log is opened with :meth:`EventLog.for_workspace`, so these events
+        land in the same ``<workspace>/events.jsonl`` the dashboard,
+        shutdown.py and resume read — not an orphaned
+        ``engagements/<id>/events.jsonl`` no consumer opens.
         """
         try:
             from decepticon.runtime.event_log import EventLog  # noqa: PLC0415
-            from decepticon.telemetry.sink import reset_current_session  # noqa: PLC0415
-            from decepticon.telemetry.sink import session_id_for, set_current_session  # noqa: PLC0415
+            from decepticon.telemetry.sink import (  # noqa: PLC0415
+                reset_current_session,
+                session_id_for,
+                set_current_session,
+            )
 
-            workspace = os.environ.get("DECEPTICON_WORKSPACE_PATH", "/workspace")
-            engagement = os.environ.get("DECEPTICON_ENGAGEMENT", "default-engagement")
-            event_log = EventLog(workspace, engagement)
+            state = getattr(request, "state", None) or {}
+            get = state.get if hasattr(state, "get") else (lambda _k, _d=None: None)
+            engagement = (
+                get("engagement_name")
+                or get("engagement_id")
+                or os.environ.get("DECEPTICON_ENGAGEMENT_ID", "")
+                or "default-engagement"
+            )
+            workspace = (
+                get("workspace_path")
+                or os.environ.get("DECEPTICON_WORKSPACE_PATH", "")
+                or "/workspace"
+            )
+            event_log = EventLog.for_workspace(workspace, engagement)
             token = set_current_session(session_id_for(engagement))
             try:
                 event_log.append(event_type, {"detail": detail})
@@ -334,10 +355,10 @@ class _SafeSummarizationProxy(AgentMiddleware):
             logger.debug("compaction event emission failed (non-fatal)", exc_info=True)
 
     def wrap_model_call(self, request: Any, handler: Callable[[Any], Any]) -> Any:
-        self._emit_compact_event("compact.start", "summarization attempt")
+        self._emit_compact_event(request, "compact.start", "summarization attempt")
         try:
             response = self._scoped_inner(request).wrap_model_call(request, handler)
-            self._emit_compact_event("compact.end", "summarization completed")
+            self._emit_compact_event(request, "compact.end", "summarization completed")
             return response
         except Exception:
             logger.warning(
@@ -346,16 +367,17 @@ class _SafeSummarizationProxy(AgentMiddleware):
                 exc_info=True,
             )
             self._emit_compact_event(
+                request,
                 "compact.summarization_skipped",
                 "summarization middleware failed — context not compacted this turn",
             )
             return handler(request)
 
     async def awrap_model_call(self, request: Any, handler: Callable[[Any], Awaitable[Any]]) -> Any:
-        self._emit_compact_event("compact.start", "summarization attempt")
+        self._emit_compact_event(request, "compact.start", "summarization attempt")
         try:
             response = await self._scoped_inner(request).awrap_model_call(request, handler)
-            self._emit_compact_event("compact.end", "summarization completed")
+            self._emit_compact_event(request, "compact.end", "summarization completed")
             return response
         except Exception:
             logger.warning(
@@ -364,6 +386,7 @@ class _SafeSummarizationProxy(AgentMiddleware):
                 exc_info=True,
             )
             self._emit_compact_event(
+                request,
                 "compact.summarization_skipped",
                 "summarization middleware failed — context not compacted this turn",
             )
