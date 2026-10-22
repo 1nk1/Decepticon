@@ -24,8 +24,9 @@ def _rules(targets, out_of_scope=()):
     return MachineEnforcement.from_dict(roe["machine_enforcement"])
 
 
-def test_always_enforce_mode() -> None:
+def test_enforcement_has_no_mode_field() -> None:
     roe = build_engagement_roe("eng", ["elice.io"])
+    assert "mode" not in roe["machine_enforcement"]
 
 
 def test_url_target_reduces_to_host() -> None:

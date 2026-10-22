@@ -45,7 +45,6 @@ import logging
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
-from enum import StrEnum
 from typing import Any, Iterable
 from urllib.parse import urlsplit
 

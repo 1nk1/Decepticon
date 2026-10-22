@@ -37,8 +37,10 @@ class TestMachineEnforcementSchema:
         assert rules.in_scope == ()
         assert rules.out_of_scope == ()
 
-    def test_none_defaults_to_audit(self) -> None:
+    def test_none_parses_to_empty_scope(self) -> None:
         rules = MachineEnforcement.from_dict(None)
+        assert rules.in_scope == ()
+        assert rules.out_of_scope == ()
 
     def test_string_rules_parsed(self) -> None:
         rules = MachineEnforcement.from_dict(
