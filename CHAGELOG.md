@@ -15,6 +15,14 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #1054](https://github.com/BitterSecurity/Decepticon/pull/1054):
+  surface budget usage in the REPL footer from BudgetMiddleware's
+  `budget_warning` custom event. The footer line is extracted into a
+  `BudgetFooter` component so it is testable with real Ink rendering;
+  `ink-testing-library` is added to the CLI devDependencies (the test
+  suite could not load without it under CI's `npm ci`). Source only,
+  unreleased.
+
 - Review corrections for [PR #1036](https://github.com/BitterSecurity/Decepticon/pull/1036):
   decode cumulative SDK `messages/partial` and `messages/complete` events and
   single message tuples correctly. Retire live text by message ID, ignore late
