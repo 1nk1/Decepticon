@@ -163,12 +163,15 @@ func TestScopeReadyRequiresEnforcedMachineScope(t *testing.T) {
 	if scopeReady(home, "legacy") {
 		t.Fatal("human-only scope enabled Red")
 	}
+	// A legacy "mode":"audit" document: the post-unification runtime ignores
+	// the mode key and enforces every machine block unconditionally, so the
+	// launcher's readiness must match the runtime and report ready.
 	audit := []byte(`{"machine_enforcement":{"mode":"audit","in_scope":["example.com"]}}`)
 	if err := os.WriteFile(legacy, audit, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if scopeReady(home, "legacy") {
-		t.Fatal("audit-mode scope enabled Red")
+	if !scopeReady(home, "legacy") {
+		t.Fatal("legacy audit-mode machine scope was not recognized as ready")
 	}
 }
 

@@ -16,9 +16,9 @@ type directScopeWindow struct {
 // machineScope is the generated RoE: one machine-enforceable scope compiled
 // from the creation inputs. There is no separate human scope document and no
 // approval marker — creating the engagement with a scope IS the
-// authorization, and the middleware enforces this block unconditionally.
+// authorization, and the middleware enforces this block unconditionally
+// (post-unification there is no mode field: presence is enforcement).
 type machineScope struct {
-	Mode              string              `json:"mode"`
 	InScope           []string            `json:"in_scope"`
 	OutOfScope        []string            `json:"out_of_scope"`
 	AuthorizedWindows []directScopeWindow `json:"authorized_windows"`
@@ -46,7 +46,6 @@ func createDirectEngagement(home, slug string, lists scopeLists, now time.Time) 
 	document := machineRoeDocument{
 		EngagementName: slug,
 		MachineEnforcement: machineScope{
-			Mode:              "enforce",
 			InScope:           lists.InScope,
 			OutOfScope:        lists.OutOfScope,
 			AuthorizedWindows: []directScopeWindow{{Start: now.Format(time.RFC3339), End: end.Format(time.RFC3339)}},

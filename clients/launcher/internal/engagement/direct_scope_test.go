@@ -50,7 +50,9 @@ func TestCreateDirectEngagement_MachineScopeFromCreationData(t *testing.T) {
 	if fmt.Sprint(doc.MachineEnforcement.OutOfScope) != fmt.Sprint([]string{"secret.corp.example.com"}) {
 		t.Fatalf("unexpected out_of_scope: %v", doc.MachineEnforcement.OutOfScope)
 	}
-	if doc.MachineEnforcement.Mode != "enforce" || len(doc.MachineEnforcement.AuthorizedWindows) != 1 {
+	// No "mode" field: post-unification enforcement is unconditional (#1057),
+	// so the generated document carries only the scope and windows.
+	if len(doc.MachineEnforcement.AuthorizedWindows) != 1 {
 		t.Fatalf("unexpected machine scope: %+v", doc.MachineEnforcement)
 	}
 }

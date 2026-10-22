@@ -70,7 +70,7 @@ func readScopeSummary(root string) scopeSummary {
 	if err != nil {
 		return scopeSummary{}
 	}
-	mode, inCount, denyCount, target, ok := readMachineScopeFull(data)
+	inCount, denyCount, target, ok := readMachineScopeFull(data)
 	if !ok {
 		var legacy struct {
 			InScope []struct {
@@ -86,23 +86,25 @@ func readScopeSummary(root string) scopeSummary {
 		Target:    target,
 		InCount:   inCount,
 		DenyCount: denyCount,
-		Enforced:  mode == "enforce" && inCount > 0,
+		// Enforcement is unconditional post-unification (#1057): the presence
+		// of a machine block with in-scope entries is the enforce state. A
+		// legacy document's "mode" key is ignored, matching the runtime.
+		Enforced: inCount > 0,
 	}
 }
 
 // readMachineScopeFull parses the machine_enforcement block, returning the
-// mode, usable in-scope entry count, out-of-scope entry count and the first
+// usable in-scope entry count, out-of-scope entry count and the first
 // in-scope target. ok is false when the block is absent or unusable.
-func readMachineScopeFull(data []byte) (mode string, inCount, denyCount int, target string, ok bool) {
+func readMachineScopeFull(data []byte) (inCount, denyCount int, target string, ok bool) {
 	var doc struct {
 		MachineEnforcement *struct {
-			Mode       string            `json:"mode"`
 			InScope    []json.RawMessage `json:"in_scope"`
 			OutOfScope []json.RawMessage `json:"out_of_scope"`
 		} `json:"machine_enforcement"`
 	}
 	if err := json.Unmarshal(data, &doc); err != nil || doc.MachineEnforcement == nil {
-		return "", 0, 0, "", false
+		return 0, 0, "", false
 	}
 	block := doc.MachineEnforcement
 	for _, raw := range block.InScope {
@@ -114,12 +116,12 @@ func readMachineScopeFull(data []byte) (mode string, inCount, denyCount int, tar
 		}
 	}
 	denyCount = len(block.OutOfScope)
-	return block.Mode, inCount, denyCount, target, inCount > 0
+	return inCount, denyCount, target, inCount > 0
 }
 
 // scopeReady reports whether the engagement has an enforced machine scope.
 // Creation is the authorization — an engagement created with targets carries
-// an enforce-mode "plan/roe.json" and needs no separate approval marker.
+// a "plan/roe.json" machine block and needs no separate approval marker.
 func scopeReady(home, slug string) bool {
 	summary := readScopeSummary(filepath.Join(home, "workspace", slug))
 	return summary.Enforced
