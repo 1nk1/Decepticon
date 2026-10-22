@@ -336,7 +336,11 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
             />
           )}
           <Box flexDirection="column" marginTop={1}>
-            {blue.status === "connected" || blue.unreadCount > 0 ? <Text dimColor wrap="truncate-end">Blue {blue.status} · collector {blue.collectorStatus} · AI {blue.aiStatus} · unread {blue.unreadCount} · /alerts</Text> : null}
+            {blue.status === "connected" || blue.unreadCount > 0 ? (
+              <Text dimColor wrap="truncate-end">
+                Blue · collector {blue.collectorStatus} · AI {blue.aiStatus} · unread {blue.unreadCount} · /alerts
+              </Text>
+            ) : null}
             {agent.queuedMessages.length > 0 && <Text dimColor>{agent.queuedMessages.length} waiting · /queue to edit or remove</Text>}
           </Box>
         </Box>

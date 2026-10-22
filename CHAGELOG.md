@@ -15,6 +15,14 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #1052](https://github.com/BitterSecurity/Decepticon/pull/1052):
+  stop mislabelling a LiteLLM cooldown (`RouterRateLimitError` — "No deployments
+  available ... cooldown_list") as a provider rate limit. A fatal upstream error
+  (e.g. a 404 `model_not_found` from a custom OpenAI endpoint) cools the
+  deployment down and resurfaces as a 429; `_reraise_with_actionable_message`
+  now names the masked-upstream cause and points at the proxy logs instead of
+  telling the operator to add a fallback. Source only, unreleased.
+
 - Review corrections for [PR #1036](https://github.com/BitterSecurity/Decepticon/pull/1036):
   decode cumulative SDK `messages/partial` and `messages/complete` events and
   single message tuples correctly. Retire live text by message ID, ignore late
