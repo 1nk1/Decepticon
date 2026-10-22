@@ -15,6 +15,13 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #1039](https://github.com/BitterSecurity/Decepticon/pull/1039):
+  TUI error-recovery polish — esc-to-dismiss error banners, number-key question
+  selection (including the "Other" free-text entry, previously only reachable with
+  the arrow keys), a Blue footer that only renders while monitoring is relevant, removal of
+  dead client code (SessionPicker, SpinnerIcon) and English blue notification templates.
+  Auto-reconnect and transcript interactivity are deferred as designed follow-ups.
+  Partially addresses issue #1034.
 - Proposed [PR #1050](https://github.com/BitterSecurity/Decepticon/pull/1050):
   page `assistants.search` in the MCP `decepticon_list_graphs` tool so every
   exposed graph is returned. The LangGraph SDK defaults to `limit=10`, which
@@ -107,6 +114,12 @@ Keep proposed and unmerged changes out of released sections.
   finalized by the matching values snapshot, and in-flight tool calls render as a compact
   `● Tool(args…) …` header. Pure Ink primitives, no platform-specific terminal behavior.
   Addresses issue #1032.
+- Proposed [PR #1039](https://github.com/BitterSecurity/Decepticon/pull/1039):
+  TUI error-recovery polish — esc-to-dismiss error banners, number-key question
+  selection, a Blue footer that only renders while monitoring is relevant, removal of
+  dead client code (SessionPicker, SpinnerIcon) and English blue notification templates.
+  Auto-reconnect and transcript interactivity are deferred as designed follow-ups.
+  Partially addresses issue #1034.
 - Proposed [PR #1045](https://github.com/BitterSecurity/Decepticon/pull/1045):
   bind MCP `decepticon_start_engagement` to an explicit `workspace_path`
   (default `/workspace`, traversal-validated) and return the binding in
