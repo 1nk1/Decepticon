@@ -8,15 +8,15 @@ from pathlib import Path
 
 import pytest
 
-_VECTORS = json.loads(
-    (Path(__file__).parent / "testdata" / "roe-target-vectors.json").read_text(encoding="utf-8")
-)
-
 from decepticon_core.types.roe import (
     EnforcementMode,
     MachineEnforcement,
     build_engagement_roe,
     evaluate_target,
+)
+
+_VECTORS = json.loads(
+    (Path(__file__).parent / "testdata" / "roe-target-vectors.json").read_text(encoding="utf-8")
 )
 
 
