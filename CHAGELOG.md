@@ -15,6 +15,15 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #1051](https://github.com/BitterSecurity/Decepticon/pull/1051):
+  structured tool errors — the ops tools report failures as
+  `{is_error, tool, cause, recovery}` envelopes built by
+  `decepticon.tools.errors.tool_error`, and the TUI routes tool results
+  that carry that envelope to the structured error display (cause and
+  recovery rendered separately) instead of dumping raw JSON. Removes an
+  internal design note accidentally committed at the repository root.
+  Source only, unreleased.
+
 - Review corrections for [PR #1036](https://github.com/BitterSecurity/Decepticon/pull/1036):
   decode cumulative SDK `messages/partial` and `messages/complete` events and
   single message tuples correctly. Retire live text by message ID, ignore late

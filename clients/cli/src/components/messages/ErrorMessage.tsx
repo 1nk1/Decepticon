@@ -21,7 +21,7 @@ interface StructuredError {
   recovery?: string;
 }
 
-function parseStructured(content: string): StructuredError | null {
+export function parseStructured(content: string): StructuredError | null {
   try {
     const parsed = JSON.parse(content);
     if (
