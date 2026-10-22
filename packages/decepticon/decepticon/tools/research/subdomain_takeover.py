@@ -30,7 +30,6 @@ import httpx
 from langchain_core.tools import tool
 
 from decepticon_core.types.roe import (
-    EnforcementMode,
     MachineEnforcement,
     evaluate_target,
 )
@@ -372,7 +371,7 @@ async def check_subdomain_takeover(subdomain: str) -> str:
     # ── RoE gating ──────────────────────────────────────────────────────
     rules = _load_roe_rules()
     decision = evaluate_target(subdomain, rules)
-    if not decision.allow and rules.mode == EnforcementMode.ENFORCE:
+    if not decision.allow:
         log.warning("subdomain_takeover: RoE refused %s (%s)", subdomain, decision.reason_code)
         return _json(
             {

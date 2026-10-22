@@ -28,7 +28,6 @@ import httpx
 from langchain_core.tools import tool
 
 from decepticon_core.types.roe import (
-    EnforcementMode,
     MachineEnforcement,
     evaluate_target,
 )
@@ -155,7 +154,7 @@ def _check_roe(host: str) -> dict[str, Any] | None:
     """Return an error dict if the host is refused, else None."""
     rules = _load_roe_rules()
     decision = evaluate_target(host, rules)
-    if not decision.allow and rules.mode == EnforcementMode.ENFORCE:
+    if not decision.allow:
         log.warning("ai_surface: RoE refused %s (%s)", host, decision.reason_code)
         return {
             "scope": "refused",
