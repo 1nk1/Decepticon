@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP
@@ -11,7 +12,6 @@ from mcp.server.fastmcp import FastMCP
 from decepticon.mcp_server.config import ServerConfig
 from decepticon.mcp_server.engagements import EngagementClient
 from decepticon.mcp_server.findings import (
-    engagement_workspace,
     load_findings_graph,
     summarize_findings,
 )
@@ -22,6 +22,7 @@ from decepticon.mcp_server.models import (
     StartResult,
     StatusResult,
 )
+from decepticon.roe_materialization import engagement_workspace, materialize_engagement_roe
 from decepticon_core.utils.engagement_scope import is_valid_engagement_label
 
 
@@ -66,8 +67,10 @@ def register_lifecycle_tools(
         scan_mode: ScanMode = "standard",
         engagement_name: str | None = None,
         assistant: str | None = None,
+        out_of_scope: list[str] | None = None,
         workflow_id: str | None = None,
         workflow_version: str | None = None,
+        workspace_path: str | None = None,
     ) -> StartResult:
         """Start an AUTHORIZED Decepticon engagement against one or more targets.
 
@@ -75,6 +78,14 @@ def register_lifecycle_tools(
         Put scope and rules of engagement in ``instruction`` (what is in and out
         of scope) — the orchestrator gates every tool call against it. Only test
         assets you are authorized to test.
+
+        ``workspace_path`` optionally binds the run to a specific engagement
+        workspace (default: the container's ``/workspace``). When the operator
+        selected an engagement in the interactive CLI, pass the same binding so
+        the thread and the CLI share one workspace. A non-default binding must
+        be the engagement's own directory — its final segment has to equal
+        ``engagement_name`` (e.g. ``/workspace/<engagement_name>``) — so one
+        engagement's run can never write into another engagement's workspace.
 
         Returns immediately with a ``thread_id`` (the engagement handle). Drive
         everything else with that handle: ``decepticon_transcript`` to watch,
@@ -87,6 +98,21 @@ def register_lifecycle_tools(
                 f"invalid engagement_name {name!r}; must match "
                 "[A-Za-z0-9][A-Za-z0-9._-]{0,127} (no path separators or '..')"
             )
+        # Generate the enforced RoE from the creation scope before any run is
+        # dispatched. No derivable in-scope target → fail closed (no engagement).
+        try:
+            materialize_engagement_roe(name, targets, out_of_scope)
+        except ValueError as exc:
+            raise ValueError(
+                f"cannot start engagement {name!r}: {exc}. Provide at least one "
+                "in-scope target; engagements run only against an authorized scope."
+            ) from exc
+        bound_workspace = workspace_path or "/workspace"
+        if "\x00" in bound_workspace or ".." in Path(bound_workspace).parts:
+            raise ValueError(
+                f"invalid workspace_path {bound_workspace!r}; must not contain "
+                "path traversal segments"
+            )
         return await engagements.start(
             targets=targets,
             instruction=instruction,
@@ -95,6 +121,7 @@ def register_lifecycle_tools(
             assistant=assistant or config.default_assistant,
             workflow_id=workflow_id,
             workflow_version=workflow_version,
+            workspace_path=bound_workspace,
         )
 
     @mcp.tool()

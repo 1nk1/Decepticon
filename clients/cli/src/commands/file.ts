@@ -11,8 +11,9 @@
  */
 
 import { readFile } from "node:fs/promises";
+import { readdirSync } from "node:fs";
 
-import { resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { homedir } from "node:os";
 import type { Command } from "./types.js";
 
@@ -21,6 +22,34 @@ const file: Command = {
   description: "Load a prompt from a file and send it",
   aliases: ["f"],
   argumentHint: "<path>",
+  complete: (args) => {
+    const raw = args.trim();
+    if (raw.includes(" ")) return [];
+    try {
+      const expanded = raw.startsWith("~")
+        ? join(homedir(), raw.slice(1))
+        : resolve(raw);
+      const wantsDirectory = raw === "" || raw.endsWith("/");
+      const dir = wantsDirectory ? expanded : dirname(expanded);
+      const base = wantsDirectory ? "" : basename(expanded);
+      // The picker replaces the whole argument with the returned value, so
+      // each suggestion must carry the typed directory prefix ("src/", "~/…")
+      // — a bare entry name would silently rewrite `src/com<tab>` to
+      // `composerCompletion.ts` (or drop `~/` into a cwd-relative path).
+      const prefix =
+        raw === "~" ? "~/" : raw.slice(0, Math.max(raw.lastIndexOf("/") + 1, 0));
+      return readdirSync(dir.length === 0 ? "." : dir, { withFileTypes: true })
+        .filter((entry) => entry.name.startsWith(base))
+        .slice(0, 50)
+        .map((entry) =>
+          entry.isDirectory()
+            ? `${prefix}${entry.name}/`
+            : `${prefix}${entry.name}`,
+        );
+    } catch {
+      return [];
+    }
+  },
   async execute(args, ctx) {
 
     const raw = args.trim();

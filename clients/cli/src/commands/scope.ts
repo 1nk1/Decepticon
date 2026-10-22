@@ -16,7 +16,7 @@ async function missing(filename: string): Promise<void> {
 
 export const scope: Command = {
   name: "scope",
-  description: "Import an operator-provided scope without approving execution",
+  description: "Import an operator-provided engagement scope (create-only)",
   argumentHint: "import <file> --confirm",
   async execute(args, ctx) {
     try {
@@ -55,18 +55,13 @@ export const scope: Command = {
         try {
           await output.writeFile(raw);
           await output.sync();
-          for (const marker of [".red-approved", ".planning-draft-ready"]) {
-            await unlink(path.join(root, marker)).catch((error: unknown) => {
-              if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
-            });
-          }
           await link(temporary, destination);
         } finally {
           await output.close();
           await unlink(temporary);
         }
       });
-      if (installed) ctx.addSystemEvent("Scope imported to plan/roe.json. Execution remains unapproved; review it, then use /mode red approve.");
+      if (installed) ctx.addSystemEvent("Scope imported to plan/roe.json. Red enforces this scope.");
     } catch (error) {
       ctx.addSystemEvent(error instanceof Error ? error.message : String(error));
     }

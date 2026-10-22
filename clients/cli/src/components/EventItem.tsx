@@ -5,6 +5,7 @@ import { BashResult } from "./BashResult.js";
 import { UserMessage } from "./messages/UserMessage.js";
 import { AIMessage } from "./messages/AIMessage.js";
 import { ToolCallMessage } from "./messages/ToolCallMessage.js";
+import { ErrorMessage, parseStructured } from "./messages/ErrorMessage.js";
 import { DelegateMessage } from "./messages/DelegateMessage.js";
 import { SystemMessage } from "./messages/SystemMessage.js";
 import { QAQuestionMessage, QAAnswerMessage } from "./messages/QAMessage.js";
@@ -34,6 +35,11 @@ export const EventItem = React.memo(function EventItem({
       );
 
     case "tool_result":
+      // Tools signal failure with a structured error envelope (tools/errors.py);
+      // those render as cause + recovery instead of a raw tool result.
+      if (parseStructured(event.content)) {
+        return <ErrorMessage content={event.content} />;
+      }
       return <ToolCallMessage event={event} />;
 
     case "delegate":

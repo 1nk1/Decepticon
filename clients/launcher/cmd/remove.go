@@ -26,6 +26,16 @@ var removeCmd = &cobra.Command{
 	Use:     "remove",
 	Aliases: []string{"uninstall"},
 	Short:   "Uninstall Decepticon completely",
+	Long: `Uninstall Decepticon completely: stop services, remove Docker
+images and containers, and delete the installation directory
+(~/.decepticon) including configuration and engagement workspaces.
+
+With --preserve-workspace the engagement workspace data is backed up
+before the installation directory is removed. With --yes all
+confirmation prompts are skipped (useful for scripted teardown).`,
+	Example: `  decepticon remove                        Remove everything after confirmation
+  decepticon remove --preserve-workspace   Back up workspace data before removing
+  decepticon remove --yes                  Remove without confirmation prompts`,
 	RunE:    runRemove,
 }
 

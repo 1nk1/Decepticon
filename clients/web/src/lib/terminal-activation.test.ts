@@ -50,7 +50,7 @@ test("Live activation is lazy, survives tab history, and retains only visited mo
     window: dom.window, URLSearchParams, console,
     fetch: async (url: string) => ({
       ok: url === "/api/blue/status" ? sensorAvailable : true,
-      json: async () => url.endsWith("/plan-docs") ? { redApproved: approved }
+      json: async () => url.endsWith("/plan-docs") ? { scopeReady: approved }
         : url.endsWith("/threads") ? []
         : { name: engagementId, targetType: "web_url", targetValue: "https://example.invalid", authorizationConfirmed: true },
     }),
