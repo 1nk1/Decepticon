@@ -15,6 +15,11 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #1038](https://github.com/BitterSecurity/Decepticon/pull/1038):
+  TUI slash-command UX parity — completion, suggestions, /help grouping.
+  Path completions for `/file` keep the typed directory prefix, so
+  `sub/bri<tab>` completes to `sub/brief.md` and `~/`-relative suggestions
+  stay home-anchored instead of collapsing to a bare entry name.
 - Proposed [PR #1039](https://github.com/BitterSecurity/Decepticon/pull/1039):
   TUI error-recovery polish — esc-to-dismiss error banners, number-key question
   selection (including the "Other" free-text entry, previously only reachable with
