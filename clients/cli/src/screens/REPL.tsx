@@ -20,6 +20,7 @@ import { useSubAgentSessions } from "../hooks/useSubAgentSessions.js";
 import { useGlobalKeybindings } from "../hooks/useGlobalKeybindings.js";
 import { useAppState } from "../state/AppState.js";
 import { Banner } from "../components/Banner.js";
+import { BudgetFooter } from "../components/BudgetFooter.js";
 import { EventItem } from "../components/EventItem.js";
 import { AIMessage } from "../components/messages/AIMessage.js";
 import { PendingToolMessage } from "../components/messages/PendingToolMessage.js";
@@ -336,7 +337,12 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
             />
           )}
           <Box flexDirection="column" marginTop={1}>
-            <Text dimColor wrap="truncate-end">Blue {blue.status} · collector {blue.collectorStatus} · AI {blue.aiStatus} · unread {blue.unreadCount} · /alerts</Text>
+            {blue.status === "connected" || blue.unreadCount > 0 ? (
+              <Text dimColor wrap="truncate-end">
+                Blue · collector {blue.collectorStatus} · AI {blue.aiStatus} · unread {blue.unreadCount} · /alerts
+              </Text>
+            ) : null}
+            <BudgetFooter usage={agent.budgetUsage} />
             {agent.queuedMessages.length > 0 && <Text dimColor>{agent.queuedMessages.length} waiting · /queue to edit or remove</Text>}
           </Box>
         </Box>
