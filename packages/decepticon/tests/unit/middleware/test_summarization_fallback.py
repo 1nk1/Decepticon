@@ -10,8 +10,10 @@ flipped between "raises" and "returns normally".
 
 from __future__ import annotations
 
+import json
 import logging
 from collections.abc import Iterator
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -132,6 +134,44 @@ async def test_async_success_passes_inner_result_through() -> None:
 
     assert result == ("inner-async", "REQ")
     assert inner.async_calls == 1
+
+
+class _Req:
+    """Minimal request carrying scope state; no ``model`` so the proxy
+    uses the inner middleware as-is."""
+
+    def __init__(self, state: dict[str, Any]) -> None:
+        self.state = state
+
+
+def test_compaction_events_land_in_workspace_events_jsonl(tmp_path: Path) -> None:
+    # for_workspace writes directly to <workspace>/events.jsonl — the file the
+    # dashboard, shutdown.py and resume read — not an orphaned
+    # engagements/<id>/events.jsonl no consumer opens.
+    inner = _FakeInner(fail=False)
+    proxy = _SafeSummarizationProxy(inner)
+    req = _Req({"workspace_path": str(tmp_path), "engagement_name": "eng-compact"})
+
+    proxy.wrap_model_call(req, _handler)
+
+    flat = tmp_path / "events.jsonl"
+    assert flat.exists()
+    assert not (tmp_path / "engagements").exists()
+    types = [json.loads(line)["type"] for line in flat.read_text().splitlines()]
+    assert "compact.start" in types
+    assert "compact.end" in types
+
+
+def test_compaction_skip_event_emitted_on_failure(tmp_path: Path) -> None:
+    inner = _FakeInner(fail=True)
+    proxy = _SafeSummarizationProxy(inner)
+    req = _Req({"workspace_path": str(tmp_path), "engagement_name": "eng-skip"})
+
+    proxy.wrap_model_call(req, _handler)
+
+    flat = tmp_path / "events.jsonl"
+    types = [json.loads(line)["type"] for line in flat.read_text().splitlines()]
+    assert "compact.summarization_skipped" in types
 
 
 def test_proxy_forwards_inner_state_schema_and_name() -> None:
