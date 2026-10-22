@@ -68,7 +68,7 @@ func TestScanEngagements_ApprovedAndUnapproved(t *testing.T) {
 	if len(got) != 3 {
 		t.Fatalf("expected 3 entries, got %d (%v)", len(got), got)
 	}
-	byName := map[string]engagementEntry{got[0].Slug: got[0], got[1].Slug: got[1], got[2].Slug: got[2]}
+	byName := map[string]EngagementEntry{got[0].Slug: got[0], got[1].Slug: got[1], got[2].Slug: got[2]}
 	if !byName["alpha"].Ready {
 		t.Errorf("alpha should be ready, got %v", byName["alpha"])
 	}

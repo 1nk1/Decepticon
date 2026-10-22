@@ -64,6 +64,7 @@ var (
 	skipUpdate     bool
 	resumeThread   string
 	continueThread bool
+	backgroundRun  bool
 )
 
 var startCmd = &cobra.Command{
@@ -97,6 +98,9 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&continueThread, "continue", false, "Continue the latest session in the selected engagement")
 	rootCmd.MarkFlagsMutuallyExclusive("resume", "continue")
 	startCmd.MarkFlagsMutuallyExclusive("resume", "continue")
+
+	startCmd.Flags().BoolVar(&backgroundRun, "background", false,
+		"Start services and prepare the engagement without opening the interactive CLI; attach later with 'decepticon attach <name>'")
 
 	rootCmd.RunE = func(cmd *cobra.Command, args []string) error {
 		return runStart(cmd, args)
@@ -423,6 +427,14 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string) 
 		cliEnv["WEB_PORT"] = port
 	}
 
+	// Background mode: services are up and the engagement workspace is bound;
+	// skip the interactive CLI and let the operator attach later.
+	if backgroundRun {
+		ui.Success("Engagement " + choice.Engagement + " ready in the background (thread: " + threadOrPickerHint(thread) + ").")
+		ui.DimText("Attach with 'decepticon attach " + choice.Engagement + "'. Services kept running.")
+		return nil
+	}
+
 	// Pass through terminal. Services are intentionally left running on CLI exit
 	// so re-entry is fast (cold start is ~75s); use 'decepticon stop' to shut
 	// the stack down.
@@ -587,4 +599,11 @@ func candidateProbeURLs(raw string) []string {
 	}
 	add("127.0.0.1")
 	return candidates
+}
+
+func threadOrPickerHint(thread string) string {
+	if thread != "" && thread != "picker" {
+		return thread
+	}
+	return "created on first attach"
 }
