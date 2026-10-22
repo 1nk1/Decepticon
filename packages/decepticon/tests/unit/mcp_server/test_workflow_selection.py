@@ -16,7 +16,9 @@ from .test_engagements import _config, _FakeClient
 @pytest.mark.parametrize(
     "workflow_id", ["red-team", "pentest", "bug-bounty", "vulnerability-research"]
 )
-async def test_execution_selection_reaches_run_through_mcp(workflow_id: str) -> None:
+async def test_execution_selection_reaches_run_through_mcp(
+    workflow_id: str, _roe_hermetic: None
+) -> None:
     # Given the real MCP server and a recording LangGraph transport.
     fake = _FakeClient()
     server = build_server(_config(), client=fake)
@@ -74,6 +76,7 @@ async def test_invalid_execution_selection_creates_no_thread(
 
 async def test_planning_leaves_default_to_target_despite_execution_selection(
     monkeypatch: pytest.MonkeyPatch,
+    _roe_hermetic: None,
 ) -> None:
     # Given execution selectors and no explicit planning configuration.
     monkeypatch.delenv("DECEPTICON_PLANNING_WORKFLOW_ID", raising=False)
@@ -87,7 +90,7 @@ async def test_planning_leaves_default_to_target_despite_execution_selection(
         result = await session.call_tool(
             "decepticon_start_engagement",
             {
-                "targets": [],
+                "targets": ["https://example.com"],
                 "assistant": "soundwave",
                 "workflow_id": "pentest",
                 "workflow_version": "1",

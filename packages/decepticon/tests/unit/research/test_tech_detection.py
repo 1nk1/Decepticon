@@ -16,7 +16,7 @@ import pytest
 
 from decepticon.tools.research import tech_detection
 from decepticon.tools.research.tech_detection import detect_tech_stack
-from decepticon_core.types.roe import EnforcementMode, MachineEnforcement, ScopeRule
+from decepticon_core.types.roe import MachineEnforcement, ScopeRule
 
 
 def _install_transport(handler: Any) -> Any:
@@ -215,7 +215,6 @@ def test_merge_unions_sources_and_keeps_version() -> None:
 @pytest.mark.asyncio
 async def test_enforce_mode_refuses_out_of_scope_host_without_egress() -> None:
     rules = MachineEnforcement(
-        mode=EnforcementMode.ENFORCE,
         in_scope=(ScopeRule(pattern="allowed.test"),),
     )
     called = {"n": 0}
@@ -239,7 +238,6 @@ async def test_enforce_mode_refuses_out_of_scope_host_without_egress() -> None:
 @pytest.mark.asyncio
 async def test_enforce_mode_allows_in_scope_host() -> None:
     rules = MachineEnforcement(
-        mode=EnforcementMode.ENFORCE,
         in_scope=(ScopeRule(pattern="target.test"),),
     )
 
@@ -257,28 +255,6 @@ async def test_enforce_mode_allows_in_scope_host() -> None:
 
 
 @pytest.mark.asyncio
-async def test_audit_mode_does_not_block_out_of_scope() -> None:
-    # In audit mode the middleware (and this tool) log but never refuse.
-    rules = MachineEnforcement(
-        mode=EnforcementMode.AUDIT,
-        in_scope=(ScopeRule(pattern="allowed.test"),),
-    )
-
-    def handler(_: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, headers={"server": "nginx/1.0"}, text="<html></html>")
-
-    with (
-        patch.object(tech_detection, "_load_roe_rules", lambda: rules),
-        _install_transport(handler),
-    ):
-        out = await _run("https://evil.test/")
-
-    assert out["scope"] == "allowed"
-
-
-# ── Error / edge handling ────────────────────────────────────────────────
-
-
 @pytest.mark.asyncio
 async def test_invalid_url_returns_error_without_egress() -> None:
     out = json.loads(await detect_tech_stack.ainvoke({"url": "not-a-url"}))
