@@ -64,7 +64,7 @@ the same --resume/--continue session selection as 'decepticon start'.`,
 			return err
 		}
 		ui.Info("Attaching to engagement " + slug + "…")
-		return runStartMode(cmd, nil, slug)
+		return runStartMode(cmd, nil, slug, true)
 	},
 }
 

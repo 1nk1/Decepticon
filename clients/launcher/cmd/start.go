@@ -108,10 +108,14 @@ func init() {
 }
 
 func runStart(cmd *cobra.Command, args []string) error {
-	return runStartMode(cmd, args, "")
+	return runStartMode(cmd, args, "", false)
 }
 
-func runStartMode(cmd *cobra.Command, args []string, existingEngagement string) error {
+// runStartMode boots the stack for one of three callers: plain `start`
+// (existingEngagement == ""), the desktop agent service (`serve`, which
+// returns once services are ready), and `attach` (attachInteractive, which
+// drops the operator into the interactive CLI on an existing engagement).
+func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, attachInteractive bool) error {
 	if cmd == rootCmd {
 		if err := validateRootArgs(args); err != nil {
 			return err
@@ -395,7 +399,10 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string) 
 		return fmt.Errorf("service readiness: %w; inspect `decepticon doctor` and `decepticon logs` (services kept)", err)
 	}
 
-	if existingEngagement != "" {
+	// The desktop agent service ends here — it serves host clients and has
+	// no terminal. Attach keeps going: its whole point is the interactive
+	// CLI on the existing engagement.
+	if existingEngagement != "" && !attachInteractive {
 		ui.Success("Desktop agent service ready for " + choice.Engagement)
 		fmt.Println("DECEPTICON_DESKTOP_ASSISTANT=" + choice.AssistantID)
 		return nil
