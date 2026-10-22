@@ -38,7 +38,6 @@ from langchain_core.tools import tool
 
 from decepticon_core.types.kg import TechnologyCategory, technology_key
 from decepticon_core.types.roe import (
-    EnforcementMode,
     MachineEnforcement,
     evaluate_target,
 )
@@ -327,7 +326,7 @@ async def detect_tech_stack(url: str) -> str:
 
     rules = _load_roe_rules()
     decision = evaluate_target(host, rules)
-    if not decision.allow and rules.mode == EnforcementMode.ENFORCE:
+    if not decision.allow:
         log.warning("tech_detection: RoE refused %s (%s)", host, decision.reason_code)
         return _json(
             {

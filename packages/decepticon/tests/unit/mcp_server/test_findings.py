@@ -8,10 +8,10 @@ from typing import Any
 import pytest
 
 from decepticon.mcp_server.findings import (
-    engagement_workspace,
     load_findings_graph,
     summarize_findings,
 )
+from decepticon.roe_materialization import engagement_workspace
 
 
 class _Node:
