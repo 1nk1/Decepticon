@@ -91,6 +91,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&skipUpdate, "no-update", false,
 		"Skip the self-update check for this launch (does not change AUTO_UPDATE in .env)")
 	rootCmd.PersistentFlags().String("workflow", "", "Execution workflow ID (defaults to DECEPTICON_WORKFLOW_ID in environment or .env)")
+	rootCmd.PersistentFlags().String("model", "", "Per-session model override (LiteLLM model id, e.g. anthropic/claude-opus-4-7); overrides DECEPTICON_MODEL_OVERRIDE in environment or .env")
 	rootCmd.PersistentFlags().String("workflow-version", "", "Execution workflow version (requires a workflow ID)")
 
 	rootCmd.PersistentFlags().StringVar(&resumeThread, "resume", "", "Resume a thread by ID, or open the session picker (use --resume=ID)")
@@ -421,6 +422,9 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 	}
 	for key, value := range workflowEnv {
 		cliEnv[key] = value
+	}
+	if modelFlag, _ := cmd.Flags().GetString("model"); modelFlag != "" {
+		cliEnv["DECEPTICON_MODEL_OVERRIDE"] = modelFlag
 	}
 	applyResumeEnv(cliEnv, thread, continueThread)
 	if choice.Target != "" {
