@@ -337,6 +337,7 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
           )}
           <Box flexDirection="column" marginTop={1}>
             <Text dimColor wrap="truncate-end">Blue {blue.status} · collector {blue.collectorStatus} · AI {blue.aiStatus} · unread {blue.unreadCount} · /alerts</Text>
+            {agent.budgetUsage && <Text dimColor>budget {agent.budgetUsage.pct}% ({agent.budgetUsage.spent} / {agent.budgetUsage.cap} USD)</Text>}
             {agent.queuedMessages.length > 0 && <Text dimColor>{agent.queuedMessages.length} waiting · /queue to edit or remove</Text>}
           </Box>
         </Box>

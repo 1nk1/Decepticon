@@ -139,6 +139,8 @@ interface UseAgentReturn {
   pendingTool: PendingTool | null;
   /** Live token-delta text from the "messages" stream mode; "" when idle. */
   streamingText: string;
+  /** Budget usage from BudgetMiddleware's budget_warning event; null when idle. */
+  budgetUsage: { spent: number; cap: number; pct: number } | null;
   streamStats: StreamStats | null;
   /** Currently active agent name (e.g. "decepticon", "recon"). */
   activeAgent: string | null;
@@ -203,6 +205,8 @@ export function useAgent({
   const [streamingText, setStreamingText] = useState<string>("");
   const [streamStats, setStreamStats] = useState<StreamStats | null>(null);
   const [activeAgent, setActiveAgent] = useState<string | null>(null);
+  // Budget usage from the BudgetMiddleware's budget_warning custom event.
+  const [budgetUsage, setBudgetUsage] = useState<{spent: number; cap: number; pct: number} | null>(null);
   const [assistantId, setAssistantId] = useState<string>(INITIAL_ASSISTANT_ID);
   const [error, setError] = useState<string | null>(null);
   const [queuedMessages, setQueuedMessages] = useState<string[]>([]);
@@ -348,6 +352,16 @@ export function useAgent({
 
 
       const handleCustomEvent = (data: SubagentCustomEvent) => {
+        // Budget warning from BudgetMiddleware — outside SubagentEventType.
+        if ((data as {type?: string}).type === "budget_warning") {
+          const d = data as unknown as {spent_usd?: number; cap_usd?: number; used_pct?: number};
+          setBudgetUsage({
+            spent: d.spent_usd ?? 0,
+            cap: d.cap_usd ?? 0,
+            pct: d.used_pct ?? 0,
+          });
+          return;
+        }
         switch (data.type) {
           case "subagent_start":
             setActiveAgent(data.agent);
@@ -1033,6 +1047,7 @@ export function useAgent({
 
         setRunState("streaming");
         setPendingTool(null);
+        setBudgetUsage(null);
         setActiveAgent(selectedAssistant);
         setStreamStats({ startTime: Date.now(), totalTokens: 0, promptTokens: 0, completionTokens: 0 });
 
@@ -1316,6 +1331,7 @@ export function useAgent({
     isStreaming,
     pendingTool,
     streamingText,
+    budgetUsage,
     streamStats,
     activeAgent,
     assistantId,
