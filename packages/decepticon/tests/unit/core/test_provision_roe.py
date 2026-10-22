@@ -58,9 +58,7 @@ def source(tmp_path: Path) -> Path:
     return source
 
 
-def test_provisions_missing_roe_preserving_plans(
-    workspace: Path, source: Path
-) -> None:
+def test_provisions_missing_roe_preserving_plans(workspace: Path, source: Path) -> None:
     # Given an existing plan and an operator-reviewed RoE.
     before = (workspace / "plan" / "conops.json").read_bytes()
     # When the operator explicitly confirms provisioning.

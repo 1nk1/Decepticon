@@ -57,5 +57,6 @@ def main(
         raise typer.BadParameter(str(exc)) from exc
     typer.echo(f"Provisioned {destination}. The middleware enforces this scope.")
 
+
 if __name__ == "__main__":
     app()
