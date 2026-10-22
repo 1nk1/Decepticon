@@ -59,11 +59,7 @@ def _is_path_target(fragment: str) -> bool:
     """
     if not Path(fragment).expanduser().exists():
         return False
-    if (
-        fragment.startswith(("~", "/", "./", "../"))
-        or "/" in fragment
-        or fragment.startswith(".")
-    ):
+    if fragment.startswith(("~", "/", "./", "../")) or "/" in fragment or fragment.startswith("."):
         return True
     # A bare existing name ("src", "elice.io") is ambiguous between a hostname
     # and a path; the scan CLI's own validation accepts it as a path, so path
@@ -101,9 +97,7 @@ def materialize_engagement_roe(
     overwritten — a reviewed authorization wins.
     """
     fragments = split_scope_targets(targets)
-    network = expand_targets(
-        [f for f in fragments if not _is_path_target(f)], fetch=fetch
-    )
+    network = expand_targets([f for f in fragments if not _is_path_target(f)], fetch=fetch)
     paths = [f for f in fragments if _is_path_target(f)]
     try:
         roe = build_engagement_roe(engagement_name, network, out_of_scope or [])
@@ -113,14 +107,11 @@ def materialize_engagement_roe(
             # at all: refusing is the only honest outcome.
             raise
         log.info(
-            "engagement %s is path-scoped (%d path targets); RoE enforces "
-            "denylist only",
+            "engagement %s is path-scoped (%d path targets); RoE enforces denylist only",
             engagement_name,
             len(paths),
         )
-        roe = build_engagement_roe(
-            engagement_name, (), out_of_scope or [], require_scope=False
-        )
+        roe = build_engagement_roe(engagement_name, (), out_of_scope or [], require_scope=False)
     plan = engagement_workspace(engagement_name) / "plan"
     plan.mkdir(parents=True, exist_ok=True)
     destination = plan / "roe.json"

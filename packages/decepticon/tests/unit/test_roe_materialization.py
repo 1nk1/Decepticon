@@ -58,9 +58,7 @@ def test_never_overwrites_existing_roe(workspace: Path) -> None:
 
 
 def test_passive_discovery_enriches_in_scope(workspace: Path) -> None:
-    materialize_engagement_roe(
-        "eng4", ["elice.io"], fetch=_static_ct(["app.elice.io", "evil.com"])
-    )
+    materialize_engagement_roe("eng4", ["elice.io"], fetch=_static_ct(["app.elice.io", "evil.com"]))
     roe = json.loads(_roe_path(workspace).read_text())
     assert roe["machine_enforcement"]["in_scope"] == ["elice.io", "app.elice.io"]
 
@@ -88,9 +86,7 @@ def test_path_only_targets_produce_path_scoped_roe(workspace: Path) -> None:
 def test_mixed_path_and_host_targets_keep_network_scope(workspace: Path) -> None:
     scan_root = workspace / "repo-mixed"
     scan_root.mkdir()
-    materialize_engagement_roe(
-        "eng7", ["elice.io", str(scan_root)], fetch=_no_discovery
-    )
+    materialize_engagement_roe("eng7", ["elice.io", str(scan_root)], fetch=_no_discovery)
     roe = json.loads(_roe_path(workspace).read_text())
     assert roe["machine_enforcement"]["in_scope"] == ["elice.io"]
 

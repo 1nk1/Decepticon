@@ -66,9 +66,7 @@ def test_scheme_relative_url_reduces_to_host() -> None:
 
 
 def test_embedded_list_targets_split() -> None:
-    roe = build_engagement_roe(
-        "eng", ["elice.io, api.elice.io", "lms.elice.io redash.elice.io"]
-    )
+    roe = build_engagement_roe("eng", ["elice.io, api.elice.io", "lms.elice.io redash.elice.io"])
     assert roe["machine_enforcement"]["in_scope"] == [
         "elice.io",
         "api.elice.io",
