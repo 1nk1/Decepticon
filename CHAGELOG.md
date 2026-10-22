@@ -15,6 +15,16 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #1053](https://github.com/BitterSecurity/Decepticon/pull/1053):
+  emit `compact.start` / `compact.end` / `compact.summarization_skipped`
+  lifecycle events from the summarization slot so a silent skip becomes
+  observable. The emitter now writes through `EventLog.for_workspace`
+  (the flat `<workspace>/events.jsonl` the dashboard, shutdown.py and
+  resume read) and resolves engagement/workspace scope from
+  `request.state` then `DECEPTICON_ENGAGEMENT_ID` — mirroring
+  `EventLogMiddleware._resolve_scope` — instead of an orphaned
+  `engagements/<id>/events.jsonl` keyed on a non-existent env var.
+  Source only, unreleased.
 - Proposed [PR #1057](https://github.com/BitterSecurity/Decepticon/pull/1057): RoE unification phase 1 — engagement creation now mechanically
   generates the enforced `plan/roe.json` from the creation data only (MCP
   `start_engagement`: `targets` + optional `out_of_scope`). Creation targets
