@@ -15,6 +15,12 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #1038](https://github.com/BitterSecurity/Decepticon/pull/1038):
+  TUI slash-command UX parity — completion, suggestions, /help grouping.
+  Path completions for `/file` keep the typed directory prefix, so
+  `sub/bri<tab>` completes to `sub/brief.md` and `~/`-relative suggestions
+  stay home-anchored instead of collapsing to a bare entry name.
+
 - Review corrections for [PR #1036](https://github.com/BitterSecurity/Decepticon/pull/1036):
   decode cumulative SDK `messages/partial` and `messages/complete` events and
   single message tuples correctly. Retire live text by message ID, ignore late
