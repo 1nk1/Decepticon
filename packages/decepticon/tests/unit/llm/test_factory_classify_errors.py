@@ -202,6 +202,25 @@ class TestActionableMessageFatalLabel:
         assert "non-retryable provider error" not in msg
         assert "rate limit (429)" in msg
 
+    def test_cooldown_429_not_mislabelled_as_rate_limit(self):
+        # LiteLLM's RouterRateLimitError ("No deployments available ...
+        # cooldown_list=[...]") is a *cooldown* that a prior fatal upstream
+        # error (e.g. a 404 model_not_found) triggered — not a true quota rate
+        # limit. It must NOT surface as "rate limit (429)"; it should point the
+        # operator at the cooled-down deployment's underlying cause instead.
+        exc = _exc_with_status(
+            "RouterRateLimitError",
+            429,
+            "Error code: 429 - No deployments available for selected model, "
+            "Try again in 60 seconds. cooldown_list=['abc123']",
+        )
+        with pytest.raises(RuntimeError) as info:
+            _reraise_with_actionable_message(exc, "custom/z-ai/glm-5.3-flash")
+        msg = str(info.value)
+        assert "rate limit (429)" not in msg
+        assert "no available deployments" in msg
+        assert "cooled it down" in msg
+
 
 class TestActionableMessage403Forbidden:
     """403 PermissionDenied is a distinct fatal class. Before the fix the
