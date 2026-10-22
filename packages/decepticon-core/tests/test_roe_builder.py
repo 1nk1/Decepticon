@@ -9,7 +9,6 @@ from pathlib import Path
 import pytest
 
 from decepticon_core.types.roe import (
-    EnforcementMode,
     MachineEnforcement,
     build_engagement_roe,
     evaluate_target,
@@ -27,7 +26,6 @@ def _rules(targets, out_of_scope=()):
 
 def test_always_enforce_mode() -> None:
     roe = build_engagement_roe("eng", ["elice.io"])
-    assert roe["machine_enforcement"]["mode"] == EnforcementMode.ENFORCE.value
 
 
 def test_url_target_reduces_to_host() -> None:

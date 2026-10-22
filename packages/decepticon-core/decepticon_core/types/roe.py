@@ -52,12 +52,6 @@ from urllib.parse import urlsplit
 log = logging.getLogger(__name__)
 
 
-class EnforcementMode(StrEnum):
-    AUDIT = "audit"
-    WARN = "warn"
-    ENFORCE = "enforce"
-
-
 _DEFAULT_FORBIDDEN_DESTS: tuple[str, ...] = (
     "169.254.169.254",
     "fd00:ec2::254",
@@ -105,7 +99,9 @@ class ScopeRule:
 class MachineEnforcement:
     """Runtime-enforceable RoE rules."""
 
-    mode: EnforcementMode = EnforcementMode.AUDIT
+    # True only when the workspace supplied a valid machine RoE block.
+    # Missing/malformed RoE is fail-closed for gated tools.
+    configured: bool = True
     in_scope: tuple[ScopeRule, ...] = field(default_factory=tuple)
     out_of_scope: tuple[ScopeRule, ...] = field(default_factory=tuple)
     forbidden_destinations: tuple[str, ...] = field(default_factory=tuple)
@@ -121,13 +117,7 @@ class MachineEnforcement:
     def from_dict(cls, data: dict[str, Any] | None) -> MachineEnforcement:
         if not data:
             return cls()
-        mode_str = str(data.get("mode", EnforcementMode.AUDIT.value)).lower()
-        try:
-            mode = EnforcementMode(mode_str)
-        except ValueError:
-            mode = EnforcementMode.AUDIT
         return cls(
-            mode=mode,
             in_scope=tuple(_parse_rules(data.get("in_scope") or [])),
             out_of_scope=tuple(_parse_rules(data.get("out_of_scope") or [])),
             forbidden_destinations=tuple(data.get("forbidden_destinations") or ()),
@@ -333,7 +323,6 @@ def build_engagement_roe(
     return {
         "engagement_name": engagement_name,
         "machine_enforcement": {
-            "mode": EnforcementMode.ENFORCE.value,
             "in_scope": in_scope,
             "out_of_scope": _dedupe_targets(out_of_scope),
         },

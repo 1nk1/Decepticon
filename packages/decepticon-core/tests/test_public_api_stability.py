@@ -55,7 +55,6 @@ CORE_PUBLIC_API: tuple[tuple[str, str], ...] = (
     ("decepticon_core.types.kg", "Severity"),
     ("decepticon_core.types.kg", "KnowledgeGraph"),
     # decepticon_core.types.roe — machine-readable RoE enforcement schema
-    ("decepticon_core.types.roe", "EnforcementMode"),
     ("decepticon_core.types.roe", "ScopeRule"),
     ("decepticon_core.types.roe", "MachineEnforcement"),
     ("decepticon_core.types.roe", "Decision"),

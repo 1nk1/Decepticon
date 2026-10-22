@@ -63,7 +63,6 @@ from decepticon.middleware._audit_sink import RoEAuditSink
 from decepticon.middleware._command_targets import extract_targets
 from decepticon_core.types.roe import (
     Decision,
-    EnforcementMode,
     MachineEnforcement,
     evaluate_command,
     evaluate_target,
@@ -139,16 +138,18 @@ NETWORK_TARGET_EXTRACTORS: dict[str, Callable[[dict[str, Any]], list[str]]] = {
 
 def _load_rules_for_workspace(workspace_path: str | None) -> MachineEnforcement:
     if not workspace_path:
-        return MachineEnforcement()
+        return MachineEnforcement(configured=False)
     roe_path = Path(workspace_path) / "plan" / "roe.json"
     if not roe_path.exists():
-        return MachineEnforcement()
+        return MachineEnforcement(configured=False)
     try:
         data = json.loads(roe_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        log.warning("roe: failed to read %s: %s; defaulting to audit-only mode", roe_path, exc)
-        return MachineEnforcement()
+        log.warning("roe: failed to read %s: %s; refusing gated tools", roe_path, exc)
+        return MachineEnforcement(configured=False)
     block = data.get("machine_enforcement") if isinstance(data, dict) else None
+    if not isinstance(block, dict):
+        return MachineEnforcement(configured=False)
     return MachineEnforcement.from_dict(block)
 
 
@@ -353,8 +354,8 @@ class RoEGuardrailMiddleware(AgentMiddleware):
         if halt is not None:
             return halt
         decision, rules, tool_name = self._evaluate(request)
-        self._record(request, tool_name, decision, rules.mode)
-        if not decision.allow and rules.mode == EnforcementMode.ENFORCE:
+        self._record(request, tool_name, decision)
+        if not decision.allow:
             return _refused_message(decision, tool_name, _tcid(request))
         wait = self._pace_wait_seconds(rules)
         if wait > 0:
@@ -363,12 +364,6 @@ class RoEGuardrailMiddleware(AgentMiddleware):
         gated = tool_name in self._gated
         with self._sync_gate(rules, gated):
             result = handler(request)
-        if (
-            not decision.allow
-            and rules.mode == EnforcementMode.WARN
-            and isinstance(result, ToolMessage)
-        ):
-            return _warn_message(decision, result)
         return result
 
     async def _dispatch_async(self, request, handler):
@@ -376,8 +371,8 @@ class RoEGuardrailMiddleware(AgentMiddleware):
         if halt is not None:
             return halt
         decision, rules, tool_name = self._evaluate(request)
-        self._record(request, tool_name, decision, rules.mode)
-        if not decision.allow and rules.mode == EnforcementMode.ENFORCE:
+        self._record(request, tool_name, decision)
+        if not decision.allow:
             return _refused_message(decision, tool_name, _tcid(request))
         wait = self._pace_wait_seconds(rules)
         if wait > 0:
@@ -386,12 +381,6 @@ class RoEGuardrailMiddleware(AgentMiddleware):
         gated = tool_name in self._gated
         async with self._async_gate(rules, gated):
             result = await handler(request)
-        if (
-            not decision.allow
-            and rules.mode == EnforcementMode.WARN
-            and isinstance(result, ToolMessage)
-        ):
-            return _warn_message(decision, result)
         return result
 
     def _resolve_limit(self, rules: MachineEnforcement) -> int | None:
@@ -482,8 +471,8 @@ class RoEGuardrailMiddleware(AgentMiddleware):
         if not workspace:
             return
         rules = _load_rules_for_workspace(workspace)
-        if rules.mode != EnforcementMode.ENFORCE:
-            return
+        # Every materialized RoE is enforced; there is no audit/warn bypass.
+
         with self._egress_lock:
             if workspace in self._egress_provisioned:
                 return
@@ -516,6 +505,12 @@ class RoEGuardrailMiddleware(AgentMiddleware):
         get = state.get if hasattr(state, "get") else (lambda _k, _d=None: None)
         workspace = get("workspace_path") or None
         rules = _load_rules_for_workspace(workspace)
+        if not rules.configured:
+            return Decision.refuse(
+                code="ROE_CONFIG_MISSING",
+                detail="machine-readable RoE is missing or invalid; gated tool execution is fail-closed",
+                risk="high",
+            ), rules, tool_name
         time_decision = evaluate_time_window(self._now(), rules)
         if not time_decision.allow:
             return time_decision, rules, tool_name
@@ -543,7 +538,6 @@ class RoEGuardrailMiddleware(AgentMiddleware):
         request,
         tool_name: str,
         decision: Decision,
-        mode: EnforcementMode,
     ) -> None:
         if self._sink is None:
             return
@@ -561,7 +555,7 @@ class RoEGuardrailMiddleware(AgentMiddleware):
             "reason_detail": decision.reason_detail,
             "risk": decision.risk,
             "matched_targets": list(decision.matched_targets),
-            "mode": mode.value,
+            "enforced": True,
             "command_excerpt": _redact_secrets(_command_from_tool_call(request))[:512],
         }
         try:
