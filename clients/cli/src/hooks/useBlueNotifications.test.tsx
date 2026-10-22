@@ -143,8 +143,8 @@ describe("Blue Cell chat notifications", () => {
         evidence: { event_seqs: [7, 9] },
       },
     });
-    expect(alert).toContain("상주 감시 알림");
-    expect(alert).toContain("근거 이벤트 7, 9");
+    expect(alert).toContain("standing-watch alert");
+    expect(alert).toContain("Evidence events 7, 9");
     const gap = formatBlueNotification({
       seq: 4,
       kind: "watch_error",
@@ -164,14 +164,14 @@ describe("Blue Cell chat notifications", () => {
         counters: { collector_long_lines_skipped_total: 2 },
       },
     });
-    expect(message).toContain("수집 공백");
+    expect(message).toContain("Coverage gap");
     expect(message).toContain("collector_long_lines_skipped_total=2");
     const restart = formatBlueNotification({
       seq: 6,
       kind: "coverage_gap",
       payload: { id: "coverage-2", reason: "collector_restarted" },
     });
-    expect(restart).toContain("재시작");
-    expect(restart).toContain("연속성");
+    expect(restart).toContain("restarted");
+    expect(restart).toContain("observation continuity");
   });
 });

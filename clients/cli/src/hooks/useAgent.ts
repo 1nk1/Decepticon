@@ -158,6 +158,8 @@ interface UseAgentReturn {
   answerQuestion: (value: string | string[]) => void;
   error: string | null;
   clearEvents: () => void;
+  /** Dismiss the current error banner (esc-to-dismiss). */
+  clearError: () => void;
   addSystemEvent: (content: string) => void;
   selectAssistant: (assistantId: string, commit?: () => Promise<void>) => Promise<boolean>;
   mutateWorkspace: (commit: () => Promise<void>) => Promise<boolean>;
@@ -860,6 +862,11 @@ export function useAgent({
 
   // ── Clear ──────────────────────────────────────────────────────
 
+  /** Dismiss the current error banner (esc). Next submit also clears it. */
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
   const clearEvents = useCallback(() => {
     if (switchingRef.current || restoringRef.current) return;
     if (abortRef.current || runStateRef.current !== "idle" || activeQuestionRef.current || queuedMessageRef.current.length > 0) {
@@ -1343,6 +1350,7 @@ export function useAgent({
     activeQuestion,
     answerQuestion,
     error,
+    clearError,
     clearEvents,
     addSystemEvent,
     selectAssistant,

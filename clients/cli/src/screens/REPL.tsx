@@ -245,7 +245,7 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
               events={agent.events}
               sessions={sessions}
             />
-            {agent.error && <ErrorMessage content={agent.error} />}
+            {agent.error && <ErrorMessage content={agent.error} onDismiss={agent.clearError} />}
           </Box>
         </Box>
       </ScreenProvider>
@@ -305,7 +305,7 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
             <OpplanStatus opplan={opplan} />
           )}
 
-          {agent.error && <ErrorMessage content={agent.error} />}
+          {agent.error && <ErrorMessage content={agent.error} onDismiss={agent.clearError} />}
 
           {/* No global "(ctrl+o to expand)" hint here: the Prompt footer
               already shows "ctrl+o: expand" persistently while idle, and
