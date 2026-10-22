@@ -14,7 +14,11 @@ func TestCreateDirectEngagement_MachineScopeFromCreationData(t *testing.T) {
 	// Given a name and operator-entered targets, without prewritten scope.
 	home := t.TempDir()
 	// When creating the engagement.
-	choice, err := createDirectEngagement(home, "direct-test", "https://example.com/login, *.corp.example.com", "secret.corp.example.com", time.Date(2026, 10, 18, 1, 0, 0, 0, time.UTC))
+	lists, err := buildScopeLists([]string{"https://example.com/login, *.corp.example.com"}, []string{"secret.corp.example.com"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	choice, err := createDirectEngagement(home, "direct-test", lists, time.Date(2026, 10, 18, 1, 0, 0, 0, time.UTC))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +61,13 @@ func TestCreateDirectEngagement_RejectsEmptyScopeWithoutWorkspace(t *testing.T) 
 			// Given targets that yield no in-scope pattern.
 			home := t.TempDir()
 			// When creation is requested.
-			_, err := createDirectEngagement(home, "invalid-target", targets, "", time.Now())
+			lists, listsErr := buildScopeLists([]string{targets}, nil)
+			var err error
+			if listsErr != nil {
+				err = listsErr
+			} else {
+				_, err = createDirectEngagement(home, "invalid-target", lists, time.Now())
+			}
 			// Then no workspace is created.
 			if err == nil {
 				t.Fatal("accepted scopeless creation")
@@ -71,8 +81,13 @@ func TestCreateDirectEngagement_RejectsEmptyScopeWithoutWorkspace(t *testing.T) 
 
 func TestCreateDirectEngagement_RejectsNonASCIITarget(t *testing.T) {
 	home := t.TempDir()
-	if _, err := createDirectEngagement(home, "idn-target", "엘리스.io", "", time.Now()); err == nil {
+	// Non-ASCII hostnames are rejected at normalization — the actionable
+	// message points the operator at the punycode form.
+	if _, err := buildScopeLists([]string{"엘리스.io"}, nil); err == nil {
 		t.Fatal("accepted a non-ASCII hostname")
+	}
+	if _, err := os.Stat(filepath.Join(home, "workspace", "idn-target")); !os.IsNotExist(err) {
+		t.Fatalf("workspace created: %v", err)
 	}
 }
 
@@ -86,7 +101,7 @@ func TestCreateDirectEngagement_PreservesExistingScope(t *testing.T) {
 		t.Fatal(err)
 	}
 	// When another creation uses the same name.
-	_, err = createDirectEngagement(home, "existing-test", "https://different.example.com", "", time.Now())
+	_, err = createDirectEngagement(home, "existing-test", mustLists(t, []string{"https://different.example.com"}, nil), time.Now())
 	// Then the existing scope remains intact.
 	if err == nil {
 		t.Fatal("reused existing engagement")
@@ -127,7 +142,7 @@ func TestCreateDirectEngagement_GoldenVectors(t *testing.T) {
 		t.Run(tc.Name, func(t *testing.T) {
 			home := t.TempDir()
 			slug := fmt.Sprintf("vector-%02d", i)
-			if _, err := createDirectEngagement(home, slug, strings.Join(tc.Targets, ", "), strings.Join(tc.OutOfScope, ", "), time.Now()); err != nil {
+			if _, err := createDirectEngagement(home, slug, mustLists(t, tc.Targets, tc.OutOfScope), time.Now()); err != nil {
 				t.Fatalf("create: %v", err)
 			}
 			raw, err := os.ReadFile(filepath.Join(home, "workspace", slug, "plan", "roe.json"))
@@ -145,5 +160,51 @@ func TestCreateDirectEngagement_GoldenVectors(t *testing.T) {
 				t.Fatalf("out_of_scope mismatch:\n got %v\nwant %v", got.MachineEnforcement.OutOfScope, tc.Out)
 			}
 		})
+	}
+}
+
+// mustLists compiles creation inputs, failing the test when the shared
+// normalization contract rejects them.
+func mustLists(t *testing.T, targets, outOfScope []string) scopeLists {
+	t.Helper()
+	lists, err := buildScopeLists(targets, outOfScope)
+	if err != nil {
+		t.Fatalf("buildScopeLists: %v", err)
+	}
+	return lists
+}
+
+func TestRenderScopePreview_ShowsGeneratedScope(t *testing.T) {
+	lists, err := buildScopeLists(
+		[]string{"https://elice.io/login, *.corp.example.com"},
+		[]string{"secret.corp.example.com"},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	preview := renderScopePreview("acme-2026", lists)
+	for _, want := range []string{
+		`Creating engagement "acme-2026"`,
+		"In scope (3): elice.io, *.corp.example.com, corp.example.com",
+		"Out of scope: secret.corp.example.com",
+		"Red enforces this scope on every tool call.",
+	} {
+		if !strings.Contains(preview, want) {
+			t.Fatalf("preview missing %q:\n%s", want, preview)
+		}
+	}
+	if strings.Contains(preview, "Dropped") {
+		t.Fatalf("preview reports dropped entries for a clean scope:\n%s", preview)
+	}
+}
+
+func TestRenderScopePreview_ReportsDroppedEntries(t *testing.T) {
+	lists, err := buildScopeLists([]string{"*.", "elice.io"}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	preview := renderScopePreview("acme-2026", lists)
+	if !strings.Contains(preview, "Dropped (1): *.") {
+		t.Fatalf("preview missing the dropped entry:\n%s", preview)
 	}
 }

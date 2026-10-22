@@ -6,8 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"time"
-
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/ui"
 )
 
 type directScopeWindow struct {
@@ -32,19 +30,16 @@ type machineRoeDocument struct {
 }
 
 // createDirectEngagement only owns a newly created workspace. Existing scopes
-// are never migrated or overwritten during creation. Targets and the optional
-// denylist share the core builder's normalization contract (see
-// scope_targets.go and the golden vectors).
-func createDirectEngagement(home, slug, targetsInput, outOfScopeInput string, now time.Time) (Choice, error) {
+// are never migrated or overwritten during creation. The caller compiles the
+// scope through the shared normalization contract (see scope_targets.go and
+// the golden vectors) and shows it for review; dropped entries are surfaced
+// in that preview, not re-reported here.
+func createDirectEngagement(home, slug string, lists scopeLists, now time.Time) (Choice, error) {
 	if err := validateSlug(home, slug); err != nil {
 		return Choice{}, err
 	}
-	lists, err := buildScopeLists([]string{targetsInput}, []string{outOfScopeInput})
-	if err != nil {
-		return Choice{}, err
-	}
-	for _, dropped := range lists.Dropped {
-		ui.Warning(fmt.Sprintf("Dropped target %q: no DNS/IP target can match it", dropped))
+	if len(lists.InScope) == 0 {
+		return Choice{}, fmt.Errorf("engagement scope requires at least one in-scope target")
 	}
 	now = now.UTC()
 	end := now.AddDate(0, 0, 7)

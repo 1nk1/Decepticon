@@ -179,15 +179,15 @@ func TestDirectScopePinsTargetAndRoE(t *testing.T) {
 	if !scopeReady(home, "direct") {
 		t.Fatal("machine scope was not recognized")
 	}
-	if target, confirmed := readScopeTarget(root); target != "example.com" || !confirmed {
-		t.Fatalf("scope target was not restored: %q confirmed=%v", target, confirmed)
+	if summary := readScopeSummary(root); summary.Target != "example.com" || !summary.Enforced {
+		t.Fatalf("scope summary was not restored: %+v", summary)
 	}
 	// A legacy dual-form document still yields its first human target.
 	if err := os.WriteFile(filepath.Join(root, "plan", "roe.json"), []byte(`{"in_scope":[{"target":"https://legacy.example.com"}],"authorization_reference":"contract"}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if target, confirmed := readScopeTarget(root); target != "https://legacy.example.com" || !confirmed {
-		t.Fatalf("legacy scope target was not restored: %q confirmed=%v", target, confirmed)
+	if summary := readScopeSummary(root); summary.Target != "https://legacy.example.com" || summary.Enforced {
+		t.Fatalf("legacy scope summary was not restored: %+v", summary)
 	}
 	if err := os.WriteFile(filepath.Join(root, "plan", "roe.json"), []byte(`{"changed":true}`), 0o600); err != nil {
 		t.Fatal(err)
@@ -267,7 +267,7 @@ func TestPromptNewEngagement_RejectsEndOfInputBeforeTarget(t *testing.T) {
 	os.Stdin = input
 	t.Cleanup(func() { os.Stdin = previousInput })
 	// When target input ends before the URL is supplied.
-	_, _, _, err = promptNewEngagement(home)
+	_, _, err = promptNewEngagement(home)
 	// Then no unscoped engagement can be submitted.
 	if err == nil {
 		t.Fatal("accepted a name without a target")
@@ -288,7 +288,7 @@ func TestPromptNewEngagement_RejectsEndOfInputBeforeName(t *testing.T) {
 	t.Cleanup(func() { os.Stdin = previousInput })
 
 	// When the form reaches EOF without a name.
-	_, _, _, err = promptNewEngagement(home)
+	_, _, err = promptNewEngagement(home)
 	// Then it must not create an engagement at the workspace root.
 	if err == nil {
 		t.Fatal("accepted EOF without an engagement name")
@@ -334,5 +334,16 @@ func TestChoiceForEngagement_OpensRedWithScopeState(t *testing.T) {
 				t.Fatalf("unexpected readiness for %s", state)
 			}
 		})
+	}
+}
+
+func TestPickerItem_Description_ShowsScopeSummary(t *testing.T) {
+	ready := pickerItem{slug: "alpha", ready: true, scope: scopeSummary{Target: "example.com", InCount: 3, DenyCount: 1, Enforced: true}}
+	if got := ready.Description(); got != "Red ready · 3 in scope · 1 denied · example.com" {
+		t.Fatalf("unexpected ready description: %q", got)
+	}
+	progress := pickerItem{slug: "bravo", inProgress: true}
+	if got := progress.Description(); got == "" || got == "Authorized Red scope available" {
+		t.Fatalf("unexpected in-progress description: %q", got)
 	}
 }

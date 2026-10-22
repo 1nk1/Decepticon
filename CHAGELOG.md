@@ -26,7 +26,11 @@ Keep proposed and unmerged changes out of released sections.
   the authorization (the operator owns it), the RoE middleware enforces the
   scope on every tool call, and readiness across the launcher picker, TUI Red
   gate and web dashboard is "an enforced machine scope exists". Legacy
-  dual-form RoE documents remain readable. Source only, unreleased.
+  dual-form RoE documents remain readable. The creation flow reviews the
+  generated scope before it is committed — a normalized preview (in-scope
+  entries, denylist, and dropped patterns) requires an explicit Create
+  confirmation — and the engagement picker shows each engagement's scope
+  summary (in-scope/denied counts and first target). Source only, unreleased.
 
 - Review corrections for [PR #1036](https://github.com/BitterSecurity/Decepticon/pull/1036):
   decode cumulative SDK `messages/partial` and `messages/complete` events and
