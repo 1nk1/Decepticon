@@ -135,7 +135,9 @@ def test_manifest_count_unchanged() -> None:
     a major-version bump is an audit signal.
     """
     # Update this number deliberately when adding/removing public names.
-    expected = 75
+    # 2026-10-22: 75 -> 74, EnforcementMode removed (legacy audit/warn/enforce
+    # modes retired; RoE now always fail-closed enforce). See CHANGELOG.
+    expected = 74
     actual = len(CORE_PUBLIC_API)
     assert actual == expected, (
         f"CORE_PUBLIC_API has {actual} entries, expected {expected}. "

@@ -39,7 +39,6 @@ def test_writes_always_enforced_roe(workspace: Path) -> None:
     materialize_engagement_roe("eng1", ["elice.io"], fetch=_no_discovery)
     roe = json.loads(_roe_path(workspace).read_text())
     assert roe["engagement_name"] == "eng1"
-    assert roe["machine_enforcement"]["mode"] == "enforce"
     assert roe["machine_enforcement"]["in_scope"] == ["elice.io"]
 
 
@@ -79,7 +78,6 @@ def test_path_only_targets_produce_path_scoped_roe(workspace: Path) -> None:
     (scan_root / "app.py").write_text("x")
     materialize_engagement_roe("eng6", [str(scan_root)], fetch=_no_discovery)
     roe = json.loads(_roe_path(workspace).read_text())
-    assert roe["machine_enforcement"]["mode"] == "enforce"
     assert roe["machine_enforcement"]["in_scope"] == []
 
 
