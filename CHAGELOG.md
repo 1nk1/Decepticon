@@ -15,6 +15,19 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed: mechanical engagement creation across the Go launcher. The
+  launcher now generates the same machine-enforceable `plan/roe.json` the MCP
+  bridge and CLI scan produce, from a broadened creation grammar — multiple
+  targets (URLs, hostnames, CIDRs, `*.domain` globs) plus an optional
+  out-of-scope denylist — pinned to the core builder by shared golden test
+  vectors. The `.red-approved` approval marker and the Red-approval ceremony
+  (`/mode red approve`, the web plan-approval POST, `provision_roe
+  --approve-red`) are retired: creating an engagement with a declared scope is
+  the authorization (the operator owns it), the RoE middleware enforces the
+  scope on every tool call, and readiness across the launcher picker, TUI Red
+  gate and web dashboard is "an enforced machine scope exists". Legacy
+  dual-form RoE documents remain readable. Source only, unreleased.
+
 - Review corrections for [PR #1036](https://github.com/BitterSecurity/Decepticon/pull/1036):
   decode cumulative SDK `messages/partial` and `messages/complete` events and
   single message tuples correctly. Retire live text by message ID, ignore late

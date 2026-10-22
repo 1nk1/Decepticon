@@ -1,8 +1,6 @@
 package engagement
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -54,49 +52,97 @@ type engagementEntry struct {
 	mtime int64
 }
 
-func isRedApproved(home, slug string) bool {
-	root := filepath.Join(home, "workspace", slug)
-	marker, err := os.ReadFile(filepath.Join(root, ".red-approved"))
+// scopeReady reports whether the engagement has an enforced machine scope.
+// Creation is the authorization — an engagement created with targets carries
+// an enforce-mode “plan/roe.json“ and needs no separate approval marker.
+func scopeReady(home, slug string) bool {
+	data, err := os.ReadFile(filepath.Join(home, "workspace", slug, "plan", "roe.json"))
 	if err != nil {
 		return false
 	}
-	roe, err := os.ReadFile(filepath.Join(root, "plan", "roe.json"))
-	if err != nil {
+	mode, entries, err := readMachineScope(data)
+	if err != nil || mode != "enforce" || entries == 0 {
 		return false
 	}
-	direct := sha256.Sum256(roe)
-	if strings.TrimSpace(string(marker)) == "roe:"+hex.EncodeToString(direct[:]) {
-		return true
-	}
-	digest := sha256.New()
-	for _, filename := range planningDocuments {
-		content, err := os.ReadFile(filepath.Join(root, "plan", filename))
-		if err != nil {
-			return false
-		}
-		_, _ = digest.Write([]byte(filename))
-		_, _ = digest.Write([]byte{0})
-		_, _ = digest.Write(content)
-		_, _ = digest.Write([]byte{0})
-	}
-	return strings.TrimSpace(string(marker)) == hex.EncodeToString(digest.Sum(nil))
+	return true
 }
 
+// readMachineScope extracts the machine_enforcement block, accepting both the
+// current string-form entries and the pre-unification object-form entries
+// (“{"target": "..."}“) so engagements created by older versions stay
+// selectable. Returns the mode and the number of usable in-scope entries.
+func readMachineScope(data []byte) (string, int, error) {
+	var doc struct {
+		MachineEnforcement *struct {
+			Mode    string            `json:"mode"`
+			InScope []json.RawMessage `json:"in_scope"`
+		} `json:"machine_enforcement"`
+	}
+	if err := json.Unmarshal(data, &doc); err != nil || doc.MachineEnforcement == nil {
+		return "", 0, fmt.Errorf("no machine_enforcement block")
+	}
+	usable := 0
+	for _, raw := range doc.MachineEnforcement.InScope {
+		var target string
+		if json.Unmarshal(raw, &target) == nil && target != "" {
+			usable++
+			continue
+		}
+		var entry struct {
+			Target string `json:"target"`
+		}
+		if json.Unmarshal(raw, &entry) == nil && entry.Target != "" {
+			usable++
+		}
+	}
+	return doc.MachineEnforcement.Mode, usable, nil
+}
+
+// readScopeTarget returns the engagement's first in-scope target: the machine
+// scope first (string-form and legacy object-form entries), then the legacy
+// top-level human “in_scope“ list.
 func readScopeTarget(root string) (string, bool) {
 	data, err := os.ReadFile(filepath.Join(root, "plan", "roe.json"))
 	if err != nil {
 		return "", false
 	}
-	var roe struct {
+	if _, entries, readErr := readMachineScope(data); readErr == nil && entries > 0 {
+		var doc struct {
+			MachineEnforcement *struct {
+				InScope []json.RawMessage `json:"in_scope"`
+			} `json:"machine_enforcement"`
+		}
+		if json.Unmarshal(data, &doc) == nil && doc.MachineEnforcement != nil {
+			for _, raw := range doc.MachineEnforcement.InScope {
+				if target, ok := scopeEntryTarget(raw); ok {
+					return target, true
+				}
+			}
+		}
+	}
+	var legacy struct {
 		InScope []struct {
 			Target string `json:"target"`
 		} `json:"in_scope"`
-		AuthorizationReference string `json:"authorization_reference"`
 	}
-	if json.Unmarshal(data, &roe) != nil || len(roe.InScope) == 0 || strings.TrimSpace(roe.AuthorizationReference) == "" {
-		return "", false
+	if json.Unmarshal(data, &legacy) == nil && len(legacy.InScope) > 0 {
+		return legacy.InScope[0].Target, true
 	}
-	return roe.InScope[0].Target, true
+	return "", false
+}
+
+func scopeEntryTarget(raw json.RawMessage) (string, bool) {
+	var target string
+	if json.Unmarshal(raw, &target) == nil && target != "" {
+		return target, true
+	}
+	var entry struct {
+		Target string `json:"target"`
+	}
+	if json.Unmarshal(raw, &entry) == nil && entry.Target != "" {
+		return entry.Target, true
+	}
+	return "", false
 }
 
 func ScanEngagements(home string) ([]engagementEntry, error) {
@@ -118,7 +164,7 @@ func ScanEngagements(home string) ([]engagementEntry, error) {
 		if strings.HasPrefix(slug, ".") {
 			continue
 		}
-		entry := engagementEntry{Slug: slug, Ready: isRedApproved(home, slug)}
+		entry := engagementEntry{Slug: slug, Ready: scopeReady(home, slug)}
 		if entry.Ready {
 			if st, err := os.Stat(filepath.Join(root, slug, "plan", "roe.json")); err == nil {
 				entry.mtime = st.ModTime().Unix()
@@ -203,7 +249,7 @@ func (i pickerItem) Description() string {
 		return "Create a new engagement workspace"
 	}
 	if i.inProgress {
-		return "Scope approval needed before Red execution"
+		return "No enforced scope: create with targets or import plan/roe.json"
 	}
 	return "Authorized Red scope available"
 }
@@ -423,11 +469,11 @@ func Select(home string) (Choice, error) {
 	}
 
 	if final.chosen.isNew {
-		slug, target, err := promptNewEngagement(home)
+		slug, targets, outOfScope, err := promptNewEngagement(home)
 		if err != nil {
 			return Choice{}, err
 		}
-		return createDirectEngagement(home, slug, target, time.Now())
+		return createDirectEngagement(home, slug, targets, outOfScope, time.Now())
 	}
 
 	return choiceForEngagement(home, final.chosen.slug), nil
@@ -494,8 +540,8 @@ func choiceForEngagement(home, slug string) Choice {
 	}
 }
 
-func promptNewEngagement(home string) (string, string, error) {
-	var slug, target string
+func promptNewEngagement(home string) (string, string, string, error) {
+	var slug, targets, outOfScope string
 	form := huh.NewForm(
 		huh.NewGroup(
 			huh.NewInput().
@@ -504,21 +550,50 @@ func promptNewEngagement(home string) (string, string, error) {
 				Placeholder("e.g., acme-external-2026").
 				Value(&slug).
 				Validate(func(s string) error { return validateSlug(home, s) }),
-			huh.NewInput().Title("Target web URL").
-				Description("Enter the target you are authorized to test. Create starts Red with this scope; Plan is optional.").
-				Placeholder("https://example.com").Value(&target).
-				Validate(func(s string) error { _, err := parseDirectWebTarget(s); return err }),
+			huh.NewInput().Title("Target scope").
+				Description("Targets you are authorized to test — URLs, hostnames, CIDRs, or *.domain globs; commas or spaces separate entries. Creating the engagement with a scope is the authorization.").
+				Placeholder("elice.io, 10.0.0.0/24, *.example.com").
+				Value(&targets).
+				Validate(func(s string) error {
+					in, _, err := dedupeScopeTargets(splitScopeTargets([]string{s}))
+					if err != nil {
+						return err
+					}
+					if len(in) == 0 {
+						return fmt.Errorf("enter at least one in-scope target")
+					}
+					return nil
+				}),
+			huh.NewInput().Title("Out of scope (optional)").
+				Description("Entries the engagement must never touch; they override any in-scope match.").
+				Placeholder("admin.example.com, 10.0.0.5/32").
+				Value(&outOfScope).
+				Validate(func(s string) error {
+					if strings.TrimSpace(s) == "" {
+						return nil
+					}
+					_, _, err := dedupeScopeTargets(splitScopeTargets([]string{s}))
+					return err
+				}),
 		).Title("New engagement"),
 	).WithTheme(huh.ThemeFunc(ui.DecepticonTheme))
 	if err := form.Run(); err != nil {
-		return "", "", fmt.Errorf("engagement setup cancelled: %w", err)
+		return "", "", "", fmt.Errorf("engagement setup cancelled: %w", err)
 	}
 	if err := validateSlug(home, slug); err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
-	parsed, err := parseDirectWebTarget(target)
+	// The form's validators do not fire when stdin ends mid-form; re-verify the
+	// contract here so an EOF can never yield a scopeless engagement.
+	in, _, err := dedupeScopeTargets(splitScopeTargets([]string{targets}))
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
-	return slug, parsed, nil
+	if len(in) == 0 {
+		return "", "", "", fmt.Errorf("engagement setup cancelled: no in-scope target entered")
+	}
+	if _, _, err := dedupeScopeTargets(splitScopeTargets([]string{outOfScope})); err != nil {
+		return "", "", "", err
+	}
+	return slug, targets, outOfScope, nil
 }

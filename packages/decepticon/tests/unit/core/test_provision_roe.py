@@ -1,8 +1,7 @@
-"""Operator provisioning must repair a missing RoE without granting execution."""
+"""Operator provisioning installs the reviewed scope the middleware enforces."""
 
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import subprocess
@@ -59,19 +58,18 @@ def source(tmp_path: Path) -> Path:
     return source
 
 
-def test_provisions_missing_roe_preserving_plans_without_approval(
+def test_provisions_missing_roe_preserving_plans(
     workspace: Path, source: Path
 ) -> None:
     # Given an existing plan and an operator-reviewed RoE.
     before = (workspace / "plan" / "conops.json").read_bytes()
     # When the operator explicitly confirms provisioning.
     result = _invoke(workspace, source, "--confirm")
-    # Then the reviewed bytes are installed without altering plans or approving Red.
+    # Then the reviewed bytes are installed without altering plans.
     assert result.returncode == 0, result.stderr
     assert (workspace / "plan" / "roe.json").read_bytes() == source.read_bytes()
     assert (workspace / "plan" / "conops.json").read_bytes() == before
     assert not (workspace / ".red-approved").exists()
-    assert not (workspace / ".planning-draft-ready").exists()
     assert (workspace / "plan" / "roe.json").stat().st_mode & 0o777 == 0o600
 
 
@@ -131,49 +129,10 @@ def test_refuses_symlinked_plan(workspace: Path, source: Path, tmp_path: Path) -
     assert not (external / "roe.json").exists()
 
 
-def test_invalidates_stale_review_markers_before_restoring_roe(
-    workspace: Path, source: Path
-) -> None:
-    # Given review markers left over after an RoE was removed.
-    for marker in (".red-approved", ".planning-draft-ready"):
-        (workspace / marker).write_text("stale approval")
-    # When an operator restores the missing RoE.
-    result = _invoke(workspace, source, "--confirm")
-    # Then validation and execution approval must be renewed.
-    assert result.returncode == 0, result.stderr
-    assert not (workspace / ".red-approved").exists()
-    assert not (workspace / ".planning-draft-ready").exists()
-
-
-def test_explicit_direct_approval_requires_no_plan_bundle(workspace: Path, source: Path) -> None:
-    result = _invoke(workspace, source, "--confirm", "--approve-red")
-    assert result.returncode == 0, result.stderr
-    assert (workspace / ".red-approved").read_text().strip() == (
-        "roe:" + hashlib.sha256(source.read_bytes()).hexdigest()
-    )
-    assert not (workspace / "plan" / "threat-profile.json").exists()
-    assert not (workspace / ".planning-draft-ready").exists()
-
-
-def test_direct_approval_accepts_existing_reviewed_bytes(workspace: Path, source: Path) -> None:
-    (workspace / "plan" / "roe.json").write_bytes(source.read_bytes())
-    result = _invoke(workspace, source, "--confirm", "--approve-red")
-    assert result.returncode == 0, result.stderr
-    assert (workspace / ".red-approved").read_text().strip() == (
-        "roe:" + hashlib.sha256(source.read_bytes()).hexdigest()
-    )
-
-
-def test_direct_approval_rejects_unreviewed_existing_bytes(workspace: Path, source: Path) -> None:
-    destination = workspace / "plan" / "roe.json"
-    destination.write_bytes(source.read_bytes() + b"\n")
+def test_removed_approval_flag_is_rejected(workspace: Path, source: Path) -> None:
+    # The approval marker is retired: creation and provisioning are the
+    # authorization, and the middleware enforces the installed scope.
     result = _invoke(workspace, source, "--confirm", "--approve-red")
     assert result.returncode == 2
-    assert not (workspace / ".red-approved").exists()
-
-
-def test_direct_approval_requires_operator_confirmation(workspace: Path, source: Path) -> None:
-    result = _invoke(workspace, source, "--approve-red")
-    assert result.returncode == 2
+    assert "--approve-red" in result.stderr or "no such option" in result.stderr.lower()
     assert not (workspace / "plan" / "roe.json").exists()
-    assert not (workspace / ".red-approved").exists()
