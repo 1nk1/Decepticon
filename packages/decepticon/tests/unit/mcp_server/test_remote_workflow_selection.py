@@ -16,6 +16,7 @@ async def test_remote_selector_reaches_target_without_local_catalog(
     assistant: str,
     version: str | None,
     monkeypatch: pytest.MonkeyPatch,
+    _roe_hermetic: None,
 ) -> None:
     # Given a selector installed only on the target, not in the MCP bridge.
     monkeypatch.delenv("DECEPTICON_WORKFLOW_DIR", raising=False)
@@ -31,7 +32,7 @@ async def test_remote_selector_reaches_target_without_local_catalog(
         result = await session.call_tool(
             "decepticon_start_engagement",
             {
-                "targets": [],
+                "targets": ["https://example.com"],
                 "assistant": assistant,
                 "workflow_id": "server-owned",
                 "workflow_version": version,

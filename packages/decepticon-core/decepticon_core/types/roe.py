@@ -153,6 +153,103 @@ def _parse_rules(items: Iterable[Any]) -> list[ScopeRule]:
     return rules
 
 
+def _normalize_scope_target(raw: str) -> str:
+    """Reduce an engagement target to a scope-rule pattern.
+
+    URLs collapse to their hostname (the parser/egress match on host, not path);
+    hostnames, CIDRs and ``*.`` globs pass through unchanged.
+    """
+    value = (raw or "").strip()
+    if not value:
+        return ""
+    if "://" in value:
+        host = urlsplit(value).hostname
+        return host or ""
+    # Normalize CIDR to its canonical network address (10.0.0.5/24 -> 10.0.0.0/24).
+    # Only values carrying a ``/`` are treated as networks, so a bare IP/host is
+    # not silently rewritten to ``/32``.
+    if "/" in value:
+        try:
+            return str(ipaddress.ip_network(value, strict=False))
+        except ValueError:
+            pass
+    # A bare ``host:port`` or ``host/path`` — keep only the host.
+    value = value.split("/", 1)[0]
+    if ":" in value and not _looks_like_ipv6(value):
+        value = value.split(":", 1)[0]
+    return value
+
+
+def _looks_like_ipv6(value: str) -> bool:
+    try:
+        ipaddress.ip_address(value)
+        return isinstance(ipaddress.ip_address(value), ipaddress.IPv6Address)
+    except ValueError:
+        return value.count(":") > 1
+
+
+def wildcard_base_domain(pattern: str) -> str:
+    """Base domain of a ``*.`` subdomain glob (``*.elice.io`` -> ``elice.io``).
+
+    Returns ``""`` for anything that is not a clean single-level subdomain glob
+    (bare ``*``, nested wildcards, empty labels, or a port) so callers never
+    widen scope from a malformed pattern.
+    """
+    value = (pattern or "").strip()
+    if not value.startswith("*."):
+        return ""
+    base = value[2:].rstrip(".").lower()
+    if not base or any(c in base for c in "*?:/"):
+        return ""
+    if any(part == "" for part in base.split(".")):
+        return ""
+    return base
+
+
+def _dedupe_targets(targets: Iterable[str]) -> list[str]:
+    seen: dict[str, None] = {}
+    for raw in targets:
+        norm = _normalize_scope_target(raw)
+        if norm:
+            seen.setdefault(norm, None)
+    return list(seen)
+
+
+def build_engagement_roe(
+    engagement_name: str,
+    targets: Iterable[str],
+    out_of_scope: Iterable[str] = (),
+) -> dict[str, Any]:
+    """Build an always-enforced, machine-enforceable RoE from creation data.
+
+    The engagement-creation inputs *are* the scope: each target becomes an
+    in-scope ``ScopeRule`` (host / CIDR / glob auto-detected). The result always
+    enforces — there is no audit/warn mode. Raises ``ValueError`` when no usable
+    in-scope target can be derived, so an engagement with no scope fails closed
+    instead of running unscoped.
+    """
+    in_scope = _dedupe_targets(targets)
+    if not in_scope:
+        raise ValueError("engagement RoE requires at least one in-scope target")
+    # A subdomain glob authorizes the operator's zone, and the apex is part of
+    # that zone — host matching would otherwise never reach the bare domain
+    # (``*.elice.io`` does not match ``elice.io``). Appended after the authored
+    # targets so operator entries keep their order.
+    in_scope += [
+        base
+        for pattern in list(in_scope)
+        if (base := wildcard_base_domain(pattern)) and base not in in_scope
+    ]
+    return {
+        "engagement_name": engagement_name,
+        "machine_enforcement": {
+            "mode": EnforcementMode.ENFORCE.value,
+            "in_scope": in_scope,
+            "out_of_scope": _dedupe_targets(out_of_scope),
+        },
+    }
+
+
 def _parse_iso(value: Any) -> datetime | None:
     if not isinstance(value, str):
         return None
