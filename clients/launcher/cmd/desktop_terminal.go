@@ -134,7 +134,7 @@ func (owner *desktopTerminalOwner) receipt() (*desktopTerminalReceipt, error) {
 			return nil, err
 		}
 	}
-	status, err := terminalDocker("exec", record.ID, "tmux", "show-options", "-t", "=main", "-v", "status")
+	status, err := terminalDocker("exec", record.ID, "tmux", "show-options", "-A", "-t", "=main:", "-v", "status")
 	if err != nil {
 		return nil, err
 	}

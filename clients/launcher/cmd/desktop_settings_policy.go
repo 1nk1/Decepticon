@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -30,13 +31,32 @@ func desktopPolicyOverlay() (string, string, error) {
 	if err == nil && relative != ".." && !strings.HasPrefix(relative, ".."+string(os.PathSeparator)) {
 		return "", "", fmt.Errorf("Desktop policy custody must be outside the writable workspace")
 	}
+	policyPath := filepath.Join(custody, "settings.json")
+	info, err := os.Lstat(policyPath)
+	if err != nil || !info.Mode().IsRegular() || info.Size() > 256*1024 {
+		return "", "", fmt.Errorf("Desktop policy file is unavailable")
+	}
+	data, err := os.ReadFile(policyPath)
+	if err != nil || len(data) > 256*1024 {
+		return "", "", fmt.Errorf("Desktop policy file is unavailable")
+	}
+	var policy struct {
+		Protocol   uint32 `json:"protocol_version"`
+		Workspace  string `json:"workspace_id"`
+		Engagement string `json:"engagement_id"`
+		Revision   uint64 `json:"revision"`
+	}
+	if err := json.Unmarshal(data, &policy); err != nil || policy.Protocol != 1 || policy.Workspace != workspaceID || policy.Engagement != engagementID || policy.Revision == 0 {
+		return "", "", fmt.Errorf("Desktop policy does not match its native owner")
+	}
 	source, err := json.Marshal(strings.ReplaceAll(filepath.ToSlash(custody), "$", "$$"))
 	if err != nil {
 		return "", "", fmt.Errorf("encode Desktop policy directory: %w", err)
 	}
 	environment := "      DECEPTICON_DESKTOP_POLICY_DIR: /run/decepticon-desktop-policy\n" +
 		"      DECEPTICON_DESKTOP_WORKSPACE_ID: \"" + workspaceID + "\"\n" +
-		"      DECEPTICON_DESKTOP_ENGAGEMENT_ID: \"" + engagementID + "\"\n"
+		"      DECEPTICON_DESKTOP_ENGAGEMENT_ID: \"" + engagementID + "\"\n" +
+		"      DECEPTICON_DESKTOP_POLICY_REVISION: \"" + strconv.FormatUint(policy.Revision, 10) + "\"\n"
 	mount := "    volumes:\n" +
 		"      - type: bind\n" +
 		"        source: " + string(source) + "\n" +

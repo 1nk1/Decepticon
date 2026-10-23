@@ -15,6 +15,10 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Include the validated native policy revision in the agent service environment, so applying changed agent/tool settings reconstructs cached graphs during idle startup instead of leaving old policy handles active. Missing, oversized, redirected or mismatched owner policy files fail before Compose.
+
+- Native terminal startup reads inherited tmux status settings with an exact session/window target. Real sandbox qualification caught that a session-only target was rejected by show-options, preventing service registration despite healthy containers.
+
 - Desktop Ollama startup accepts only a native-provided private-IP relay endpoint and labels its owned model proxy independently from the terminal sandbox. This supports Linux loopback model access through the native host without exposing Ollama publicly. Desktop mounts only the selected subscription's credential file; Ollama and API-key sessions do not mount unrelated Codex/Claude account files. Normal interactive CLI credential discovery remains unchanged.
 
 - Native Desktop may supply its locally prepared agent image using the fixed `decepticon-desktop-agent:sha-<source commit>` identity. The private overlay applies it only to the agent service; malformed image references fail before Compose. This lets the packaged native host build its matching pinned runtime without depending on an unpublished registry image.
