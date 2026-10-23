@@ -66,9 +66,11 @@ terminal, not in the shell or the MCP bridge.
   still requires the workspace mapping on the server to exist and be
   authorized for that engagement; when in doubt, start the engagement in the
   interactive CLI and observe its thread through MCP.
-- A local repository path in MCP `targets` is passed as text. It is not copied
-  into the sandbox; confirm the target code is actually mounted before asking
-  Decepticon to analyze it.
+- Engagement `targets` are network assets (URLs, hosts, CIDRs, globs, git
+  remotes). A local repository path is not a valid target — the standalone
+  SAST/CI entry was removed (issue #1059); code analysis happens inside an
+  engagement once the operation itself obtains the source, with the code
+  mounted or fetched as part of that engagement's workflow.
 - `decepticon_send_message` queues a new turn behind an active run. Do not tell
   the user it changed the current execution until a subsequent transcript or
   state confirms the effect.

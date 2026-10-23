@@ -1,7 +1,7 @@
 # Proposal: resolve the dual `docker-compose.yml` architecture (issue #156)
 
 **Status**: draft, awaiting maintainer direction
-**Issue**: [#156](https://github.com/PurpleAILAB/Decepticon/issues/156)
+**Issue**: [#156](https://github.com/BitterSecurity/Decepticon/issues/156)
 **Author**: VoidChecksum
 
 ---

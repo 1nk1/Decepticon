@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"charm.land/huh/v2"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/cmd/infracontrol"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/config"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/migrate"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/platform"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/starprompt"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/ui"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/cmd/infracontrol"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/config"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/migrate"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/platform"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/starprompt"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -39,7 +39,7 @@ Safe to re-run: with --reset it reconfigures even when .env already
 exists; without it the wizard is skipped when .env already exists.`,
 	Example: `  decepticon onboard           Run the setup wizard for a new install
   decepticon onboard --reset   Reconfigure an existing installation`,
-	RunE:  runOnboard,
+	RunE: runOnboard,
 }
 
 func init() {

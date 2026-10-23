@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/config"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/migrate"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/config"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/migrate"
 )
 
 func bootstrapDesktopEnv() error {

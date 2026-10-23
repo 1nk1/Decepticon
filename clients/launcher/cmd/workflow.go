@@ -5,7 +5,7 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/config"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/config"
 	"github.com/spf13/cobra"
 )
 

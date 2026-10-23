@@ -1,6 +1,7 @@
 package compose
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -9,9 +10,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/config"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/infracontrol"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/runtime"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/config"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/infracontrol"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/runtime"
 )
 
 // Compose wraps Docker Compose commands for Decepticon services.
@@ -378,4 +379,21 @@ func (c *Compose) RemoveOrphanedCLI() {
 		rm.Env = c.composeEnv()
 		_ = rm.Run()
 	}
+}
+
+// ExecCapture runs a command inside a running service and returns its
+// stdout, for read-only diagnostics (`doctor --deep`). Unlike Exec it
+// captures instead of streaming. A non-zero exit returns both the captured
+// output and the error: a diagnostics module that exits 1 still printed its
+// JSON report, and callers may want to fold it.
+func (c *Compose) ExecCapture(ctx context.Context, service string, command ...string) ([]byte, error) {
+	cmdArgs := append(c.baseArgs(), "exec", "-T", service)
+	cmdArgs = append(cmdArgs, command...)
+	cmd := exec.CommandContext(ctx, c.Runtime.Bin, cmdArgs...)
+	cmd.Env = c.composeEnv()
+	out, err := cmd.Output()
+	if err != nil {
+		return out, fmt.Errorf("%s compose exec %s: %w", c.Runtime.Name, service, err)
+	}
+	return out, nil
 }

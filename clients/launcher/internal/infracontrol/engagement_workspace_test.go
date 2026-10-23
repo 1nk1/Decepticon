@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/engagement"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/engagement"
 )
 
 func TestEngagementWorkspaceBindsSelectedDirectory(t *testing.T) {

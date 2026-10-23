@@ -245,8 +245,9 @@ def write_sarif(
 def severity_threshold_breach(document: dict[str, Any], *, fail_on: str = "high") -> bool:
     """Return True when the SARIF doc contains a result at or above ``fail_on``.
 
-    Used by CI gates: ``decepticon scan ... --fail-on high`` → exit non-zero
-    when any finding hits high or critical.
+    The standalone CLI severity gate was removed with the SAST entry
+    (issue #1059); the threshold helper stays for downstream consumers of
+    the exported SARIF document.
     """
     threshold = _LEVEL_MAP.get(fail_on.lower(), _LEVEL_MAP["high"])[1]
     for run in document.get("runs") or []:

@@ -9,7 +9,7 @@ import (
 )
 
 // reexecSelf re-runs the launcher binary as a child process and exits
-// with its status code. Windows has no ``execve`` equivalent that
+// with its status code. Windows has no “execve“ equivalent that
 // replaces the running process, so the parent stays alive only long
 // enough to wait for the child and propagate the exit code.
 //

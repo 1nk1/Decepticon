@@ -11,9 +11,9 @@ import (
 	"strings"
 
 	"charm.land/huh/v2"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/compose"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/config"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/ui"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/compose"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/config"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -36,7 +36,7 @@ confirmation prompts are skipped (useful for scripted teardown).`,
 	Example: `  decepticon remove                        Remove everything after confirmation
   decepticon remove --preserve-workspace   Back up workspace data before removing
   decepticon remove --yes                  Remove without confirmation prompts`,
-	RunE:    runRemove,
+	RunE: runRemove,
 }
 
 func init() {

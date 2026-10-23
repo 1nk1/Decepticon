@@ -12,9 +12,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/config"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/health"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/infracontrol"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/config"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/health"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/infracontrol"
 	"github.com/spf13/cobra"
 )
 
@@ -44,15 +44,27 @@ Compose V2, configuration (.env and docker-compose.yml) and
 authentication, LangGraph readiness, the opscontrol Unix socket and
 daemon health, and optional blue-team monitoring endpoints.
 
+With --deep, read-only runtime diagnostics also run inside the
+langgraph container (python -m decepticon.diagnostics): KG store
+reachability, Skillogy health, HITL/model-fallback slot resolution and
+the MCP auth mode.
+
 Nothing is modified. The command exits non-zero when a required check
 fails; optional checks are reported but do not affect the exit code.`,
 		Example: `  decepticon doctor           Run all diagnostics and print a report
-  decepticon doctor --json    Print a machine-readable report for CI`,
+  decepticon doctor --json    Print a machine-readable report for CI
+  decepticon doctor --deep    Also run the in-container runtime diagnostics`,
 		Args: cobra.NoArgs,
 	}
 	command.Flags().Bool("json", false, "Print a machine-readable report")
+	command.Flags().Bool("deep", false, "Also run read-only runtime diagnostics inside the langgraph container (requires the stack)")
 	command.RunE = func(cmd *cobra.Command, _ []string) error {
 		report := diagnose(cmd.Context())
+		if deep, err := cmd.Flags().GetBool("deep"); err != nil {
+			return err
+		} else if deep {
+			addDeepRuntimeChecks(cmd.Context(), &report)
+		}
 		jsonOutput, err := cmd.Flags().GetBool("json")
 		if err != nil {
 			return err

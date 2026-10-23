@@ -18,7 +18,7 @@ motivation.
 - The XBOW benchmarks submodule:
 
   ```bash
-  git submodule add https://github.com/PurpleAILAB/xbow-validation-benchmarks \
+  git submodule add https://github.com/BitterSecurity/xbow-validation-benchmarks \
       benchmark/xbow-validation-benchmarks
   git submodule update --init
   ```

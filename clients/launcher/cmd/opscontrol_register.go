@@ -1,6 +1,6 @@
 package cmd
 
-import "github.com/PurpleAILAB/Decepticon/clients/launcher/cmd/infracontrol"
+import "github.com/BitterSecurity/Decepticon/clients/launcher/cmd/infracontrol"
 
 // Bridge the opscontrol subcommand tree into the launcher's rootCmd.
 // Kept in a separate file so cmd/start.go and cmd/stop.go can import
