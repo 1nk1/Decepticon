@@ -15,6 +15,8 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed native Desktop runtime integration ([PR #1066](https://github.com/BitterSecurity/Decepticon/pull/1066)): the following service, policy, image, model relay and terminal changes are source candidates. See the [native contract](docs/design/desktop-native-terminal.md); no published release or Windows acceptance is claimed.
+
 - Include the validated native policy revision in the agent service environment, so applying changed agent/tool settings reconstructs cached graphs during idle startup instead of leaving old policy handles active. Missing, oversized, redirected or mismatched owner policy files fail before Compose.
 
 - Native terminal startup reads inherited tmux status settings with an exact session/window target. Real sandbox qualification caught that a session-only target was rejected by show-options, preventing service registration despite healthy containers.
