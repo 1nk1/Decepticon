@@ -77,3 +77,25 @@ func TestDesktopTerminalMeasuresTmuxStatusHeight(t *testing.T) {
 		}
 	}
 }
+
+func TestDesktopPinnedAgentImageCannotInjectComposeConfiguration(t *testing.T) {
+	for _, value := range []string{"arbitrary:latest", "decepticon-desktop-agent:sha-" + strings.Repeat("a", 39), "decepticon-desktop-agent:sha-" + strings.Repeat("a", 40) + "\n  web:"} {
+		t.Setenv("DECEPTICON_DESKTOP_AGENT_IMAGE", value)
+		if _, err := writeDesktopRuntimeOverlay(t.TempDir(), &desktopModelRuntime{provider: "ollama", model: "ollama_chat/fixture"}); err == nil {
+			t.Fatal("invalid pinned image accepted", value)
+		}
+	}
+	t.Setenv("DECEPTICON_DESKTOP_AGENT_IMAGE", "decepticon-desktop-agent:sha-"+strings.Repeat("a", 40))
+	path, err := writeDesktopRuntimeOverlay(t.TempDir(), &desktopModelRuntime{provider: "ollama", model: "ollama_chat/fixture"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parts := strings.Split(string(data), "  langgraph:\n")
+	if len(parts) != 2 || strings.Contains(parts[0], "image:") || !strings.Contains(parts[1], "    image: decepticon-desktop-agent:sha-") {
+		t.Fatal("native image must belong only to the agent service")
+	}
+}

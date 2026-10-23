@@ -116,6 +116,14 @@ func parseDesktopRuntime(serve bool) (*desktopModelRuntime, error) {
 }
 
 func writeDesktopRuntimeOverlay(home string, selected *desktopModelRuntime) (string, error) {
+	image := os.Getenv("DECEPTICON_DESKTOP_AGENT_IMAGE")
+	if image != "" {
+		const prefix = "decepticon-desktop-agent:sha-"
+		revision := strings.TrimPrefix(image, prefix)
+		if !strings.HasPrefix(image, prefix) || len(revision) != 40 || strings.Trim(revision, "0123456789abcdef") != "" {
+			return "", fmt.Errorf("invalid native Desktop agent image")
+		}
+	}
 	policyEnv, policyMount, err := desktopPolicyOverlay()
 	if err != nil {
 		return "", err
@@ -147,7 +155,11 @@ func writeDesktopRuntimeOverlay(home string, selected *desktopModelRuntime) (str
 	if selected.provider == "ollama" {
 		agentEnv += "      DECEPTICON_LLM__TIMEOUT: '600'\n"
 	}
-	content := "services:\n  litellm:\n    environment:\n" + serviceEnv + "  langgraph:\n    environment:\n" + agentEnv + policyEnv + policyMount
+	agentService := "  langgraph:\n"
+	if image != "" {
+		agentService += "    image: " + image + "\n"
+	}
+	content := "services:\n  litellm:\n    environment:\n" + serviceEnv + agentService + "    environment:\n" + agentEnv + policyEnv + policyMount
 	if err := config.ProtectPrivateFile(path); err != nil {
 		os.Remove(path)
 		return "", fmt.Errorf("protect Desktop runtime overlay: %w", err)
