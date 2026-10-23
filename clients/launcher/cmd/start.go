@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
@@ -125,6 +126,13 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 	desktopRuntime, err := parseDesktopRuntime(existingEngagement != "")
 	if err != nil {
 		return err
+	}
+	terminalOwner, err := desktopTerminalRequest()
+	if err != nil {
+		return err
+	}
+	if terminalOwner != nil && (existingEngagement == "" || attachInteractive || desktopRuntime == nil) {
+		return fmt.Errorf("owned terminal registration requires Desktop service startup")
 	}
 	workflowEnv, err := workflowEnvironment(cmd)
 	if err != nil {
@@ -390,6 +398,14 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 		c.OverlayFile = overlay
 	}
 
+	if terminalOwner != nil {
+		overlay, err := writeDesktopTerminalOverlay(home, c.OverlayFile, terminalOwner)
+		if err != nil {
+			return err
+		}
+		defer os.Remove(overlay)
+		c.OverlayFile = overlay
+	}
 	ui.Info("[4/5] Services · starting and waiting for readiness")
 	if err := c.Up(compose.Profiles.CLI); err != nil {
 		return fmt.Errorf("start services: %w; inspect with `decepticon doctor` and `decepticon logs` (services kept)", err)
@@ -404,6 +420,17 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 	// no terminal. Attach keeps going: its whole point is the interactive
 	// CLI on the existing engagement.
 	if existingEngagement != "" && !attachInteractive {
+		if terminalOwner != nil {
+			receipt, err := terminalOwner.receipt()
+			if err != nil {
+				return err
+			}
+			encoded, err := json.Marshal(receipt)
+			if err != nil {
+				return err
+			}
+			fmt.Println("DECEPTICON_DESKTOP_TERMINAL=" + string(encoded))
+		}
 		ui.Success("Desktop agent service ready for " + choice.Engagement)
 		fmt.Println("DECEPTICON_DESKTOP_ASSISTANT=" + choice.AssistantID)
 		return nil
