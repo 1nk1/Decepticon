@@ -4,7 +4,7 @@
 
 **Date:** 2026-07-10
 
-**Scope:** `PurpleAILAB/Decepticon`, with later consumer PRs in `decepticon-saas`, documentation, and `decepticon-landing`
+**Scope:** `BitterSecurity/Decepticon`, with later consumer PRs in `decepticon-saas`, documentation, and `decepticon-landing`
 
 **Development policy:** Ponytail Full; one concern per PR; no direct pushes to `main`
 
@@ -306,4 +306,4 @@ The foundation milestone is accepted when:
 
 ## Known Delivery Constraint
 
-The connected GitHub app currently has access to `PurpleAILAB/Decepticon` and `PurpleAILAB/decepticon-saas` but returns 404 for `PurpleAILAB/decepticon-landing`. Landing PRs remain blocked until the repository name is corrected or that repository is added to the GitHub app installation. This does not block Core or SaaS work.
+The connected GitHub app currently has access to `BitterSecurity/Decepticon` and `PurpleAILAB/decepticon-saas` but returns 404 for `PurpleAILAB/decepticon-landing`. Landing PRs remain blocked until the repository name is corrected or that repository is added to the GitHub app installation. This does not block Core or SaaS work.

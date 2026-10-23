@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/health"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/health"
 )
 
 //go:embed cli_readiness.js

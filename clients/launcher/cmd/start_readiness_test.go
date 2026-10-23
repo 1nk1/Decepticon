@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/compose"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/health"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/runtime"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/compose"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/health"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/runtime"
 )
 
 func TestStartupCLIProbeProcess(t *testing.T) {

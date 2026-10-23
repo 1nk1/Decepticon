@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	internal "github.com/PurpleAILAB/Decepticon/clients/launcher/internal/infracontrol"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/ui"
+	internal "github.com/BitterSecurity/Decepticon/clients/launcher/internal/infracontrol"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/ui"
 	"github.com/spf13/cobra"
 )
 

@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/agentskill"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/agentskill"
 	"github.com/spf13/cobra"
 )
 

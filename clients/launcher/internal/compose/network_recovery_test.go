@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/runtime"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/runtime"
 )
 
 const (

@@ -4,7 +4,7 @@ import (
 	"os/exec"
 	"runtime"
 
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/platform"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/platform"
 )
 
 // platformIsWSLFn is overridable for tests — production wires it to

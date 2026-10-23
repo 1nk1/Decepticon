@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/compose"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/compose"
 )
 
 // deepRuntimeReport mirrors packages/decepticon/decepticon/diagnostics.py.

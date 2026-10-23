@@ -134,7 +134,7 @@ dogfood: launcher
 ## Build the Go launcher binary (version=dev, gates auto-update + config sync).
 launcher:
 	cd clients/launcher && go build \
-		-ldflags '-X github.com/PurpleAILAB/Decepticon/clients/launcher/cmd.version=dev' \
+		-ldflags '-X github.com/BitterSecurity/Decepticon/clients/launcher/cmd.version=dev' \
 		-o bin/decepticon
 
 ## Compose-only smoke (no launcher, no onboard wizard) — fastest possible

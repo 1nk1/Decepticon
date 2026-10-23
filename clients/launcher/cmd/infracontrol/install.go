@@ -6,9 +6,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/config"
-	internal "github.com/PurpleAILAB/Decepticon/clients/launcher/internal/infracontrol"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/ui"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/config"
+	internal "github.com/BitterSecurity/Decepticon/clients/launcher/internal/infracontrol"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/ui"
 	"github.com/spf13/cobra"
 )
 
