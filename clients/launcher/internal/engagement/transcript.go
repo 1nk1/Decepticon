@@ -129,10 +129,10 @@ func FetchThreadState(ctx context.Context, client *http.Client, baseURL, threadI
 	}
 	var payload struct {
 		Values struct {
-			EngagementName   string             `json:"engagement_name"`
-			Messages         []rawMessage       `json:"messages"`
-			PlanRevision     int                `json:"plan_revision"`
-			WorkflowSnapshot map[string]any     `json:"workflow_snapshot"`
+			EngagementName   string         `json:"engagement_name"`
+			Messages         []rawMessage   `json:"messages"`
+			PlanRevision     int            `json:"plan_revision"`
+			WorkflowSnapshot map[string]any `json:"workflow_snapshot"`
 		} `json:"values"`
 	}
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 32<<20))

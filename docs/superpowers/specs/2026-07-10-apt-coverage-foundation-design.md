@@ -306,4 +306,4 @@ The foundation milestone is accepted when:
 
 ## Known Delivery Constraint
 
-The connected GitHub app currently has access to `BitterSecurity/Decepticon` and `PurpleAILAB/decepticon-saas` but returns 404 for `PurpleAILAB/decepticon-landing`. Landing PRs remain blocked until the repository name is corrected or that repository is added to the GitHub app installation. This does not block Core or SaaS work.
+The connected GitHub app currently has access to `BitterSecurity/Decepticon` and `BitterSecurity/decepticon-saas` but returns 404 for `BitterSecurity/decepticon-landing`. Landing PRs remain blocked until the repository name is corrected or that repository is added to the GitHub app installation. This does not block Core or SaaS work.

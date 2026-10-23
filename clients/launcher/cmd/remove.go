@@ -36,7 +36,7 @@ confirmation prompts are skipped (useful for scripted teardown).`,
 	Example: `  decepticon remove                        Remove everything after confirmation
   decepticon remove --preserve-workspace   Back up workspace data before removing
   decepticon remove --yes                  Remove without confirmation prompts`,
-	RunE:    runRemove,
+	RunE: runRemove,
 }
 
 func init() {

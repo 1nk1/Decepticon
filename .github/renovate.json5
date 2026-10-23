@@ -20,7 +20,7 @@
   // branches, no dependency dashboard, zero Renovate activity in the
   // repo's history. That is how 83 open advisories (3 critical, 31 high,
   // 57 runtime-scope) accumulated. The app was installed on the
-  // PurpleAILAB organization on 2026-07-27.
+  // BitterSecurity organization on 2026-07-27.
   //
   // The trap worth naming, because it is what hid this: OpenSSF Scorecard
   // awards Dependency-Update-Tool 10/10 for the mere *presence* of this

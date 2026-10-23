@@ -39,7 +39,7 @@ Safe to re-run: with --reset it reconfigures even when .env already
 exists; without it the wizard is skipped when .env already exists.`,
 	Example: `  decepticon onboard           Run the setup wizard for a new install
   decepticon onboard --reset   Reconfigure an existing installation`,
-	RunE:  runOnboard,
+	RunE: runOnboard,
 }
 
 func init() {

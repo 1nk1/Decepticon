@@ -29,7 +29,7 @@ tools, and follow engagement workflow guidance.`,
   decepticon skill install --client claude  Install for Claude Code only
   decepticon skill install --client codex   Install for Codex only
   decepticon skill install --force          Back up and replace a modified skill`,
-	Args:  cobra.NoArgs,
+	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		skillOptions.Version = version
 		paths, err := agentskill.Install(cmd.Context(), skillOptions)

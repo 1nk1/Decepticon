@@ -13,10 +13,10 @@ import (
 // and blank lines.
 func TestParseChecksumManifest(t *testing.T) {
 	in := strings.NewReader(strings.Join([]string{
-		"",                                                                       // blank line — must be skipped
-		"abc123  decepticon-linux-amd64",                                         // standard
-		"deadbeef *config-checksums.txt",                                         // sha256sum binary-mode marker
-		"  feedface  docker-compose.yml  ",                                       // leading/trailing whitespace
+		"",                                 // blank line — must be skipped
+		"abc123  decepticon-linux-amd64",   // standard
+		"deadbeef *config-checksums.txt",   // sha256sum binary-mode marker
+		"  feedface  docker-compose.yml  ", // leading/trailing whitespace
 		"cafebabec0ffee deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef", // single-space sep
 	}, "\n"))
 

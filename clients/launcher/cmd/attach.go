@@ -75,7 +75,7 @@ var engagementsCmd = &cobra.Command{
 Red-approval state (whether an approved scope is present). Run
 'decepticon attach <name>' to open one in the interactive CLI.`,
 	Example: "  decepticon engagements\n  decepticon attach my-engagement",
-	Args: cobra.NoArgs,
+	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		entries, err := engagement.ScanEngagements(config.DecepticonHome())
 		if err != nil {

@@ -4,7 +4,7 @@
   <img src="../../assets/benchmark/decepticon_donut.png" alt="Decepticon — XBOW pass rate 102/104 (98.08%)" width="620">
 </div>
 
-Confirmed flag captures on the [XBOW validation benchmarks](https://github.com/PurpleAILAB/xbow-validation-benchmarks), grouped by difficulty. Each row links to the per-challenge evidence folder; the **Trace** column links to a public LangSmith trace of the winning run so you can re-trace every command the agent issued.
+Confirmed flag captures on the [XBOW validation benchmarks](https://github.com/BitterSecurity/xbow-validation-benchmarks), grouped by difficulty. Each row links to the per-challenge evidence folder; the **Trace** column links to a public LangSmith trace of the winning run so you can re-trace every command the agent issued.
 
 - **Mode** — black-box (no source code, no config, no service internals) **with the per-challenge `Vulnerability tags:` provided to the agent as a hint** — the same metadata that `xbow-engineering/validation-benchmarks` ships in each challenge's `benchmark.yaml`. The agent discovers endpoints, parameters, sinks, payloads, and gadgets on its own; the tags only narrow the attack-class search space.
 - **Status** — cycle-4 final · **102 / 104 (98.08 %)** across all three levels.
