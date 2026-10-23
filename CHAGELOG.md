@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed Desktop tool-scope correction (follow-up to [#1066](https://github.com/BitterSecurity/Decepticon/pull/1066)): saved external HTTP tool grants no longer expand planning roles or prevent Soundwave's graph from loading. Honor registered role purpose, including custom planners, while preserving execution/observation grants, explicit model routing and stale-handle revocation. No release or version bump is implied.
+- Proposed Desktop tool-scope correction ([#1067](https://github.com/BitterSecurity/Decepticon/pull/1067), follow-up to [#1066](https://github.com/BitterSecurity/Decepticon/pull/1066)): saved external HTTP tool grants no longer expand planning roles or prevent Soundwave's graph from loading. Honor registered role purpose, including custom planners, while preserving execution/observation grants, explicit model routing and stale-handle revocation. No release or version bump is implied.
 
 - Accept a native-selected, bounded regular subscription profile during Desktop service startup, including Windows account paths translated for WSL ([PR #1066](https://github.com/BitterSecurity/Decepticon/pull/1066)). Only the selected provider receives it; unrelated profiles remain unmounted and ordinary CLI home discovery is preserved. This connects native OS authorization custody to the existing provider adapters without sending account material through the renderer.
 
