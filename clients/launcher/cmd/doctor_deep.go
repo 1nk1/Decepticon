@@ -38,24 +38,28 @@ func addDeepRuntimeChecks(ctx context.Context, report *doctorReport) {
 	}
 	probeCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
-	out, err := c.ExecCapture(probeCtx, "langgraph", "python", "-m", "decepticon.diagnostics")
-	if err != nil {
+	out, execErr := c.ExecCapture(probeCtx, "langgraph", "python", "-m", "decepticon.diagnostics")
+	var parsed deepRuntimeReport
+	parseErr := json.Unmarshal(trimJSON(out), &parsed)
+	if execErr != nil && parseErr != nil {
+		// No report at all — a real crash (container down, module missing).
 		report.Checks = append(report.Checks, doctorCheck{
 			Name: "runtime_deep", Required: false, OK: false,
-			Detail: fmt.Sprintf("runtime diagnostics failed: %v", err),
+			Detail: fmt.Sprintf("runtime diagnostics failed: %v", execErr),
 			Recovery: "Start services with `decepticon start --no-update` and retry `decepticon doctor --deep`",
 		})
 		return
 	}
-
-	var parsed deepRuntimeReport
-	if err := json.Unmarshal(trimJSON(out), &parsed); err != nil {
+	if parseErr != nil {
 		report.Checks = append(report.Checks, doctorCheck{
 			Name: "runtime_deep", Required: false, OK: false,
-			Detail: fmt.Sprintf("runtime diagnostics returned invalid JSON: %v", err),
+			Detail: fmt.Sprintf("runtime diagnostics returned invalid JSON: %v", parseErr),
 		})
 		return
 	}
+	// A non-zero exit with a parseable report means a required component is
+	// unhealthy, not that diagnostics crashed — the per-component checks
+	// below carry the details the operator needs.
 
 	for _, name := range []string{"kg", "skillogy", "hitl", "model_fallback", "mcp_auth"} {
 		component, exists := parsed.Components[name]
