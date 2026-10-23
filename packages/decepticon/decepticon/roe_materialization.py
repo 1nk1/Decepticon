@@ -47,31 +47,6 @@ def engagement_workspace(engagement_name: str) -> Path:
     return Path.home() / ".decepticon" / "workspace" / engagement_name
 
 
-def _is_path_target(fragment: str) -> bool:
-    """True when a creation target names something on the local filesystem.
-
-    Only targets that actually resolve on disk classify as paths — a
-    non-existent absolute path is operator error, and classifying it as a path
-    would silently downgrade the engagement to an empty network scope.
-    Relative fragments resolve against the creating process's cwd, which keeps
-    the scan CLI's documented relative-path contract (the GitHub Actions
-    composite scans ``./``) intact.
-    """
-    if not Path(fragment).expanduser().exists():
-        return False
-    if fragment.startswith(("~", "/", "./", "../")) or "/" in fragment or fragment.startswith("."):
-        return True
-    # A bare existing name ("src", "elice.io") is ambiguous between a hostname
-    # and a path; the scan CLI's own validation accepts it as a path, so path
-    # wins — but say so, a URL form scopes a host unambiguously.
-    log.warning(
-        "treating existing fragment %r as a filesystem path; pass a URL "
-        "(https://...) to scope a network host instead",
-        fragment,
-    )
-    return True
-
-
 def materialize_engagement_roe(
     engagement_name: str,
     targets: list[str],
@@ -81,37 +56,21 @@ def materialize_engagement_roe(
 ) -> None:
     """Generate the engagement's enforced ``plan/roe.json`` from creation data.
 
-    The creation inputs *are* the scope. Network targets (URLs, hosts, CIDRs,
-    globs, git remotes) compile to ``ScopeRule`` entries via
-    ``build_engagement_roe``, which raises when none can be derived — the
-    caller surfaces that and never starts a run (fail-closed). Filesystem-path
-    targets carry no network scope: an engagement whose targets are all paths
-    gets an RoE with an empty in-scope allowlist (the denylist and forbidden
-    destinations still enforce). When *network-shaped* inputs all die as
-    unmatched patterns the engagement is refused even alongside valid paths —
-    a silently vanished network scope must not degrade to unrestricted.
-    Hostname and ``*.``-glob targets are passively enriched with
-    Certificate-Transparency subdomains (crt.sh, bounded and root-filtered,
-    best-effort — discovery failure degrades to the operator-provided targets
-    and never blocks creation). An already-present ``plan/roe.json`` is never
-    overwritten — a reviewed authorization wins.
+    The creation inputs *are* the scope. Targets (URLs, hosts, CIDRs, globs,
+    git remotes) compile to ``ScopeRule`` entries via ``build_engagement_roe``,
+    which raises when none can be derived — the caller surfaces that and never
+    starts a run (fail-closed). There are no filesystem-path targets: a
+    Decepticon engagement scopes network assets, and in-engagement code
+    analysis happens on source the operation itself obtains. Hostname and
+    ``*.``-glob targets are passively enriched with Certificate-Transparency
+    subdomains (crt.sh, bounded and root-filtered, best-effort — discovery
+    failure degrades to the operator-provided targets and never blocks
+    creation). An already-present ``plan/roe.json`` is never overwritten — a
+    reviewed authorization wins.
     """
     fragments = split_scope_targets(targets)
-    network = expand_targets([f for f in fragments if not _is_path_target(f)], fetch=fetch)
-    paths = [f for f in fragments if _is_path_target(f)]
-    try:
-        roe = build_engagement_roe(engagement_name, network, out_of_scope or [])
-    except ValueError:
-        if network or not paths:
-            # Network inputs existed but produced no rule, or there is nothing
-            # at all: refusing is the only honest outcome.
-            raise
-        log.info(
-            "engagement %s is path-scoped (%d path targets); RoE enforces denylist only",
-            engagement_name,
-            len(paths),
-        )
-        roe = build_engagement_roe(engagement_name, (), out_of_scope or [], require_scope=False)
+    network = expand_targets(fragments, fetch=fetch)
+    roe = build_engagement_roe(engagement_name, network, out_of_scope or [])
     plan = engagement_workspace(engagement_name) / "plan"
     plan.mkdir(parents=True, exist_ok=True)
     destination = plan / "roe.json"

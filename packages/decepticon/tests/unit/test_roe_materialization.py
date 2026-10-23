@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import logging
 from collections.abc import Callable
 from pathlib import Path
 
@@ -72,13 +71,16 @@ def test_wildcard_target_adds_apex_and_discovery(workspace: Path) -> None:
     ]
 
 
-def test_path_only_targets_produce_path_scoped_roe(workspace: Path) -> None:
+def test_path_target_is_rejected_by_core_normalization(workspace: Path) -> None:
+    """The SAST entry was removed (#1059): a filesystem path is just a
+    fragment, and a path-only engagement fails closed — no empty in-scope
+    RoE is ever written."""
     scan_root = workspace / "repo"
     scan_root.mkdir()
     (scan_root / "app.py").write_text("x")
-    materialize_engagement_roe("eng6", [str(scan_root)], fetch=_no_discovery)
-    roe = json.loads(_roe_path(workspace).read_text())
-    assert roe["machine_enforcement"]["in_scope"] == []
+    with pytest.raises(ValueError, match="in-scope"):
+        materialize_engagement_roe("eng6", [str(scan_root)], fetch=_no_discovery)
+    assert not _roe_path(workspace).exists()
 
 
 def test_mixed_path_and_host_targets_keep_network_scope(workspace: Path) -> None:
@@ -103,28 +105,22 @@ def test_nonexistent_absolute_path_is_not_a_path_target(workspace: Path) -> None
     assert not _roe_path(workspace).exists()
 
 
-def test_relative_dot_target_is_a_path(
+def test_relative_dot_target_fails_closed(
     workspace: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.chdir(tmp_path)
     (tmp_path / "src").mkdir()
-    materialize_engagement_roe("eng10", ["./"], fetch=_no_discovery)
-    roe = json.loads(_roe_path(workspace).read_text())
-    assert roe["machine_enforcement"]["in_scope"] == []
+    with pytest.raises(ValueError, match="in-scope"):
+        materialize_engagement_roe("eng10", ["./"], fetch=_no_discovery)
+    assert not _roe_path(workspace).exists()
 
 
-def test_bare_existing_fragment_is_path_with_warning(
-    workspace: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog
-) -> None:
-    monkeypatch.chdir(tmp_path)
-    (tmp_path / "src").mkdir()
-    # The decepticon boot logger stops propagation to root, where caplog listens.
-    monkeypatch.setattr(logging.getLogger("decepticon"), "propagate", True)
-    with caplog.at_level(logging.WARNING, logger="decepticon.roe_materialization"):
-        materialize_engagement_roe("eng11", ["src"], fetch=_no_discovery)
+def test_bare_existing_fragment_is_a_host_name(workspace: Path) -> None:
+    """A bare label is no longer classified as a path (no path targets since
+    #1059): it becomes an ordinary host entry like any other target."""
+    materialize_engagement_roe("eng11", ["src"], fetch=_no_discovery)
     roe = json.loads(_roe_path(workspace).read_text())
-    assert roe["machine_enforcement"]["in_scope"] == []
-    assert any("filesystem path" in r.message for r in caplog.records)
+    assert roe["machine_enforcement"]["in_scope"] == ["src"]
 
 
 def test_nonexistent_hostname_stays_network_target(workspace: Path) -> None:

@@ -1,30 +1,32 @@
-"""``decepticon-cli scan`` — headless / CI security scan entry.
+"""``decepticon-cli scan`` — headless DAST entry point.
 
 Modeled after Strix's CLI for surface familiarity, with Decepticon's
 engagement / OPPLAN / RoE discipline preserved:
 
-  decepticon-cli scan --target ./ --scan-mode quick \
-      --sarif-output decepticon.sarif --fail-on high
+  decepticon-cli scan --target https://app.example.com --scan-mode standard
 
 Modes
 -----
-- ``quick`` — short timeout, scoped to the diff against ``--diff-base``
-  when run inside a git repository; ideal for PR-time CI gates.
-- ``standard`` — full source-aware scan with no time cap.
+- ``standard`` — full scan with a bounded wall clock.
 - ``deep`` — long-running; includes dynamic analysis where supported.
+
+Targets are network assets (HTTP URLs, git remotes, hosts, CIDRs, globs).
+The standalone SAST / CI code-scanning entry (diff-scoped ``quick`` mode,
+SARIF output, severity gating and the GitHub Actions composite) was removed
+— see issue #1059. Code analysis inside an engagement — analyzing source the
+operation itself obtains — is unchanged.
 
 Outputs
 -------
-- A SARIF v2.1.0 document at ``--sarif-output`` (default: skipped).
-- A line-buffered JSONL of findings to stdout when ``--non-interactive``
-  is set (so CI logs are useful even when the SARIF write fails).
-- Exit code: 0 = no findings; 1 = findings ≥ ``--fail-on`` severity
-  (default ``high``); 2 = config / invocation error; 3 = scan internal error.
+- A line-buffered JSONL of run events to stdout when ``--non-interactive``
+  is set (so logs stay useful in headless environments).
+- Exit code: 0 = run dispatched and completed; 2 = config / invocation
+  error; 3 = scan internal error. Findings are read from the engagement
+  (``decepticon_engagement_findings`` over MCP, or the workspace graph).
 
 The actual scan is driven by the existing ``decepticon`` orchestrator via
-the LangGraph SDK. This module is a thin shell: argument parsing, scope
-resolution (git diff base, target validation), one-shot run dispatch,
-SARIF export, threshold gating.
+the LangGraph SDK. This module is a thin shell: argument parsing, target
+validation, one-shot run dispatch.
 """
 
 from __future__ import annotations
@@ -33,7 +35,6 @@ import argparse
 import json
 import logging
 import os
-import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -52,7 +53,7 @@ EXIT_INTERNAL = 3
 def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="decepticon-cli scan",
-        description="Run a Decepticon security scan and emit SARIF for CI.",
+        description="Run a headless Decepticon DAST engagement.",
     )
     p.add_argument(
         "--target",
@@ -60,24 +61,13 @@ def _build_parser() -> argparse.ArgumentParser:
         action="append",
         required=False,
         default=[],
-        help="Target to scan (filesystem path, git URL, or HTTP URL). Repeatable.",
+        help="Network target (HTTP URL, git URL, host, CIDR, or glob). Repeatable.",
     )
     p.add_argument(
         "--scan-mode",
-        choices=["quick", "standard", "deep"],
+        choices=["standard", "deep"],
         default="standard",
         help="Scan depth/timeout profile.",
-    )
-    p.add_argument(
-        "--scope-mode",
-        choices=["full", "diff"],
-        default="full",
-        help="``diff`` restricts the scan to files changed against --diff-base.",
-    )
-    p.add_argument(
-        "--diff-base",
-        default="origin/main",
-        help="Git ref to diff against when --scope-mode=diff.",
     )
     p.add_argument(
         "--instruction",
@@ -95,18 +85,6 @@ def _build_parser() -> argparse.ArgumentParser:
         "-n",
         action="store_true",
         help="Disable interactive UI; print JSONL events to stdout instead.",
-    )
-    p.add_argument(
-        "--sarif-output",
-        type=Path,
-        default=None,
-        help="Path to write SARIF v2.1.0 findings (skipped when unset).",
-    )
-    p.add_argument(
-        "--fail-on",
-        choices=["critical", "high", "medium", "low", "none"],
-        default="high",
-        help="Minimum severity that triggers a non-zero exit.",
     )
     p.add_argument(
         "--langgraph-url",
@@ -149,7 +127,6 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 _MODE_DEFAULTS = {
-    "quick": {"timeout": 600, "reasoning_effort": "medium"},
     "standard": {"timeout": 3600, "reasoning_effort": "high"},
     "deep": {"timeout": 14400, "reasoning_effort": "high"},
 }
@@ -161,34 +138,14 @@ def _validate_targets(targets: list[str]) -> str | None:
     for t in targets:
         if t.startswith(("http://", "https://", "git@", "git+", "ssh://")):
             continue
-        path = Path(t)
-        if not path.exists():
-            return f"--target {t!r} does not exist on disk"
+        if Path(t).exists():
+            return (
+                f"--target {t!r} looks like a filesystem path; the standalone "
+                "code-scan entry was removed (issue #1059) — Decepticon "
+                "engagements scope network assets, and in-engagement code "
+                "analysis happens on source the operation obtains"
+            )
     return None
-
-
-def _git_diff_files(base: str, cwd: Path) -> list[str] | None:
-    """Run ``git diff --name-only <base>...HEAD`` and return changed paths.
-
-    Returns None on any git failure — caller should fall back to full scope.
-    """
-    try:
-        result = subprocess.run(
-            ["git", "diff", "--name-only", f"{base}...HEAD"],
-            cwd=cwd,
-            capture_output=True,
-            text=True,
-            check=False,
-            timeout=30,
-        )
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        log.warning("git diff failed: %s", exc)
-        return None
-    if result.returncode != 0:
-        log.warning("git diff returned %d: %s", result.returncode, result.stderr.strip())
-        return None
-    files = [line.strip() for line in result.stdout.splitlines() if line.strip()]
-    return files
 
 
 def _resolve_engagement_name(supplied: str | None) -> str:
@@ -224,7 +181,6 @@ def _dispatch_scan_via_sdk(
     assistant: str,
     engagement_name: str,
     targets: list[str],
-    diff_files: list[str] | None,
     instruction: str,
     scan_mode: str,
     timeout_seconds: int,
@@ -233,7 +189,7 @@ def _dispatch_scan_via_sdk(
     """Drive a one-shot scan through the LangGraph SDK; return a result envelope.
 
     Wraps the SDK in a defensive import so a missing langgraph-sdk yields
-    EXIT_CONFIG rather than a Python traceback in CI logs.
+    EXIT_CONFIG rather than a Python traceback in headless logs.
     """
     try:
         from langgraph_sdk import get_client  # noqa: PLC0415
@@ -247,8 +203,8 @@ def _dispatch_scan_via_sdk(
 
     scope_payload = {
         "targets": targets,
-        "scope_mode": "diff" if diff_files is not None else "full",
-        "diff_files": diff_files or [],
+        "scope_mode": "full",
+        "diff_files": [],
         "scan_mode": scan_mode,
         "instruction": instruction,
     }
@@ -302,74 +258,6 @@ def _dispatch_scan_via_sdk(
     return asyncio.run(asyncio.wait_for(_run(), timeout=timeout_seconds))
 
 
-def _load_findings_graph(engagement_name: str) -> Any | None:
-    """Read the engagement's KnowledgeGraph from the conventional location.
-
-    Returns None when the graph isn't present (e.g. the orchestrator never
-    persisted findings). Caller treats absent graph as "zero findings".
-    """
-    workspace = Path(
-        os.environ.get("DECEPTICON_ENGAGEMENT_WORKSPACE")
-        or (Path.home() / ".decepticon" / "workspace" / engagement_name)
-    )
-    graph_path = workspace / "graph.json"
-    if not graph_path.exists():
-        log.info("no graph.json at %s; treating as zero findings", graph_path)
-        return None
-    try:
-        from decepticon_core.types.kg import KnowledgeGraph  # noqa: PLC0415
-
-        return KnowledgeGraph.from_json(graph_path.read_text(encoding="utf-8"))
-    except Exception as exc:  # noqa: BLE001
-        log.warning("failed to load graph at %s: %s", graph_path, exc)
-        return None
-
-
-def _write_sarif_and_gate(
-    graph: Any | None,
-    sarif_output: Path | None,
-    fail_on: str,
-    engagement_name: str,
-) -> int:
-    """Emit SARIF (if requested) and return the exit code dictated by the severity gate."""
-    if graph is None:
-        if sarif_output:
-            sarif_output.parent.mkdir(parents=True, exist_ok=True)
-            sarif_output.write_text(
-                json.dumps(
-                    {
-                        "$schema": "https://json.schemastore.org/sarif-2.1.0-rtm.5.json",
-                        "version": "2.1.0",
-                        "runs": [
-                            {
-                                "tool": {
-                                    "driver": {
-                                        "name": "Decepticon",
-                                        "version": "0.0.0",
-                                    }
-                                },
-                                "results": [],
-                            }
-                        ],
-                    },
-                    indent=2,
-                ),
-                encoding="utf-8",
-            )
-        return EXIT_OK
-
-    from decepticon.tools.research.sarif_export import (  # noqa: PLC0415
-        export_findings_to_sarif,
-        severity_threshold_breach,
-    )
-
-    doc = export_findings_to_sarif(graph, engagement_name=engagement_name)
-    if sarif_output:
-        sarif_output.parent.mkdir(parents=True, exist_ok=True)
-        sarif_output.write_text(json.dumps(doc, indent=2, ensure_ascii=False), encoding="utf-8")
-    return EXIT_FINDINGS if severity_threshold_breach(doc, fail_on=fail_on) else EXIT_OK
-
-
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
     logging.basicConfig(
@@ -387,18 +275,6 @@ def main(argv: list[str] | None = None) -> int:
     except RuntimeError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_CONFIG
-
-    diff_files: list[str] | None = None
-    if args.scope_mode == "diff":
-        first_target = args.target[0]
-        diff_root = Path(first_target) if Path(first_target).exists() else Path.cwd()
-        diff_files = _git_diff_files(args.diff_base, diff_root)
-        if diff_files is None:
-            print(
-                f"warning: diff-scope requested but git diff against "
-                f"{args.diff_base!r} failed; falling back to full scope",
-                file=sys.stderr,
-            )
 
     engagement_name = _resolve_engagement_name(args.engagement_name)
 
@@ -424,7 +300,6 @@ def main(argv: list[str] | None = None) -> int:
             assistant=args.assistant,
             engagement_name=engagement_name,
             targets=args.target,
-            diff_files=diff_files,
             instruction=instruction,
             scan_mode=args.scan_mode,
             timeout_seconds=timeout,
@@ -438,10 +313,4 @@ def main(argv: list[str] | None = None) -> int:
         print(f"scan failed: {exc}", file=sys.stderr)
         return EXIT_INTERNAL
 
-    graph = _load_findings_graph(engagement_name)
-    return _write_sarif_and_gate(
-        graph=graph,
-        sarif_output=args.sarif_output,
-        fail_on=args.fail_on,
-        engagement_name=engagement_name,
-    )
+    return EXIT_OK

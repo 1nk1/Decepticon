@@ -287,8 +287,6 @@ def build_engagement_roe(
     engagement_name: str,
     targets: Iterable[str],
     out_of_scope: Iterable[str] = (),
-    *,
-    require_scope: bool = True,
 ) -> dict[str, Any]:
     """Build an always-enforced, machine-enforceable RoE from creation data.
 
@@ -302,14 +300,11 @@ def build_engagement_roe(
     are dropped with a warning. The result always enforces — there is no
     audit/warn mode. Raises ``ValueError`` when no usable in-scope target can
     be derived, so an engagement with no scope fails closed instead of running
-    unscoped. ``require_scope=False`` accepts an empty in-scope list for
-    engagements whose targets are all filesystem paths (path-scoped: no
-    network allowlist, the denylist and forbidden destinations still enforce).
+    unscoped.
     """
     in_scope = _dedupe_targets(targets)
     if not in_scope:
-        if require_scope:
-            raise ValueError("engagement RoE requires at least one in-scope target")
+        raise ValueError("engagement RoE requires at least one in-scope target")
     # A subdomain glob authorizes the operator's zone, and the apex is part of
     # that zone — host matching would otherwise never reach the bare domain
     # (``*.elice.io`` does not match ``elice.io``). Appended after the authored
