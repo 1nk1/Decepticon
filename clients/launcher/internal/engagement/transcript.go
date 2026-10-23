@@ -32,9 +32,9 @@ type ThreadState struct {
 }
 
 // ResolveThreadID maps an engagement name (or an explicit thread id) to a
-// LangGraph thread id via /threads/search plus state inspection: the
-// engagement identity lives in the thread *state values*, not in thread
-// metadata, so candidates are checked one state call at a time.
+// LangGraph thread id via /threads/search plus per-candidate checks: the
+// identity anchor is the newest run's input engagement_name, falling back
+// to the thread state's values copy.
 func ResolveThreadID(ctx context.Context, client *http.Client, baseURL, engagement string) (string, error) {
 	engagement = strings.TrimSpace(engagement)
 	if engagement == "" {
@@ -58,11 +58,54 @@ func ResolveThreadID(ctx context.Context, client *http.Client, baseURL, engageme
 		if err != nil {
 			continue // unreadable thread — try the next candidate
 		}
-		if strings.EqualFold(state.EngagementName, engagement) {
+		// The run's input engagement_name is the authoritative identity: the
+		// thread state's copy is mutable — when a workspace's plan documents
+		// are shared (the server workspace-mapping override), the OPPLAN
+		// middleware reduces the plan document's name into the state, and a
+		// later engagement's thread then claims the earlier engagement's
+		// name. Verified against a live stack: two threads, one plan.
+		stateName := state.EngagementName
+		if runName, runErr := latestRunEngagementName(ctx, client, baseURL, id); runErr == nil && runName != "" {
+			stateName = runName
+		}
+		if strings.EqualFold(stateName, engagement) {
 			return state.ThreadID, nil
 		}
 	}
 	return "", fmt.Errorf("no thread found for engagement %q", engagement)
+}
+
+// latestRunEngagementName reads the thread's newest run input and returns
+// its engagement_name ("" when absent — e.g. CLI attach runs that carry no
+// engagement in their input).
+func latestRunEngagementName(ctx context.Context, client *http.Client, baseURL, threadID string) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet,
+		fmt.Sprintf("%s/threads/%s/runs?limit=1", strings.TrimRight(baseURL, "/"), threadID), nil)
+	if err != nil {
+		return "", err
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("run list returned HTTP %d", resp.StatusCode)
+	}
+	var runs []struct {
+		Kwargs struct {
+			Input struct {
+				EngagementName string `json:"engagement_name"`
+			} `json:"input"`
+		} `json:"kwargs"`
+	}
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 4<<20)).Decode(&runs); err != nil {
+		return "", err
+	}
+	if len(runs) == 0 {
+		return "", nil
+	}
+	return strings.TrimSpace(runs[0].Kwargs.Input.EngagementName), nil
 }
 
 // isThreadIDShape matches LangGraph thread ids (UUID v4, e.g.
@@ -129,10 +172,13 @@ func FetchThreadState(ctx context.Context, client *http.Client, baseURL, threadI
 	}
 	var payload struct {
 		Values struct {
-			EngagementName   string         `json:"engagement_name"`
-			Messages         []rawMessage   `json:"messages"`
-			PlanRevision     int            `json:"plan_revision"`
-			WorkflowSnapshot map[string]any `json:"workflow_snapshot"`
+			EngagementName string       `json:"engagement_name"`
+			Messages       []rawMessage `json:"messages"`
+			PlanRevision   int          `json:"plan_revision"`
+			// WorkflowSnapshot is persisted as a JSON string in some graphs
+			// and as an object in others — capture it raw and only check
+			// presence (measured live: it is a string).
+			WorkflowSnapshot json.RawMessage `json:"workflow_snapshot"`
 		} `json:"values"`
 	}
 	body, err := io.ReadAll(io.LimitReader(resp.Body, 32<<20))
@@ -146,7 +192,7 @@ func FetchThreadState(ctx context.Context, client *http.Client, baseURL, threadI
 		ThreadID:        threadID,
 		EngagementName:  payload.Values.EngagementName,
 		PlanRevision:    payload.Values.PlanRevision,
-		HasWorkflowPlan: payload.Values.WorkflowSnapshot != nil,
+		HasWorkflowPlan: len(payload.Values.WorkflowSnapshot) > 0 && string(payload.Values.WorkflowSnapshot) != "null",
 	}
 	for _, m := range payload.Values.Messages {
 		state.Messages = append(state.Messages, TranscriptMessage{Role: m.Type, Content: m.renderedText()})
@@ -187,12 +233,20 @@ func (m rawMessage) renderedText() string {
 	return ""
 }
 
-// ReplayLimit returns the trailing window of messages to print.
+// ReplayLimit returns the trailing window of messages to print, skipping
+// contentless entries (tool-call-only assistant chunks render empty).
 func ReplayLimit(messages []TranscriptMessage, limit int) []TranscriptMessage {
-	if limit <= 0 || limit >= len(messages) {
-		return messages
+	rendered := make([]TranscriptMessage, 0, len(messages))
+	for _, message := range messages {
+		if strings.TrimSpace(message.Content) == "" && message.Role == "ai" {
+			continue
+		}
+		rendered = append(rendered, message)
 	}
-	return messages[len(messages)-limit:]
+	if limit <= 0 || limit >= len(rendered) {
+		return rendered
+	}
+	return rendered[len(rendered)-limit:]
 }
 
 // DefaultLogsClient is the HTTP client used by the logs command (bounded so
