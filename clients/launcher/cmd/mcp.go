@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/compose"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/config"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/compose"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/config"
 	"github.com/spf13/cobra"
 )
 

@@ -30,8 +30,8 @@ import (
 
 	"golang.org/x/term"
 
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/config"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/ui"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/config"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/ui"
 )
 
 // ackFileName is the JSON record of interactive migrations the user has

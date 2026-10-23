@@ -12,9 +12,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/config"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/health"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/infracontrol"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/config"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/health"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/infracontrol"
 	"github.com/spf13/cobra"
 )
 

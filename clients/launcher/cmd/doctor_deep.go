@@ -7,14 +7,14 @@ import (
 	"os"
 	"time"
 
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/compose"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/compose"
 )
 
 // deepRuntimeReport mirrors packages/decepticon/decepticon/diagnostics.py.
 type deepRuntimeReport struct {
-	OK     bool `json:"ok"`
+	OK         bool `json:"ok"`
 	Components map[string]struct {
-		OK     bool `json:"ok"`
+		OK     bool   `json:"ok"`
 		Detail string `json:"detail"`
 	} `json:"components"`
 	SlotMatrix map[string]struct {
@@ -45,7 +45,7 @@ func addDeepRuntimeChecks(ctx context.Context, report *doctorReport) {
 		// No report at all — a real crash (container down, module missing).
 		report.Checks = append(report.Checks, doctorCheck{
 			Name: "runtime_deep", Required: false, OK: false,
-			Detail: fmt.Sprintf("runtime diagnostics failed: %v", execErr),
+			Detail:   fmt.Sprintf("runtime diagnostics failed: %v", execErr),
 			Recovery: "Start services with `decepticon start --no-update` and retry `decepticon doctor --deep`",
 		})
 		return

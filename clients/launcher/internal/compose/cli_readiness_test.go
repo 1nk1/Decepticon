@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/health"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/runtime"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/health"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/runtime"
 )
 
 func TestCLIReadinessProcess(t *testing.T) {

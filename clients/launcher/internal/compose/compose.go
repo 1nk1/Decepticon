@@ -10,9 +10,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/config"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/infracontrol"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/runtime"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/config"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/infracontrol"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/runtime"
 )
 
 // Compose wraps Docker Compose commands for Decepticon services.

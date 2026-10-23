@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"syscall"
 
-	internal "github.com/PurpleAILAB/Decepticon/clients/launcher/internal/infracontrol"
+	internal "github.com/BitterSecurity/Decepticon/clients/launcher/internal/infracontrol"
 	"github.com/spf13/cobra"
 )
 

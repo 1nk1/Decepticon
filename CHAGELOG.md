@@ -922,8 +922,8 @@ computed was overridden.
   code — MID is `claude-sonnet-5`, HIGH is `claude-opus-4-8`, and the web
   dashboard is dynamic-spawn (`/web`), not part of the default stack. (#778)
 
-[1.1.40]: https://github.com/PurpleAILAB/Decepticon/compare/v1.1.39...v1.1.40
-[1.1.39]: https://github.com/PurpleAILAB/Decepticon/compare/v1.1.38...v1.1.39
+[1.1.40]: https://github.com/BitterSecurity/Decepticon/compare/v1.1.39...v1.1.40
+[1.1.39]: https://github.com/BitterSecurity/Decepticon/compare/v1.1.38...v1.1.39
 
 ## [1.1.8] — Unreleased
 

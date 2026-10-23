@@ -6,8 +6,8 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/compose"
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/runtime"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/compose"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/runtime"
 )
 
 func TestRemovalComposeHelperProcess(t *testing.T) {

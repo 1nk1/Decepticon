@@ -1,7 +1,7 @@
 # MHBench Benchmark Provider — Operator Guide
 
 PR 1 of the MHBench integration: wires the upstream
-[MHBench](https://github.com/PurpleAILAB/MHBench) topology orchestrator into
+[MHBench](https://github.com/BitterSecurity/MHBench) topology orchestrator into
 Decepticon's benchmark harness so Decepticon agents can be scored against
 multi-host network attack scenarios.
 
@@ -66,7 +66,7 @@ uv sync
 ```
 
 The submodule is pinned to the `decepticon` branch of
-`PurpleAILAB/MHBench`. As of PR 1 the branch has zero patches on top of
+`BitterSecurity/MHBench`. As of PR 1 the branch has zero patches on top of
 upstream `bsinger98/MHBench@main` — it exists as a stable place to land
 Decepticon-side adjustments later.
 

@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/PurpleAILAB/Decepticon/clients/launcher/internal/config"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/config"
 )
 
 func TestMigrateLegacyCredentialsPreservesConfiguredDatabasePasswords(t *testing.T) {
