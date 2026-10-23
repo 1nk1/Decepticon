@@ -15,6 +15,21 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- **Breaking** (SAST entry removal, [issue #1059](https://github.com/BitterSecurity/Decepticon/issues/1059)): the standalone
+  static/CI code-scanning surface is removed — `decepticon-cli scan`
+  loses `quick` mode, `--scope-mode diff`/`--diff-base`, `--sarif-output`
+  and `--fail-on`; filesystem-path targets are rejected with a pointer to
+  the migration; the `.github/actions/decepticon-scan` composite, its
+  example workflow and the CI/CD integration docs are deleted; and the
+  path-scoped engagement machinery (`_is_path_target`, the empty-`in_scope`
+  RoE branch and `build_engagement_roe`'s `require_scope` escape hatch)
+  is gone, closing the empty-allowlist egress fail-open at its source.
+  `decepticon-cli scan` remains as the headless DAST entry for network
+  targets (`standard`/`deep`), and code analysis inside an engagement —
+  analyzing source the operation itself obtains — is unchanged. Findings
+  are read through `decepticon_engagement_findings` (MCP) or the
+  workspace graph instead of a local SARIF file.
+
 - Proposed (launcher scope recommendations): engagement creation now runs
   passive discovery — certificate-transparency logs (crt.sh) and passive DNS
   (HackerTarget, both keyless) — against the first hostname target and

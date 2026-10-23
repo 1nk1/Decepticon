@@ -1,53 +1,54 @@
-"""Tests for decepticon.cli.scan (parsing + scope resolution; live LangGraph not invoked)."""
+"""Tests for decepticon.cli.scan (parsing + target validation; live LangGraph not invoked)."""
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
 
 from decepticon.cli.scan import (
     EXIT_CONFIG,
-    EXIT_FINDINGS,
     EXIT_OK,
     _build_parser,
     _instruction_text,
     _resolve_engagement_name,
     _validate_targets,
-    _write_sarif_and_gate,
 )
 
 
-def test_parser_accepts_strix_compatible_flags():
+def test_parser_accepts_headless_dast_flags():
     parser = _build_parser()
     args = parser.parse_args(
         [
             "--target",
-            "./",
+            "https://app.example.com",
             "--scan-mode",
-            "quick",
-            "--scope-mode",
-            "diff",
-            "--diff-base",
-            "origin/main",
-            "--sarif-output",
-            "out.sarif",
+            "deep",
             "--non-interactive",
         ]
     )
-    assert args.target == ["./"]
-    assert args.scan_mode == "quick"
-    assert args.scope_mode == "diff"
-    assert args.diff_base == "origin/main"
-    assert args.sarif_output == Path("out.sarif")
+    assert args.target == ["https://app.example.com"]
+    assert args.scan_mode == "deep"
     assert args.non_interactive is True
+
+
+def test_parser_rejects_removed_quick_mode():
+    parser = _build_parser()
+    with pytest.raises(SystemExit):
+        parser.parse_args(["--target", "https://example.com", "--scan-mode", "quick"])
+
+
+def test_parser_has_no_sarif_or_diff_flags():
+    parser = _build_parser()
+    for flag in ("--sarif-output", "--fail-on", "--scope-mode", "--diff-base"):
+        with pytest.raises(SystemExit):
+            parser.parse_args(["--target", "https://example.com", flag, "x"])
 
 
 def test_parser_multiple_targets_repeat_flag():
     parser = _build_parser()
-    args = parser.parse_args(["--target", "a", "-t", "b"])
-    assert args.target == ["a", "b"]
+    args = parser.parse_args(["--target", "https://a.example.com", "-t", "10.0.0.0/24"])
+    assert args.target == ["https://a.example.com", "10.0.0.0/24"]
 
 
 def test_validate_targets_rejects_empty():
@@ -63,14 +64,16 @@ def test_validate_targets_accepts_git_urls():
     assert _validate_targets(["git+https://x/y.git"]) is None
 
 
-def test_validate_targets_rejects_nonexistent_path(tmp_path: Path):
+def test_validate_targets_rejects_existing_path(tmp_path: Path):
+    # The standalone SAST entry was removed (issue #1059): a filesystem path
+    # is no longer a valid target, and the error names the migration.
+    err = _validate_targets([str(tmp_path)])
+    assert err is not None and "issue #1059" in err
+
+
+def test_validate_targets_rejects_missing_path(tmp_path: Path):
     bogus = str(tmp_path / "absolutely-not-here")
-    err = _validate_targets([bogus])
-    assert err is not None and "does not exist" in err
-
-
-def test_validate_targets_accepts_existing_path(tmp_path: Path):
-    assert _validate_targets([str(tmp_path)]) is None
+    assert _validate_targets([bogus]) is None  # network-shaped unknown host is allowed
 
 
 def test_resolve_engagement_name_uses_supplied():
@@ -91,7 +94,7 @@ def test_instruction_text_combines_flag_and_file(tmp_path: Path):
     args = parser.parse_args(
         [
             "--target",
-            str(tmp_path),
+            "https://app.example.com",
             "--instruction",
             "Focus on auth flows.",
             "--instruction-file",
@@ -108,7 +111,7 @@ def test_instruction_text_missing_file_raises(tmp_path: Path):
     args = parser.parse_args(
         [
             "--target",
-            str(tmp_path),
+            "https://app.example.com",
             "--instruction-file",
             str(tmp_path / "nope.md"),
         ]
@@ -117,72 +120,7 @@ def test_instruction_text_missing_file_raises(tmp_path: Path):
         _instruction_text(args)
 
 
-def test_write_sarif_and_gate_no_graph_no_output(tmp_path: Path):
-    out = tmp_path / "x.sarif"
-    code = _write_sarif_and_gate(
-        graph=None,
-        sarif_output=out,
-        fail_on="high",
-        engagement_name="t",
-    )
-    assert code == EXIT_OK
-    assert out.exists()
-    doc = json.loads(out.read_text(encoding="utf-8"))
-    assert doc["version"] == "2.1.0"
-    assert doc["runs"][0]["results"] == []
-
-
-class _Node:
-    def __init__(self, node_id, kind, label, props):
-        self.id = node_id
-        self.kind = kind
-        self.label = label
-        self.properties = props
-
-
-class _Graph:
-    def __init__(self, nodes):
-        self.nodes = {n.id: n for n in nodes}
-
-
-def test_write_sarif_and_gate_with_high_finding_returns_findings_exit(tmp_path: Path):
-    graph = _Graph([_Node("f1", "finding", "f1", {"severity": "high", "vuln_class": "sqli"})])
-    out = tmp_path / "scan.sarif"
-    code = _write_sarif_and_gate(
-        graph=graph,
-        sarif_output=out,
-        fail_on="high",
-        engagement_name="t",
-    )
-    assert code == EXIT_FINDINGS
-    doc = json.loads(out.read_text(encoding="utf-8"))
-    assert len(doc["runs"][0]["results"]) == 1
-
-
-def test_write_sarif_and_gate_with_only_low_findings_returns_ok(tmp_path: Path):
-    graph = _Graph([_Node("f1", "finding", "f1", {"severity": "low"})])
-    out = tmp_path / "scan.sarif"
-    code = _write_sarif_and_gate(
-        graph=graph,
-        sarif_output=out,
-        fail_on="high",
-        engagement_name="t",
-    )
-    assert code == EXIT_OK
-
-
-def test_write_sarif_and_gate_skips_output_when_unset():
-    graph = _Graph([_Node("f1", "finding", "f1", {"severity": "low"})])
-    code = _write_sarif_and_gate(
-        graph=graph,
-        sarif_output=None,
-        fail_on="high",
-        engagement_name="t",
-    )
-    assert code == EXIT_OK
-
-
 def test_exit_codes_are_disjoint():
-    from decepticon.cli.scan import EXIT_FINDINGS, EXIT_INTERNAL, EXIT_OK
+    from decepticon.cli.scan import EXIT_INTERNAL
 
-    assert len({EXIT_OK, EXIT_FINDINGS, EXIT_CONFIG, EXIT_INTERNAL}) == 4
+    assert len({EXIT_OK, EXIT_CONFIG, EXIT_INTERNAL}) == 3
