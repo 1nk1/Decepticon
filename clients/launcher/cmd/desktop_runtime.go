@@ -2,18 +2,22 @@ package cmd
 
 import (
 	"fmt"
+	"net"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/config"
 )
 
 type desktopModelRuntime struct {
-	provider string
-	model    string
-	keyEnv   string
-	secret   string
+	provider   string
+	model      string
+	keyEnv     string
+	secret     string
+	ollamaBase string
 }
 
 var desktopProviderKeys = map[string]string{
@@ -89,7 +93,19 @@ func parseDesktopRuntime(serve bool) (*desktopModelRuntime, error) {
 		if !strings.HasPrefix(model, "ollama_chat/") || key != "" {
 			return nil, fmt.Errorf("Desktop Ollama requires an ollama_chat model and no API key")
 		}
-		return &desktopModelRuntime{provider: provider, model: model}, nil
+		base := os.Getenv("DECEPTICON_DESKTOP_OLLAMA_BASE")
+		if base != "" {
+			endpoint, err := url.Parse(base)
+			if err != nil || endpoint.Scheme != "http" || endpoint.User != nil || endpoint.Path != "" || endpoint.RawQuery != "" || endpoint.Fragment != "" {
+				return nil, fmt.Errorf("invalid native Local model relay")
+			}
+			address := net.ParseIP(endpoint.Hostname())
+			port, err := strconv.Atoi(endpoint.Port())
+			if address == nil || !address.IsPrivate() || err != nil || port < 1 || port > 65535 {
+				return nil, fmt.Errorf("invalid native Local model relay")
+			}
+		}
+		return &desktopModelRuntime{provider: provider, model: model, ollamaBase: base}, nil
 	}
 	if provider == "chatgpt" || provider == "claude_code" {
 		prefix := "auth/gpt-"
@@ -137,7 +153,11 @@ func writeDesktopRuntimeOverlay(home string, selected *desktopModelRuntime) (str
 	model := "${DECEPTICON_DESKTOP_MODEL:?Desktop model missing}"
 	serviceEnv := "      DECEPTICON_MODEL: " + model + "\n" + "      DECEPTICON_DESKTOP_MODEL: " + model + "\n"
 	if selected.provider == "ollama" {
-		serviceEnv += "      OLLAMA_API_BASE: http://host.docker.internal:11434\n"
+		base := selected.ollamaBase
+		if base == "" {
+			base = "http://host.docker.internal:11434"
+		}
+		serviceEnv += "      OLLAMA_API_BASE: " + base + "\n"
 		serviceEnv += "      OLLAMA_MODEL: " + strings.TrimPrefix(selected.model, "ollama_chat/") + "\n"
 	} else if selected.provider == "chatgpt" {
 		serviceEnv += "      DECEPTICON_AUTH_CHATGPT: 'true'\n"

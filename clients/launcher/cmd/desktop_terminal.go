@@ -58,6 +58,20 @@ func writeDesktopTerminalOverlay(home, existing string, owner *desktopTerminalOw
 		value, _ := json.Marshal(owner.labels()[key])
 		content += "      io.decepticon.desktop." + key + ": " + string(value) + "\n"
 	}
+	proxyLabels := "    labels:\n"
+	for _, key := range []string{"workspace", "engagement", "run", "nonce", "capability"} {
+		label := owner.labels()[key]
+		if key == "capability" {
+			label = "owned-model-relay-v1"
+		}
+		value, _ := json.Marshal(label)
+		proxyLabels += "      io.decepticon.desktop." + key + ": " + string(value) + "\n"
+	}
+	if strings.Contains(content, "  litellm:\n") {
+		content = strings.Replace(content, "  litellm:\n", "  litellm:\n"+proxyLabels, 1)
+	} else {
+		content += "  litellm:\n" + proxyLabels
+	}
 	file, err := os.CreateTemp(home, ".desktop-terminal-*.yml")
 	if err != nil {
 		return "", err

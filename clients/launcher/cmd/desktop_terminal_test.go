@@ -35,7 +35,7 @@ func TestDesktopTerminalOverlayPreservesPolicyAndOwnsSandbox(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = base.WriteString("services:\n  langgraph:\n    environment:\n      KEEP_POLICY: enabled\n")
+	_, err = base.WriteString("services:\n  litellm:\n    environment:\n      KEEP_PROVIDER: enabled\n  langgraph:\n    environment:\n      KEEP_POLICY: enabled\n")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +50,7 @@ func TestDesktopTerminalOverlayPreservesPolicyAndOwnsSandbox(t *testing.T) {
 		t.Fatal(err)
 	}
 	parts := strings.Split(string(data), "  sandbox:\n")
-	if len(parts) != 2 || !strings.Contains(parts[0], "KEEP_POLICY: enabled") || strings.Contains(parts[0], owner.nonce) {
+	if len(parts) != 2 || !strings.Contains(parts[0], "KEEP_POLICY: enabled") || !strings.Contains(parts[0], "KEEP_PROVIDER: enabled") || strings.Count(string(data), "  litellm:\n") != 1 {
 		t.Fatal("terminal labels changed policy ownership")
 	}
 	for key, value := range owner.labels() {
@@ -97,5 +97,33 @@ func TestDesktopPinnedAgentImageCannotInjectComposeConfiguration(t *testing.T) {
 	parts := strings.Split(string(data), "  langgraph:\n")
 	if len(parts) != 2 || strings.Contains(parts[0], "image:") || !strings.Contains(parts[1], "    image: decepticon-desktop-agent:sha-") {
 		t.Fatal("native image must belong only to the agent service")
+	}
+}
+
+func TestDesktopOllamaRelayRejectsNonPrivateOrMalformedEndpoints(t *testing.T) {
+	t.Setenv("DECEPTICON_DESKTOP_PROVIDER", "ollama")
+	t.Setenv("DECEPTICON_DESKTOP_MODEL", "ollama_chat/fixture")
+	t.Setenv("DECEPTICON_DESKTOP_API_KEY", "")
+	for _, base := range []string{"https://172.17.0.1:1234", "http://8.8.8.8:1234", "http://user@172.17.0.1:1234", "http://172.17.0.1:1234/evil", "http://172.17.0.1:1234?x=1", "http://172.17.0.1:99999"} {
+		t.Setenv("DECEPTICON_DESKTOP_OLLAMA_BASE", base)
+		if _, err := parseDesktopRuntime(true); err == nil {
+			t.Fatal("invalid relay accepted", base)
+		}
+	}
+	t.Setenv("DECEPTICON_DESKTOP_OLLAMA_BASE", "http://172.17.0.1:43123")
+	selected, err := parseDesktopRuntime(true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	path, err := writeDesktopRuntimeOverlay(t.TempDir(), selected)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "OLLAMA_API_BASE: http://172.17.0.1:43123") {
+		t.Fatal("native relay was not applied")
 	}
 }

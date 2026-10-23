@@ -279,7 +279,7 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 		_ = os.Setenv("CODEX_AUTH_VOLUME", nullDevice())
 	} else {
 		credsPath := filepath.Join(userHome, ".claude", ".credentials.json")
-		if _, statErr := os.Stat(credsPath); statErr == nil {
+		if _, statErr := os.Stat(credsPath); statErr == nil && (desktopRuntime == nil || desktopRuntime.provider == "claude_code") {
 			_ = os.Setenv("CLAUDE_CREDENTIALS_VOLUME", credsPath)
 		} else {
 			_ = os.Setenv("CLAUDE_CREDENTIALS_VOLUME", nullDevice())
@@ -289,7 +289,7 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 		// The new auth/ ChatGPT handler reads (and writes) this file directly so
 		// a host-side `codex login` flows into the container without a rebuild.
 		codexAuthPath := filepath.Join(userHome, ".codex", "auth.json")
-		if _, statErr := os.Stat(codexAuthPath); statErr == nil {
+		if _, statErr := os.Stat(codexAuthPath); statErr == nil && (desktopRuntime == nil || desktopRuntime.provider == "chatgpt") {
 			_ = os.Setenv("CODEX_AUTH_VOLUME", codexAuthPath)
 		} else {
 			_ = os.Setenv("CODEX_AUTH_VOLUME", nullDevice())

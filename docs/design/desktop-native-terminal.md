@@ -28,3 +28,13 @@ shutdown are separate from detaching an observer.
 This integrates the opt-in settings policy contract from #1027. Automated tests
 and native candidate execution are recorded separately from a published OSS
 release or Windows qualification. No browser containment claim is added here.
+
+For Linux's loopback Ollama, the same native owner labels the model proxy with
+the distinct owned-model-relay-v1 capability. The native relay independently
+matches its TCP peer to the running proxy's Docker IPs and exact owner labels.
+It forwards only read/chat/generate endpoints for approved models to the fixed
+loopback server; model administration endpoints are denied. Native startup
+supplies the private bridge endpoint through DECEPTICON_DESKTOP_OLLAMA_BASE.
+Other providers keep their existing endpoint behavior. Desktop only mounts
+account files for its selected subscription, leaving unrelated CLI credentials
+outside Ollama and API-key containers.

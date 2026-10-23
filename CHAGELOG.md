@@ -15,6 +15,8 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Desktop Ollama startup accepts only a native-provided private-IP relay endpoint and labels its owned model proxy independently from the terminal sandbox. This supports Linux loopback model access through the native host without exposing Ollama publicly. Desktop mounts only the selected subscription's credential file; Ollama and API-key sessions do not mount unrelated Codex/Claude account files. Normal interactive CLI credential discovery remains unchanged.
+
 - Native Desktop may supply its locally prepared agent image using the fixed `decepticon-desktop-agent:sha-<source commit>` identity. The private overlay applies it only to the agent service; malformed image references fail before Compose. This lets the packaged native host build its matching pinned runtime without depending on an unpublished registry image.
 
 - Desktop service-only startup now starts the agent/knowledge services and their dependencies without the separate web dashboard or interactive CLI container. Normal CLI start/attach retains its existing topology. This reduces unused local resources while preserving service health checks.
