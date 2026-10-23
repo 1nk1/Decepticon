@@ -297,6 +297,10 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 	}
 
 	checkStartupUpdate(env, version, skipUpdate || existingEngagement != "")
+	// A native-selected profile overrides home discovery, including Windows
+	// account files explicitly translated for a WSL launcher. Other accounts
+	// stay unmounted. Ordinary CLI startup keeps its existing discovery.
+	applyDesktopAccountFile(desktopRuntime)
 
 	// 2.6. One-time GitHub star ask. Idempotent across launches — the
 	// ack file at $DECEPTICON_HOME/.starred suppresses the prompt

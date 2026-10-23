@@ -15,6 +15,8 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Accept a native-selected, bounded regular subscription profile during Desktop service startup, including Windows account paths translated for WSL ([PR #1066](https://github.com/BitterSecurity/Decepticon/pull/1066)). Only the selected provider receives it; unrelated profiles remain unmounted and ordinary CLI home discovery is preserved. This connects native OS authorization custody to the existing provider adapters without sending account material through the renderer.
+
 - Tag internal search-continuation directives in message metadata so native transcript hosts can separate runtime coordination from the operator's own messages ([PR #1066](https://github.com/BitterSecurity/Decepticon/pull/1066)). The agent's search contract and checkpoint content are preserved.
 
 - Proposed native Desktop runtime integration ([PR #1066](https://github.com/BitterSecurity/Decepticon/pull/1066)): the following service, policy, image, model relay and terminal changes are source candidates. See the [native contract](docs/design/desktop-native-terminal.md); no published release or Windows acceptance is claimed.

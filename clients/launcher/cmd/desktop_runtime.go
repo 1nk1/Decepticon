@@ -18,6 +18,7 @@ type desktopModelRuntime struct {
 	keyEnv     string
 	secret     string
 	ollamaBase string
+	authFile   string
 }
 
 var desktopProviderKeys = map[string]string{
@@ -83,11 +84,21 @@ func parseDesktopRuntime(serve bool) (*desktopModelRuntime, error) {
 	provider := os.Getenv("DECEPTICON_DESKTOP_PROVIDER")
 	model := os.Getenv("DECEPTICON_DESKTOP_MODEL")
 	key := os.Getenv("DECEPTICON_DESKTOP_API_KEY")
-	if provider == "" && model == "" && key == "" {
+	authFile := os.Getenv("DECEPTICON_DESKTOP_AUTH_FILE")
+	if provider == "" && model == "" && key == "" && authFile == "" {
 		return nil, nil
 	}
 	if !validDesktopModel(model) {
 		return nil, fmt.Errorf("select a valid Desktop model before starting the service")
+	}
+	if authFile != "" {
+		if provider != "chatgpt" && provider != "claude_code" {
+			return nil, fmt.Errorf("a native account file requires the selected subscription provider")
+		}
+		info, err := os.Lstat(authFile)
+		if !filepath.IsAbs(authFile) || err != nil || !info.Mode().IsRegular() || info.Size() > 1024*1024 {
+			return nil, fmt.Errorf("the selected native account file is unavailable or invalid")
+		}
 	}
 	if provider == "ollama" {
 		if !strings.HasPrefix(model, "ollama_chat/") || key != "" {
@@ -115,7 +126,7 @@ func parseDesktopRuntime(serve bool) (*desktopModelRuntime, error) {
 		if !strings.HasPrefix(model, prefix) || key != "" {
 			return nil, fmt.Errorf("Desktop subscription requires a matching auth model and no API key")
 		}
-		return &desktopModelRuntime{provider: provider, model: model}, nil
+		return &desktopModelRuntime{provider: provider, model: model, authFile: authFile}, nil
 	}
 	keyEnv, ok := desktopProviderKeys[provider]
 	if !ok {
@@ -129,6 +140,20 @@ func parseDesktopRuntime(serve bool) (*desktopModelRuntime, error) {
 		return nil, fmt.Errorf("Desktop model or credential is invalid for provider %q", provider)
 	}
 	return &desktopModelRuntime{provider: provider, model: model, keyEnv: keyEnv, secret: key}, nil
+}
+
+func applyDesktopAccountFile(selected *desktopModelRuntime) {
+	if selected == nil || selected.authFile == "" {
+		return
+	}
+	_ = os.Setenv("CODEX_AUTH_VOLUME", nullDevice())
+	_ = os.Setenv("CLAUDE_CREDENTIALS_VOLUME", nullDevice())
+	if selected.provider == "chatgpt" {
+		_ = os.Setenv("CODEX_AUTH_VOLUME", selected.authFile)
+	}
+	if selected.provider == "claude_code" {
+		_ = os.Setenv("CLAUDE_CREDENTIALS_VOLUME", selected.authFile)
+	}
 }
 
 func writeDesktopRuntimeOverlay(home string, selected *desktopModelRuntime) (string, error) {
