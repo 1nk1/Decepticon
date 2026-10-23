@@ -133,7 +133,9 @@ def _skillogy_status() -> dict[str, Any]:
 
     url = os.environ.get("DECEPTICON_SKILLOGY_URL", "http://skillogy:9100").rstrip("/")
     try:
-        with urllib.request.urlopen(f"{url}/health", timeout=5) as response:
+        # /v1/health is the endpoint the Compose healthcheck probes; /health
+        # returns 404 and misreported a healthy skillogy as unreachable.
+        with urllib.request.urlopen(f"{url}/v1/health", timeout=5) as response:
             ok = 200 <= response.status < 300
             return {
                 "ok": ok,

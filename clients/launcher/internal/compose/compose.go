@@ -383,7 +383,9 @@ func (c *Compose) RemoveOrphanedCLI() {
 
 // ExecCapture runs a command inside a running service and returns its
 // stdout, for read-only diagnostics (`doctor --deep`). Unlike Exec it
-// captures instead of streaming.
+// captures instead of streaming. A non-zero exit returns both the captured
+// output and the error: a diagnostics module that exits 1 still printed its
+// JSON report, and callers may want to fold it.
 func (c *Compose) ExecCapture(ctx context.Context, service string, command ...string) ([]byte, error) {
 	cmdArgs := append(c.baseArgs(), "exec", "-T", service)
 	cmdArgs = append(cmdArgs, command...)
@@ -391,7 +393,7 @@ func (c *Compose) ExecCapture(ctx context.Context, service string, command ...st
 	cmd.Env = c.composeEnv()
 	out, err := cmd.Output()
 	if err != nil {
-		return nil, fmt.Errorf("%s compose exec %s: %w", c.Runtime.Name, service, err)
+		return out, fmt.Errorf("%s compose exec %s: %w", c.Runtime.Name, service, err)
 	}
 	return out, nil
 }
