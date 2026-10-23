@@ -15,6 +15,8 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Desktop service-only startup now starts the agent/knowledge services and their dependencies without the separate web dashboard or interactive CLI container. Normal CLI start/attach retains its existing topology. This reduces unused local resources while preserving service health checks.
+
 - Proposed Desktop native terminal integration: accept a complete native-issued workspace/engagement/resource identity and nonce only during service startup, label the owned sandbox and return its immutable container identity plus the measured tmux status height. Preserve an existing agent shell, validate labels before publishing the registration and keep policy overlays private. Desktop independently verifies the container and mount before enabling PTY access. Integrates the pending #1027 settings policy with current main; no OSS version/tag or published image change is claimed.
 
 - Proposed [PR #1027](https://github.com/BitterSecurity/Decepticon/pull/1027)

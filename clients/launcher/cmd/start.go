@@ -407,7 +407,11 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 		c.OverlayFile = overlay
 	}
 	ui.Info("[4/5] Services · starting and waiting for readiness")
-	if err := c.Up(compose.Profiles.CLI); err != nil {
+	startServices := func() error { return c.Up(compose.Profiles.CLI) }
+	if existingEngagement != "" && !attachInteractive {
+		startServices = c.UpDesktop
+	}
+	if err := startServices(); err != nil {
 		return fmt.Errorf("start services: %w; inspect with `decepticon doctor` and `decepticon logs` (services kept)", err)
 	}
 
