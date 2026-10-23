@@ -14,6 +14,7 @@ from decepticon.desktop_policy import (
     read_desktop_policy,
     require_current_policy,
 )
+from decepticon_core.registry.roles import RoleRegistry, default_role_purpose
 
 RESPONSE_LIMIT: Final = 1024 * 1024
 ARGUMENTS: Final = TypeAdapter(dict[str, JsonValue])
@@ -55,6 +56,13 @@ def execute_approved_tool(
 def policy_tools(role: str) -> list[StructuredTool]:
     policy = read_desktop_policy()
     if policy is None:
+        return []
+    registered = RoleRegistry.get(role)
+    purpose = registered.purpose if registered is not None else default_role_purpose(role)
+    # A saved workspace grant cannot expand a planning role's capability core.
+    # Older policies may name Soundwave or apply to all roles; neither should
+    # crash graph loading or give Plan an arbitrary execution endpoint.
+    if purpose == "planning":
         return []
     return [
         _registered_tool(policy, tool)

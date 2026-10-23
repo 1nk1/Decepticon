@@ -152,10 +152,10 @@ def test_stale_tool_handle_is_revoked_when_host_atomically_replaces_policy(
     enabled = json.loads(host_policy.read_text())
     enabled["tools"] = [{
         "connection": "fixture", "name": "echo", "description": "Owned echo fixture",
-        "url": "http://127.0.0.1:1", "roles": ["soundwave"],
+        "url": "http://127.0.0.1:1", "roles": ["recon"],
     }]
     host_policy.write_text(json.dumps(enabled))
-    handle = policy_tools("soundwave")[0]
+    handle = policy_tools("recon")[0]
     revoked = {**enabled, "revision": 2, "tools": []}
     replacement = host_policy.with_name("next.json")
     replacement.write_text(json.dumps(revoked))
@@ -179,6 +179,46 @@ def test_role_restricted_tool_is_not_registered_for_another_role(host_policy: Pa
     registered = policy_tools("recon")
     # Then the unavailable capability is never registered.
     assert registered == []
+
+
+@pytest.mark.parametrize("roles", [[], ["soundwave"], ["soundwave", "recon"]])
+def test_saved_grants_never_expand_plan_tools(host_policy: Path, roles: list[str]) -> None:
+    from types import SimpleNamespace
+
+    from decepticon.agents.build import build_tools
+    from decepticon.agents.standard.soundwave import _assert_planning_tools
+    from decepticon.middleware.filesystem import FilesystemMiddleware
+
+    enabled = json.loads(host_policy.read_text())
+    enabled["tools"] = [{
+        "connection": "fixture", "name": "echo", "description": "Owned echo fixture",
+        "url": "http://127.0.0.1:1", "roles": roles,
+    }]
+    host_policy.write_text(json.dumps(enabled))
+    tools = build_tools(role="soundwave", standard_tools={
+        "ask_user_question": SimpleNamespace(name="ask_user_question"),
+    })
+    # Exercise the actual factory seam and unchanged Plan capability guard.
+    _assert_planning_tools(tools, [FilesystemMiddleware(backend=SimpleNamespace(), plan_only=True)])
+    assert policy_tools("soundwave") == []
+    if not roles or "recon" in roles:
+        assert [tool.name for tool in policy_tools("recon")] == ["desktop_fixture_echo"]
+
+
+def test_registered_planner_cannot_receive_generic_workspace_tools(host_policy: Path) -> None:
+    from decepticon_core.registry.roles import RoleRegistry
+
+    enabled = json.loads(host_policy.read_text())
+    enabled["tools"] = [{
+        "connection": "fixture", "name": "echo", "description": "Owned echo fixture",
+        "url": "http://127.0.0.1:1", "roles": [],
+    }]
+    host_policy.write_text(json.dumps(enabled))
+    RoleRegistry.register("fixture_planner", slots=frozenset(), purpose="planning")
+    try:
+        assert policy_tools("fixture_planner") == []
+    finally:
+        RoleRegistry.unregister("fixture_planner")
 
 
 def test_generic_dispatch_cannot_bypass_role_restriction(host_policy: Path) -> None:

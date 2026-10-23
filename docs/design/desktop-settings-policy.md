@@ -3,6 +3,15 @@
 This opt-in adapter is source work for Desktop Local. It does not update the
 Desktop runtime pin, publish an OSS version, or qualify a native package.
 
+External tool approval does not expand a planning role's capability core. Use
+the trusted registered role purpose, with the standard purpose fallback when a
+role has no registration. Planning roles receive no external HTTP tools even
+when a saved policy explicitly names them or grants access to all agents. Keep
+model routing and the plan-scoped filesystem independent of these grants.
+Execution and observation roles retain their approved role selection and
+dispatch/result revision checks. Historical policies remain readable; ignoring
+an inapplicable planning grant must not crash loading every service graph.
+
 ## Host authority
 
 The native host provisions `settings.json` in an owned directory **outside**

@@ -36,10 +36,10 @@ def write_policy(path: Path, url: str, model: str = "openai/fixture-selected") -
     path.write_text(json.dumps({
         "protocol_version": 1,
         "workspace_id": "workspace-a", "engagement_id": "engagement-a", "revision": 1,
-        "models": {"soundwave": {"model": model, "effort": "low"}},
+        "models": {"recon": {"model": model, "effort": "low"}},
         "tools": [{
             "connection": "fixture", "name": "echo", "description": "Owned fixture echo",
-            "url": url, "roles": ["soundwave"],
+            "url": url, "roles": ["recon"],
         }],
     }))
 
@@ -61,8 +61,8 @@ def test_selected_model_executes_registered_tool_over_real_http(
         monkeypatch.setenv("DECEPTICON_LLM__PROXY_URL", fixture.url)
         agent = create_agent(
             model=ChatOpenAI(model="unwanted-original", api_key=SecretStr("fixture-only")),
-            tools=policy_tools("soundwave"),
-            middleware=[ModelOverrideMiddleware(role="soundwave")],
+            tools=policy_tools("recon"),
+            middleware=[ModelOverrideMiddleware(role="recon")],
         )
         assert settings_capabilities().model_dump().get("observed_dispatches", []) == []
         # When the graph requests and executes the approved fixture tool.
@@ -80,7 +80,7 @@ def test_selected_model_executes_registered_tool_over_real_http(
             {"arguments": {"text": "owned fixture"}},
         ]
         assert settings_capabilities().model_dump().get("observed_dispatches") == [{
-            "role": "soundwave",
+            "role": "recon",
             "policy_revision": 1,
             "tool_names": ("desktop_fixture_echo",),
         }]
@@ -100,7 +100,7 @@ def test_unavailable_selected_model_never_calls_an_alternative(
         monkeypatch.setenv("DECEPTICON_LLM__PROXY_URL", fixture.url)
         agent = create_agent(
             model=ChatOpenAI(model="unwanted-original", api_key=SecretStr("fixture-only")),
-            middleware=[ModelOverrideMiddleware(role="soundwave")],
+            middleware=[ModelOverrideMiddleware(role="recon")],
         )
         # When the real provider returns model_not_found.
         with pytest.raises(RuntimeError) as error:
@@ -118,7 +118,7 @@ def test_inflight_tool_result_is_withheld_after_atomic_revocation(
     # Given a handle registered before the host revokes it during execution.
     with DesktopFixture() as fixture:
         write_policy(policy_path, fixture.url)
-        handle = policy_tools("soundwave")[0]
+        handle = policy_tools("recon")[0]
 
         def revoke() -> None:
             policy = json.loads(policy_path.read_text())
@@ -146,7 +146,7 @@ def test_invalid_credential_is_explicit_without_model_fallback(
         monkeypatch.setenv("DECEPTICON_LLM__PROXY_API_KEY", "rejected-fixture-credential")
         agent = create_agent(
             model=ChatOpenAI(model="unwanted-original", api_key=SecretStr("fixture-only")),
-            middleware=[ModelOverrideMiddleware(role="soundwave")],
+            middleware=[ModelOverrideMiddleware(role="recon")],
         )
         # When the provider rejects the selected route's credential.
         with pytest.raises(RuntimeError) as error:
