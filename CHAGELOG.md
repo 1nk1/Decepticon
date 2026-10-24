@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed image build availability fix: use Kali’s official Cloudflare CDN
+- Proposed [PR #1076](https://github.com/BitterSecurity/Decepticon/pull/1076): image build availability fix: use Kali’s official Cloudflare CDN
   package mirror for sandbox and Sliver images after the regional redirector
   repeatedly selected an unreachable mirror. Preserve pinned base images, APT
   signature verification and the existing HTTPS bootstrap; no runtime or data
