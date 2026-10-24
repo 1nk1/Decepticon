@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed release qualification: integrate the final subscription-effort and
+- Proposed [PR #1079](https://github.com/BitterSecurity/Decepticon/pull/1079): release qualification: integrate the final subscription-effort and
   Compose-discovery follow-ups, record actual WSL model/scope/upgrade evidence,
   and reconcile the already-published 1.5.4 history against its tag and real
   publication metadata. Quality targets accept `CLI_TEST_ARGS` for bounded
