@@ -1,5 +1,10 @@
 # Extension contract: capabilities, skills, workflows and clients
 
+Desktop hosts may opt into the proposed [settings policy adapter](desktop-settings-policy.md).
+Its scope and tool approvals come from host-owned read-only custody, not graph
+input; absence of the opt-in preserves the existing client contract. Policy
+validation does not acknowledge runtime tool registration.
+
 This is the current contributor entry point for extending agents, knowledge,
 business workflows and client adapters. It describes the source-tree contract;
 installation and deployment of this revision are separate release steps. The
@@ -76,6 +81,10 @@ replace the stack: downstream composers must deliberately retain the workflow
 and authorization gates they require.
 
 ## Client and authorization contract
+
+The [engagement session contract](engagement-session-contract.md) defines shared
+thread/run identity, lifecycle operations and observation cursors for client
+adapters.
 
 Red execution needs operator-approved scope. Plan is optional and is entered
 explicitly; it is not an execution prerequisite. An operator provisions canonical

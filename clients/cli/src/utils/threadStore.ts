@@ -63,8 +63,8 @@ export async function loadThreadByIndex(index: number): Promise<ThreadEntry | nu
 export class SessionScopeError extends Error {
   constructor(readonly threadId: string, message: string) { super(message); this.name = "SessionScopeError"; }
 }
-export async function validateThread(threadId: string): Promise<ThreadEntry> {
-  const saved = entry(await getClient().threads.get(threadId));
+export async function validateThread(threadId: string, signal?: AbortSignal): Promise<ThreadEntry> {
+  const saved = entry(await getClient().threads.get(threadId, { signal }));
   if (saved.legacyMetadata) throw new SessionScopeError(threadId, "Legacy session has no engagement metadata. Review and migrate its metadata before resuming.");
   if (saved.engagementName !== (process.env.DECEPTICON_ENGAGEMENT ?? "") ||
       (saved.workspacePath && saved.workspacePath !== (process.env.DECEPTICON_WORKSPACE_PATH ?? "/workspace"))) {
@@ -87,4 +87,19 @@ export async function claimLegacyThread(threadId: string): Promise<ThreadEntry> 
   }
   await saveThread(threadId, saved.assistantId, saved.title);
   return validateThread(threadId);
+}
+
+/** Read a scoped checkpoint for diagnostics without running or mutating it. */
+export async function readThreadSnapshot(threadId: string): Promise<unknown> {
+  const signal = AbortSignal.timeout(10_000);
+  await validateThread(threadId, signal);
+  const state = await getClient().threads.getState(threadId, undefined, { signal });
+  const values = state.values;
+  if (values && typeof values === "object") {
+    if (("engagement_name" in values && values.engagement_name && values.engagement_name !== process.env.DECEPTICON_ENGAGEMENT) ||
+        ("workspace_path" in values && values.workspace_path && values.workspace_path !== (process.env.DECEPTICON_WORKSPACE_PATH ?? "/workspace"))) {
+      throw new SessionScopeError(threadId, "Checkpoint belongs to a different engagement or workspace.");
+    }
+  }
+  return state;
 }

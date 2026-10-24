@@ -21,3 +21,6 @@ export { extractText, stripResultTags } from "./utils.js";
 // Session derivation
 export type { SubAgentSession } from "./sessions.js";
 export { deriveSubAgentSessions } from "./sessions.js";
+
+// Engagement scope readiness
+export { machineScopeTargets } from "./scope.js";

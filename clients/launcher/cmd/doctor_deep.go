@@ -28,6 +28,10 @@ type deepRuntimeReport struct {
 // result into the doctor report. Missing stack is not an error here: the
 // base checks already report service status.
 func addDeepRuntimeChecks(ctx context.Context, report *doctorReport) {
+	addDeepRuntimeChecksForEngagement(ctx, report, "")
+}
+
+func addDeepRuntimeChecksForEngagement(ctx context.Context, report *doctorReport, engagement string) {
 	c := compose.New()
 	if _, err := os.Stat(c.ComposeFile); err != nil {
 		report.Checks = append(report.Checks, doctorCheck{
@@ -38,7 +42,11 @@ func addDeepRuntimeChecks(ctx context.Context, report *doctorReport) {
 	}
 	probeCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
-	out, execErr := c.ExecCapture(probeCtx, "langgraph", "python", "-m", "decepticon.diagnostics")
+	args := []string{"python", "-m", "decepticon.diagnostics"}
+	if engagement != "" {
+		args = append(args, "--engagement", engagement)
+	}
+	out, execErr := c.ExecCapture(probeCtx, "langgraph", args...)
 	var parsed deepRuntimeReport
 	parseErr := json.Unmarshal(trimJSON(out), &parsed)
 	if execErr != nil && parseErr != nil {
@@ -61,7 +69,7 @@ func addDeepRuntimeChecks(ctx context.Context, report *doctorReport) {
 	// unhealthy, not that diagnostics crashed — the per-component checks
 	// below carry the details the operator needs.
 
-	for _, name := range []string{"kg", "skillogy", "hitl", "model_fallback", "mcp_auth"} {
+	for _, name := range []string{"kg", "skillogy", "hitl", "model_fallback", "mcp_auth", "sandbox"} {
 		component, exists := parsed.Components[name]
 		if !exists {
 			continue
@@ -100,7 +108,9 @@ func recoveryHintFor(name string) string {
 	case "hitl":
 		return "Set DECEPTICON_HITL__ENABLED=1 to enable human-in-the-loop approvals"
 	case "model_fallback":
-		return "Set DECEPTICON_MODEL_<ROLE>_FALLBACK chains to enable model fallback"
+		return "Configure provider credential chains in .env and check the role model mapping to enable model fallback"
+	case "sandbox":
+		return "Check SANDBOX_URL and the sandbox service healthz/OpenAPI endpoints; no sandbox command is executed by this probe"
 	case "mcp_auth":
 		return "Set DECEPTICON_MCP_TOKEN to require shared-secret auth on the MCP bridge"
 	default:

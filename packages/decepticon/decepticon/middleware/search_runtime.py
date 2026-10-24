@@ -244,7 +244,8 @@ class SearchRuntimeMiddleware(AgentMiddleware):
             "jump_to": "model",
             "messages": [
                 HumanMessage(
-                    content="The search has no validated terminal receipt. Inspect prior recon, hypothesis/path UUIDs and new results, replan through OPPLAN, then review_search. Continue useful discriminating experiments; finalize_search only when its evidence and stopping conditions hold."
+                    content="The search has no validated terminal receipt. Inspect prior recon, hypothesis/path UUIDs and new results, replan through OPPLAN, then review_search. Continue useful discriminating experiments; finalize_search only when its evidence and stopping conditions hold.",
+                    additional_kwargs={"decepticon_internal": True},
                 )
             ],
         }

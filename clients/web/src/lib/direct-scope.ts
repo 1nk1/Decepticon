@@ -32,6 +32,6 @@ export function directRoe(name: string, type: string, value: string) {
   const target = validateDirectTarget(type, value);
   return {
     engagement_name: name,
-    machine_enforcement: { mode: "enforce", in_scope: [target], out_of_scope: [] },
+    machine_enforcement: { in_scope: [target], out_of_scope: [] },
   };
 }
