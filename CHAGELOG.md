@@ -15,12 +15,6 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed (session contract, issue #1043): document the shared engagement/thread/
-  run binding, lifecycle mappings, transcript and SSE cursors, authorization and
-  adapter acceptance for CLI/MCP and downstream Desktop Local/Cloud. Clarify that
-  background preparation is not agent execution and attaching does not duplicate
-  runs. Documentation only; no API, storage or migration change.
-
 - Proposed [PR #1069](https://github.com/BitterSecurity/Decepticon/pull/1069): update the locked setuptools
   dependency from 83.0.0 to 84.2.1, fixing GHSA-xmj3-9gf7-h52w and restoring
   the blocking dependency audit without suppressing findings. No API or data
@@ -375,6 +369,12 @@ Keep proposed and unmerged changes out of released sections.
 - Record v1.5.2's actual publication date and included fixes; retain v1.5.1 as
   an incomplete candidate rather than a published final. Documentation only;
   no runtime or upgrade changes. [PR #1007](https://github.com/BitterSecurity/Decepticon/pull/1007).
+
+- Proposed [PR #1070](https://github.com/BitterSecurity/Decepticon/pull/1070): document the shared engagement/thread/
+  run binding, lifecycle mappings, transcript and SSE cursors, authorization and
+  adapter acceptance for CLI/MCP and downstream Desktop Local/Cloud. Clarify that
+  background preparation is not agent execution and attaching does not duplicate
+  runs. Documentation only; no API, storage or migration change.
 
 ## [1.5.2] — 2026-10-18
 
