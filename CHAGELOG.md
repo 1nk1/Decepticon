@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed runtime controls (issue #1044): add per-session fallback, effort and
+- Proposed [PR #1073](https://github.com/BitterSecurity/Decepticon/pull/1073) (issue #1044): add per-session fallback, effort and
   autocompaction launcher flags and checkpointed overrides; show observed model
   routing, fallback attempts, context/compaction checks and cached budget usage
   in the TUI. Preserve default routing, tenant credentials and authoritative
