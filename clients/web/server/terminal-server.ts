@@ -290,7 +290,7 @@ wss.on("connection", async (ws: WebSocket, req) => {
 
   let term: pty.IPty;
   try {
-    term = pty.spawn("node", ["--import", "tsx/esm", CLI_PATH], {
+    term = pty.spawn("node", ["--import", "tsx", CLI_PATH], {
       name: "xterm-256color",
       cols: 120,
       rows: 30,

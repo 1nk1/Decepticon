@@ -370,6 +370,13 @@ Keep proposed and unmerged changes out of released sections.
   graph run registration and Windows forwarding still require qualification.
   No SaaS pin or release changes.
 
+- Proposed [PR #1071](https://github.com/BitterSecurity/Decepticon/pull/1071): use the complete `tsx` loader for
+  the actual PTY CLI process, preserving CommonJS JSON dependencies. Fixes CLI
+  startup exiting with a JSON parse error under `tsx/esm`; no dependency or
+  workspace migration is required. A real WebSocket-to-PTY startup regression
+  check verifies the connected composer and absence of agent run creation,
+  with an explicitly interactive PTY child even when its parent runs in CI.
+
 - Proposed [PR #1009](https://github.com/BitterSecurity/Decepticon/pull/1009): add the Desktop `serve --engagement` adapter for existing local
   engagements, with native model selection, private runtime configuration and
   engagement-scoped mounts. Preserve normal CLI startup and existing homes.
