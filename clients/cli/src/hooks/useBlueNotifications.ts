@@ -93,6 +93,7 @@ export function useBlueNotifications(addSystemEvent: (message: string) => void) 
     let polling = false;
     let connected = false;
     let disconnected = false;
+    let failureStreak = 0;
     const revisions = new Set<string>();
     async function poll(): Promise<void> {
       if (stopped || polling) return;
@@ -106,6 +107,7 @@ export function useBlueNotifications(addSystemEvent: (message: string) => void) 
           if (stopped) return;
           connected = true;
           disconnected = false;
+          failureStreak = 0;
           if ((page.latest_seq ?? page.next_after) !== undefined && (page.latest_seq ?? page.next_after ?? cursor.current.after) < cursor.current.after) {
             cursor.current = { after: 0, acknowledged: 0 };
             revisions.clear();
@@ -140,6 +142,17 @@ export function useBlueNotifications(addSystemEvent: (message: string) => void) 
         setState(previous => ({ ...previous, status: connected ? "disconnected" : "unavailable", error: message, collectorStatus: "unknown", aiStatus: "unknown" }));
         if (connected && !disconnected) callback.current(`[Blue Cell] Monitor disconnected: ${message}`);
         disconnected = true;
+        // An unreachable monitor plus the 1 s poll interval turns every cycle
+        // into a fetch storm (ten pages x 3 s timeout) that starves the CLI
+        // event loop and aborts unrelated in-flight requests. Once a failure
+        // repeats, back off exponentially, capped at 30 s; reset on success.
+        failureStreak += 1;
+        if (failureStreak >= 2) {
+          const backoffMs = Math.min(1000 * 2 ** (failureStreak - 2), 30000);
+          const { promise, resolve } = Promise.withResolvers<void>();
+          setTimeout(resolve, backoffMs);
+          await promise;
+        }
       } finally { polling = false; }
     }
     void poll();

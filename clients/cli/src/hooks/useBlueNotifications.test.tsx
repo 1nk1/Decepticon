@@ -174,4 +174,34 @@ describe("Blue Cell chat notifications", () => {
     expect(restart).toContain("restarted");
     expect(restart).toContain("observation continuity");
   });
+
+  it("backs off under repeated monitor failures and recovers", async () => {
+    vi.useFakeTimers();
+    vi.stubEnv("BLUE_MONITOR_URL", "http://blue-backoff:8085");
+    let calls = 0;
+    let healthy = false;
+    const fetchMock = vi.fn(async () => {
+      calls += 1;
+      if (!healthy) throw new TypeError("fetch failed");
+      return { ok: true, json: async () => ({ notifications: [], has_more: false }) };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result, unmount } = renderHook(() => useBlueNotifications(() => {}));
+
+    // 31 s of hard failure: the bare 1 s interval alone would produce ~30
+    // polls; the exponential backoff must keep the count far below that.
+    await act(async () => { await vi.advanceTimersByTimeAsync(31000); });
+    const failures = calls;
+    expect(failures).toBeGreaterThan(2);
+    expect(failures).toBeLessThanOrEqual(8);
+    expect(result.current.status).not.toBe("connected");
+
+    healthy = true;
+    await act(async () => { await vi.advanceTimersByTimeAsync(45000); });
+    expect(result.current.status).toBe("connected");
+    const afterRecovery = calls - failures;
+    expect(afterRecovery).toBeGreaterThan(0);
+    unmount();
+  });
 });
