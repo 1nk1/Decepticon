@@ -395,6 +395,9 @@ jobs:
           cache-dependency-path: package-lock.json
       - if: needs.changes.outputs.cli == 'true'
         run: npm ci
+      - name: Audit workspace dependencies (blocking)
+        if: needs.changes.outputs.cli == 'true' && runner.os == 'Linux'
+        run: npm audit --audit-level=high
       # ── rollup native-binary workaround for npm/cli#4828 ────────────
       # `npm ci` from a Linux-generated lock file silently skips the
       # platform-specific optional deps that rollup uses for its native

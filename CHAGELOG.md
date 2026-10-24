@@ -23,6 +23,22 @@ Keep proposed and unmerged changes out of released sections.
   seen with per-session/host-selected effort; keep ordinary provider validation,
   default effort and scoped credential handling unchanged. No account migration.
 
+- Proposed [PR #1074](https://github.com/BitterSecurity/Decepticon/pull/1074): dependency security refresh: update the workspace lockfile and
+  Next.js/Sharp/test-runner versions to patched releases; remove unused OpenUI
+  packages (the shipped chat uses its existing Markdown renderer). The npm
+  audit falls from 42 findings, including 4 critical, to zero without advisory
+  suppression. Add a blocking high-severity npm audit to CI/local quality gates.
+  Bound the real PTY startup regression check to measured cold imports on
+  busy hosts (Ink alone took 21.5 seconds, exceeding its former 15-second
+  startup deadline). No credentials, saved conversations or database migration
+  are changed.
+
+- Proposed [PR #1076](https://github.com/BitterSecurity/Decepticon/pull/1076): image build availability fix: use Kali’s official Cloudflare CDN
+  package mirror for sandbox and Sliver images after the regional redirector
+  repeatedly selected an unreachable mirror. Preserve pinned base images, APT
+  signature verification and the existing HTTPS bootstrap; no runtime or data
+  migration changes.
+
 - Proposed public Claude legacy selection ([PR #1075](https://github.com/BitterSecurity/Decepticon/pull/1075)): expose Opus 4.8/4.7 and Sonnet 4.6 picker metadata and add active Opus 4.6/4.5 public API routes. Keep public identity separate from tenant subscription access; no provider calls, package publication or SaaS deployment is implied.
 
 - Proposed [PR #1073](https://github.com/BitterSecurity/Decepticon/pull/1073) (issue #1044): add per-session fallback, effort and

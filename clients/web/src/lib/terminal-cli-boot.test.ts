@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import { stripVTControlCharacters } from "node:util";
 import { WebSocket } from "ws";
 
-test("web terminal boots the real CLI and renders its connected composer", { timeout: 30_000 }, async () => {
+test("web terminal boots the real CLI and renders its connected composer", { timeout: 120_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "terminal-cli-boot-"));
   await mkdir(join(root, "workspace", "loader-test", "plan"), { recursive: true });
   await writeFile(join(root, "workspace", "loader-test", "plan", "roe.json"), JSON.stringify({ machine_enforcement: { in_scope: ["example.com"] } }));
@@ -49,14 +49,14 @@ test("web terminal boots the real CLI and renders its connected composer", { tim
   let socket: WebSocket | undefined;
   try {
     await new Promise<void>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error(serverOutput || "Terminal startup timed out")), 10_000);
+      const timer = setTimeout(() => reject(new Error(serverOutput || "Terminal startup timed out")), 20_000);
       child.stdout.on("data", () => { if (serverOutput.includes("Listening on")) { clearTimeout(timer); resolve(); } });
       child.once("exit", () => { clearTimeout(timer); reject(new Error(serverOutput)); });
     });
     socket = new WebSocket(`ws://127.0.0.1:${address.port}/terminal?engagementSlug=loader-test&agentId=decepticon`, { origin: "http://localhost:3000" });
     const text = await new Promise<string>((resolve, reject) => {
       let output = "";
-      const timer = setTimeout(() => reject(new Error(stripVTControlCharacters(output).slice(-1200) || serverOutput)), 15_000);
+      const timer = setTimeout(() => reject(new Error(stripVTControlCharacters(output).slice(-1200) || serverOutput)), 90_000);
       socket!.on("message", data => {
         output += data.toString();
         const plain = stripVTControlCharacters(output);

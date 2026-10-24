@@ -19,7 +19,7 @@ const { mockState } = vi.hoisted(() => ({
 }));
 
 vi.mock("@langchain/langgraph-sdk", () => ({
-  Client: vi.fn(() => mockState.client),
+  Client: vi.fn(function Client() { return mockState.client; }),
 }));
 
 vi.mock("../utils/threadStore.js", () => ({
