@@ -112,3 +112,25 @@ describe("telemetry.drop", () => {
     expect(parsed.success).toBe(false);
   });
 });
+
+describe("schema 1.0 compatibility while upgrading validation", () => {
+  it("keeps legacy canonical hexadecimal install identifiers", () => {
+    expect(TelemetryBatch.safeParse({ ...VALID, install_id: "11111111-1111-1111-1111-111111111111" }).success).toBe(true);
+    expect(TelemetryBatch.safeParse({ ...VALID, install_id: "not-an-id" }).success).toBe(false);
+  });
+
+  it("preserves the UTF-16 text and session identifier ceilings", () => {
+    const event = { type: "trajectory.step", ts: 1, role: "agent", text: "🙂".repeat(8000), session_id: "🙂".repeat(32) };
+    expect(TelemetryEvent.safeParse(event).success).toBe(true);
+    expect(TelemetryEvent.safeParse({ ...event, text: event.text + "🙂" }).success).toBe(false);
+    expect(TelemetryEvent.safeParse({ ...event, session_id: event.session_id + "🙂" }).success).toBe(false);
+  });
+
+  it("retains finite nonnegative integer wire values and rejects fractions", () => {
+    const event = { type: "llm.call", ts: 1, tokens: 9007199254740992 };
+    expect(TelemetryEvent.safeParse(event).success).toBe(true);
+    expect(TelemetryEvent.safeParse({ ...event, tokens: 1.5 }).success).toBe(false);
+    expect(TelemetryEvent.safeParse({ ...event, tokens: -1 }).success).toBe(false);
+    expect(TelemetryEvent.safeParse({ ...event, tokens: Infinity }).success).toBe(false);
+  });
+});
