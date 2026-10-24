@@ -30,6 +30,7 @@ import { restoredQuestion } from "../utils/sessionQuestion.js";
 import { blueMonitorReady } from "../commands/blue.js";
 import { rolePurpose, type RolePurpose } from "../commands/rolePurpose.js";
 import { assertRedApproved } from "../commands/planMode.js";
+import { recoverStream } from "../utils/streamRecovery.js";
 import { LiveMessageText } from "../utils/liveMessageText.js";
 
 function workflowSetting(name: string, version = false): string | undefined {
@@ -75,6 +76,7 @@ function buildConfigurable(purpose: RolePurpose): Record<string, unknown> | unde
 
 interface LangChainMessage {
   type: string; // "human", "ai", "tool"
+  additional_kwargs?: Record<string, unknown>;
   id?: string;
   name?: string; // tool name (on ToolMessage)
   content: string | Array<{ type: string; text?: string }>;
@@ -257,7 +259,7 @@ export function useAgent({
         const messages = (state.values as { messages?: LangChainMessage[] })?.messages ?? [];
         lastCountRef.current = messages.length;
         eventsRef.current = messages.flatMap((message): AgentEvent[] => {
-          if (message.type !== "human" && message.type !== "ai") return [];
+          if (message.additional_kwargs?.decepticon_internal === true || (message.type !== "human" && message.type !== "ai")) return [];
           const content = stripResultTags(extractText(message.content));
           return content ? [{ id: `evt-${++_nextEventId}`, timestamp: Date.now(), type: message.type === "human" ? "user" : "ai_message", content }] : [];
         });
@@ -338,7 +340,7 @@ export function useAgent({
 
   const processStream = useCallback(
     async (
-      stream: AsyncIterable<{ event: string; data: unknown }>,
+      stream: AsyncIterable<{ id?: unknown; event: string; data: unknown }>,
       abortController: AbortController,
     ) => {
       // Capture run_id from the first metadata event for interrupt/cancel
@@ -521,7 +523,16 @@ export function useAgent({
       let ready = (): void => {};
       streamReadyRef.current = new Promise<void>((resolve) => { ready = resolve; });
       streamReadyResolveRef.current = ready;
-      for await (const event of stream) {
+      const recoveredStream = recoverStream(stream, {
+        canReconnect: () => !abortController.signal.aborted && !completionReceived && !serverErrorReceived &&
+          activeQuestionRef.current === null && threadIdRef.current !== null && runIdRef.current !== null,
+        reconnect: lastEventId => clientRef.current.runs.joinStream(threadIdRef.current!, runIdRef.current!, {
+          lastEventId, signal: abortController.signal, cancelOnDisconnect: false,
+        }),
+        onReconnect: () => { setRunState("connecting"); addSystemEvent("Reconnecting to the existing run…"); },
+        onRecovered: () => { setRunState("streaming"); addSystemEvent("Reconnected to the existing run."); },
+      });
+      for await (const event of recoveredStream) {
         if (abortController.signal.aborted) break;
 
         // Capture run_id from metadata event for precise interrupt/cancel
@@ -926,7 +937,7 @@ export function useAgent({
         previousCount = messages.length;
         previousQuestion = restoredQuestion(state);
         previousEvents = messages.flatMap((message): AgentEvent[] => {
-          if (message.type !== "human" && message.type !== "ai") return [];
+          if (message.additional_kwargs?.decepticon_internal === true || (message.type !== "human" && message.type !== "ai")) return [];
           const content = stripResultTags(extractText(message.content));
           return content ? [{ id: `evt-${++_nextEventId}`, timestamp: Date.now(), type: message.type === "human" ? "user" : "ai_message", content }] : [];
         });

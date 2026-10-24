@@ -312,7 +312,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
     vi.mocked(store.loadThreadByIndex).mockResolvedValueOnce({ threadId: "saved", assistantId: "soundwave", lastUsed: "today", title: "saved", legacyMetadata: false });
     const client = mockState.client;
     if (!client) throw new TypeError("Missing fixture");
-    client.threads.getState.mockResolvedValueOnce({ values: { messages: [{ type: "human", content: "previous request" }, { type: "ai", content: "previous answer" }] }, tasks: [{ interrupts: [{ value: { type: "ask_user_question", id: "restore-q", question: "Continue?" } }] }] });
+    client.threads.getState.mockResolvedValueOnce({ values: { messages: [{ type: "human", content: "previous request" }, { type: "human", content: "internal runtime directive", additional_kwargs: { decepticon_internal: true } }, { type: "ai", content: "previous answer" }] }, tasks: [{ interrupts: [{ value: { type: "ask_user_question", id: "restore-q", question: "Continue?" } }] }] });
     // When the hook initializes.
     const { result } = renderHook(() => useAgent());
     await act(async () => { await vi.runAllTimersAsync(); });

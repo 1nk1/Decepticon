@@ -174,4 +174,11 @@ describe("Blue Cell chat notifications", () => {
     expect(restart).toContain("restarted");
     expect(restart).toContain("observation continuity");
   });
+  it("uses the configured Korean language and falls back to English", () => {
+    const notice = { seq: 1, kind: "assessment" as const, payload: { id: "incident-ko" } };
+    vi.stubEnv("DECEPTICON_LANGUAGE", "ko");
+    expect(formatBlueNotification(notice)).toContain("평가가 준비되었습니다");
+    expect(formatBlueNotification(notice)).toContain("incident-ko");
+    expect(formatBlueNotification(notice, "unknown")).toContain("assessment ready");
+  });
 });
