@@ -22,6 +22,11 @@ Keep proposed and unmerged changes out of released sections.
   missing or unusable machine scopes remain blocked. Web creation also stops
   writing the retired mode field. Existing valid scopes need no migration.
 
+- Merged [PR #1069](https://github.com/BitterSecurity/Decepticon/pull/1069): update the locked setuptools
+  dependency from 83.0.0 to 84.2.1, fixing GHSA-xmj3-9gf7-h52w and restoring
+  the blocking dependency audit without suppressing findings. No API or data
+  migration is required.
+
 - **Breaking** (SAST entry removal, [issue #1059](https://github.com/BitterSecurity/Decepticon/issues/1059)): the standalone
   static/CI code-scanning surface is removed — `decepticon-cli scan`
   loses `quick` mode, `--scope-mode diff`/`--diff-base`, `--sarif-output`
