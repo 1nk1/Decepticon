@@ -45,6 +45,7 @@ export function formatDoctorReport(input: DoctorReportInput): string {
       `Pinned workflows: ${input.live.workflowPins.join(" · ") || "none recorded"}`,
       `Pending: ${input.live.pending}`,
       `Plugin bundles: ${input.live.bundles}`,
+      `Runtime overrides: ${input.live.controls || "defaults or not recorded"}`,
     ] : []),
     `Agent:      ${input.assistantId} · run ${input.runState}`,
     `Model:      ${input.modelOverride || "automatic provider routing (no session override)"}`,

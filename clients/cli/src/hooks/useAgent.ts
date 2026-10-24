@@ -30,6 +30,7 @@ import { restoredQuestion } from "../utils/sessionQuestion.js";
 import { blueMonitorReady } from "../commands/blue.js";
 import { rolePurpose, type RolePurpose } from "../commands/rolePurpose.js";
 import { assertRedApproved } from "../commands/planMode.js";
+import { readRunControls, runControlInput, runtimeEvent, type RuntimeStatus } from "../utils/runControls.js";
 import { recoverStream } from "../utils/streamRecovery.js";
 import { LiveMessageText } from "../utils/liveMessageText.js";
 
@@ -48,6 +49,7 @@ function workflowSetting(name: string, version = false): string | undefined {
 // goes through the declared `model_override` graph input channel instead,
 // since it must survive checkpointing rather than reset per request.
 function buildConfigurable(purpose: RolePurpose): Record<string, unknown> | undefined {
+  readRunControls();
   const configurable: Record<string, unknown> = {};
   if (purpose === "planning") {
     if (process.env.DECEPTICON_PLANNING_WORKFLOW_VERSION && !process.env.DECEPTICON_PLANNING_WORKFLOW_ID) throw new Error("DECEPTICON_PLANNING_WORKFLOW_VERSION requires DECEPTICON_PLANNING_WORKFLOW_ID.");
@@ -89,6 +91,8 @@ interface LangChainMessage {
   tool_call_id?: string;
   status?: string; // "success" | "error" on tool messages
   response_metadata?: {
+    model_name?: string;
+    model?: string;
     finish_reason?: string;
     stop_reason?: string;
     token_usage?: {
@@ -143,6 +147,7 @@ interface UseAgentReturn {
   streamingText: string;
   /** Budget usage from BudgetMiddleware's budget_warning event; null when idle. */
   budgetUsage: { spent: number; cap: number; pct: number } | null;
+  runtimeStatus: RuntimeStatus | null;
   streamStats: StreamStats | null;
   /** Currently active agent name (e.g. "decepticon", "recon"). */
   activeAgent: string | null;
@@ -209,6 +214,8 @@ export function useAgent({
   const [streamingText, setStreamingText] = useState<string>("");
   const [streamStats, setStreamStats] = useState<StreamStats | null>(null);
   const [activeAgent, setActiveAgent] = useState<string | null>(null);
+  const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatus | null>(null);
+
   // Budget usage from the BudgetMiddleware's budget_warning custom event.
   const [budgetUsage, setBudgetUsage] = useState<{spent: number; cap: number; pct: number} | null>(null);
   const [assistantId, setAssistantId] = useState<string>(INITIAL_ASSISTANT_ID);
@@ -357,8 +364,17 @@ export function useAgent({
 
       const handleCustomEvent = (data: SubagentCustomEvent) => {
         // Budget warning from BudgetMiddleware — outside SubagentEventType.
-        if ((data as {type?: string}).type === "budget_warning") {
+        const raw = data as unknown as Record<string, unknown>;
+        const runtimeType = typeof raw.type === "string" ? raw.type : "";
+        if (["runtime_status", "model_fallback_engaged", "compact.start", "compact.end", "summarization_skipped"].includes(runtimeType)) {
+          setRuntimeStatus(current => runtimeEvent(current, runtimeType, raw));
+          if (runtimeType === "summarization_skipped") addSystemEvent("Automatic compaction was skipped; context was not reduced on this turn.");
+          return;
+        }
+        if (["budget_warning", "budget_usage", "budget_exceeded"].includes(runtimeType)) {
           const d = data as unknown as {spent_usd?: number; cap_usd?: number; used_pct?: number};
+          if (![d.spent_usd, d.cap_usd, d.used_pct].every(value => typeof value === "number" && Number.isFinite(value))) return;
+          if (runtimeType === "budget_exceeded") { serverErrorReceived = true; addSystemEvent("The configured budget cap was reached; model execution is blocked."); }
           setBudgetUsage({
             spent: d.spent_usd ?? 0,
             cap: d.cap_usd ?? 0,
@@ -366,6 +382,7 @@ export function useAgent({
           });
           return;
         }
+        if (runtimeType === "budget_spend_untracked") { serverErrorReceived = true; addSystemEvent("The selected route cannot verify spend for the configured cap; model execution is blocked."); return; }
         switch (data.type) {
           case "subagent_start":
             setActiveAgent(data.agent);
@@ -616,9 +633,12 @@ export function useAgent({
           if (msg.type === "human") continue;
 
           if (msg.type === "ai") {
+            const servedModel = msg.response_metadata?.model_name ?? msg.response_metadata?.model;
+            if (servedModel && /^[A-Za-z0-9][A-Za-z0-9._:/+@-]{0,255}$/.test(servedModel)) setRuntimeStatus(current => current ? { ...current, servedModel } : current);
             // Extract token usage
             const usage = msg.response_metadata?.token_usage;
             if (usage) {
+              if (typeof usage.prompt_tokens === "number" && Number.isFinite(usage.prompt_tokens) && usage.prompt_tokens >= 0) setRuntimeStatus(current => current ? { ...current, contextTokens: usage.prompt_tokens!, estimated: false } : current);
               cumTotal += usage.total_tokens ?? 0;
               cumPrompt += usage.prompt_tokens ?? 0;
               cumCompletion += usage.completion_tokens ?? 0;
@@ -1066,6 +1086,7 @@ export function useAgent({
         setRunState("streaming");
         setPendingTool(null);
         setBudgetUsage(null);
+        setRuntimeStatus(null);
         setActiveAgent(selectedAssistant);
         setStreamStats({ startTime: Date.now(), totalTokens: 0, promptTokens: 0, completionTokens: 0 });
 
@@ -1074,6 +1095,7 @@ export function useAgent({
         const input: Record<string, unknown> = {
           messages: [{ role: "user", content: message }],
           model_override: getModelOverride(),
+          ...runControlInput(),
         };
 
         const streamConfig = configurable ? { configurable } : undefined;
@@ -1191,7 +1213,7 @@ export function useAgent({
             threadIdRef.current!,
             threadAssistantRef.current,
             {
-              command: { resume: value, update: { model_override: getModelOverride() } },
+              command: { resume: value, update: { model_override: getModelOverride(), ...runControlInput() } },
               ...(configurable ? { config: { configurable } } : {}),
               ...STREAM_OPTIONS,
               onDisconnect: "continue",
@@ -1259,7 +1281,7 @@ export function useAgent({
               threadIdRef.current!,
               threadAssistantRef.current,
               {
-                command: { resume: value ?? true, update: { model_override: getModelOverride() } },
+                command: { resume: value ?? true, update: { model_override: getModelOverride(), ...runControlInput() } },
                 ...(configurable ? { config: { configurable } } : {}),
                 ...STREAM_OPTIONS,
                 onDisconnect: "continue",
@@ -1350,6 +1372,7 @@ export function useAgent({
     pendingTool,
     streamingText,
     budgetUsage,
+    runtimeStatus,
     streamStats,
     activeAgent,
     assistantId,

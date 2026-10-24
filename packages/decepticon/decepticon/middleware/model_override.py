@@ -40,6 +40,12 @@ from typing_extensions import Annotated, NotRequired, override
 from decepticon.desktop_dispatch import observe_dispatch
 from decepticon.desktop_policy import read_desktop_policy, require_current_policy
 from decepticon.llm.factory import LLMFactory
+from decepticon.middleware.run_controls import (
+    ainvoke_with_run_fallbacks,
+    invoke_with_run_fallbacks,
+    merge_run_controls,
+    prepare_runtime_request,
+)
 from decepticon.middleware.state_reducers import reduce_converging_value
 from decepticon_core.types.llm import LLMModelMapping
 from decepticon_core.utils.logging import get_logger
@@ -126,6 +132,7 @@ class ModelOverridesState(AgentState):
 
     model_overrides: NotRequired[Annotated[dict, reduce_converging_value]]
     model_override: NotRequired[Annotated[str, reduce_converging_value]]
+    run_controls: NotRequired[Annotated[dict, merge_run_controls]]
 
 
 class ModelOverrideMiddleware(AgentMiddleware):
@@ -159,20 +166,34 @@ class ModelOverrideMiddleware(AgentMiddleware):
             if selection.effort is not None:
                 settings["reasoning_effort"] = selection.effort
             require_current_policy(policy)
-            result = handler(request.override(model=model, model_settings=settings))
+            result = handler(
+                prepare_runtime_request(
+                    request.override(model=model, model_settings=settings),
+                    self._role,
+                    host_policy=True,
+                )
+            )
             require_current_policy(policy)
             observe_dispatch(policy, self._role, request)
             return result
         override_id = _read_override(request, self._role)
         if not override_id:
-            return handler(request)
+            return invoke_with_run_fallbacks(
+                prepare_runtime_request(request, self._role), handler, role=self._role
+            )
         try:
             new_llm = _build_proxied_llm(override_id, request.model)
         except Exception as exc:
             log.warning("model_override %s failed to bind: %s", override_id, exc)
-            return handler(request)
+            return invoke_with_run_fallbacks(
+                prepare_runtime_request(request, self._role), handler, role=self._role
+            )
         log.info("model_override active: %s", override_id)
-        return handler(request.override(model=new_llm))
+        return invoke_with_run_fallbacks(
+            prepare_runtime_request(request.override(model=new_llm), self._role),
+            handler,
+            role=self._role,
+        )
 
     @override
     async def awrap_model_call(self, request, handler):
@@ -185,20 +206,34 @@ class ModelOverrideMiddleware(AgentMiddleware):
             if selection.effort is not None:
                 settings["reasoning_effort"] = selection.effort
             require_current_policy(policy)
-            result = await handler(request.override(model=model, model_settings=settings))
+            result = await handler(
+                prepare_runtime_request(
+                    request.override(model=model, model_settings=settings),
+                    self._role,
+                    host_policy=True,
+                )
+            )
             require_current_policy(policy)
             observe_dispatch(policy, self._role, request)
             return result
         override_id = _read_override(request, self._role)
         if not override_id:
-            return await handler(request)
+            return await ainvoke_with_run_fallbacks(
+                prepare_runtime_request(request, self._role), handler, role=self._role
+            )
         try:
             new_llm = _build_proxied_llm(override_id, request.model)
         except Exception as exc:
             log.warning("model_override %s failed to bind: %s", override_id, exc)
-            return await handler(request)
+            return await ainvoke_with_run_fallbacks(
+                prepare_runtime_request(request, self._role), handler, role=self._role
+            )
         log.info("model_override active: %s", override_id)
-        return await handler(request.override(model=new_llm))
+        return await ainvoke_with_run_fallbacks(
+            prepare_runtime_request(request.override(model=new_llm), self._role),
+            handler,
+            role=self._role,
+        )
 
 
 __all__ = ["ModelOverrideMiddleware"]

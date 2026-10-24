@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 import React from "react";
 import { render } from "ink";
+import { readRunControls } from "./utils/runControls.js";
 import { App } from "./app.js";
+
+try { readRunControls(); }
+catch (error) { process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`); process.exit(1); }
 
 const args = process.argv.slice(2);
 const resumeThread = args.includes("--continue") || process.env.DECEPTICON_RESUME_LATEST === "true";

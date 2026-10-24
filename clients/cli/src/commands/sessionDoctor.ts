@@ -1,7 +1,9 @@
+import { describeRunControls } from "../utils/runControls.js";
 import { assertRedApproved } from "./planMode.js";
 import { readThreadSnapshot } from "../utils/threadStore.js";
 
 export interface SessionDoctor {
+  readonly controls?: string;
   readonly scope: string;
   readonly checkpoint: string;
   readonly opplanRevision: string;
@@ -46,6 +48,7 @@ export async function readSessionDoctor(threadId: string | null): Promise<Sessio
   const unavailable = stateResult.status === "rejected" ? "unavailable (checkpoint read failed or session scope mismatch)" : "not yet recorded";
   return {
     scope,
+    controls: describeRunControls(values.run_controls),
     checkpoint: typeof checkpoint.checkpoint_id === "string" ? checkpoint.checkpoint_id : unavailable,
     opplanRevision: typeof values.plan_revision === "number" ? String(values.plan_revision) : unavailable,
     workflowPins: pins,

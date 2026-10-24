@@ -93,6 +93,9 @@ func init() {
 		"Skip the self-update check for this launch (does not change AUTO_UPDATE in .env)")
 	rootCmd.PersistentFlags().String("workflow", "", "Execution workflow ID (defaults to DECEPTICON_WORKFLOW_ID in environment or .env)")
 	rootCmd.PersistentFlags().String("model", "", "Per-session model override (LiteLLM model id, e.g. anthropic/claude-opus-4-7); overrides DECEPTICON_MODEL_OVERRIDE in environment or .env")
+	rootCmd.PersistentFlags().String("fallback-model", "", "Per-session fallback IDs (comma-separated); auto restores the configured chain, none disables fallback")
+	rootCmd.PersistentFlags().String("effort", "", "Per-session requested reasoning effort: auto, low, medium, high or max (provider support required)")
+	rootCmd.PersistentFlags().String("autocompact", "", "Per-session context compaction: auto or token threshold (1024–10000000)")
 	rootCmd.PersistentFlags().String("workflow-version", "", "Execution workflow version (requires a workflow ID)")
 
 	rootCmd.PersistentFlags().StringVar(&resumeThread, "resume", "", "Resume a thread by ID, or open the session picker (use --resume=ID)")
@@ -135,6 +138,10 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 		return fmt.Errorf("owned terminal registration requires Desktop service startup")
 	}
 	workflowEnv, err := workflowEnvironment(cmd)
+	if err != nil {
+		return err
+	}
+	controlsEnv, err := runtimeControlsEnvironment(cmd)
 	if err != nil {
 		return err
 	}
@@ -456,6 +463,9 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 		"DECEPTICON_WORKSPACE_PATH": "/workspace",
 	}
 	for key, value := range workflowEnv {
+		cliEnv[key] = value
+	}
+	for key, value := range controlsEnv {
 		cliEnv[key] = value
 	}
 	if modelFlag, _ := cmd.Flags().GetString("model"); modelFlag != "" {
