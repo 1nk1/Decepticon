@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"time"
 
 	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/config"
@@ -58,12 +59,24 @@ fails; optional checks are reported but do not affect the exit code.`,
 	}
 	command.Flags().Bool("json", false, "Print a machine-readable report")
 	command.Flags().Bool("deep", false, "Also run read-only runtime diagnostics inside the langgraph container (requires the stack)")
+	command.Flags().String("engagement", "", "Scope deep KG revision and node counts to this engagement")
 	command.RunE = func(cmd *cobra.Command, _ []string) error {
+		engagement, _ := cmd.Flags().GetString("engagement")
+		if engagement != "" {
+			valid, _ := regexp.MatchString(`^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$`, engagement)
+			if !valid {
+				return fmt.Errorf("invalid engagement slug")
+			}
+			deep, _ := cmd.Flags().GetBool("deep")
+			if !deep {
+				return fmt.Errorf("--engagement requires --deep")
+			}
+		}
 		report := diagnose(cmd.Context())
 		if deep, err := cmd.Flags().GetBool("deep"); err != nil {
 			return err
 		} else if deep {
-			addDeepRuntimeChecks(cmd.Context(), &report)
+			addDeepRuntimeChecksForEngagement(cmd.Context(), &report, engagement)
 		}
 		jsonOutput, err := cmd.Flags().GetBool("json")
 		if err != nil {

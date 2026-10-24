@@ -17,6 +17,7 @@ The output is a single JSON document consumed by the launcher's
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
 from typing import Any
@@ -82,7 +83,7 @@ def _model_fallback_status() -> dict[str, Any]:
     }
 
 
-def _kg_status() -> dict[str, Any]:
+def _kg_status(engagement: str = "diagnostics") -> dict[str, Any]:
     """KG store resolution + reachability. Lazy import: neo4j is an optional extra."""
     from decepticon.middleware.kg_internal.store import (
         KGStoreConfig,
@@ -109,12 +110,15 @@ def _kg_status() -> dict[str, Any]:
         # label, so we verify driver connectivity with a scoped count.
         rows = store.execute_read(
             "MATCH (n {engagement: $engagement}) RETURN count(n) AS nodes",
-            engagement="diagnostics",
+            engagement=engagement,
         )
         return {
             "ok": True,
-            "detail": f"KG store reachable at {config.uri} (database {config.database})",
-            "diagnostic_scope_nodes": rows[0]["nodes"] if rows else 0,
+            "detail": f"KG store reachable at {config.uri} (database {config.database}); "
+            f"engagement {engagement}, revision {store.revision(engagement=engagement)}, "
+            f"nodes {rows[0]['nodes'] if rows else 0}",
+            "engagement": engagement,
+            "scope_nodes": rows[0]["nodes"] if rows else 0,
         }
     except Exception as exc:  # noqa: BLE001
         return {
@@ -145,13 +149,37 @@ def _skillogy_status() -> dict[str, Any]:
         return {"ok": False, "detail": f"Skillogy at {url} unreachable: {exc}"}
 
 
+def _sandbox_status() -> dict[str, Any]:
+    """Probe liveness and advertised API shape without executing sandbox work."""
+    import httpx
+
+    url = os.environ.get("SANDBOX_URL", "http://localhost:9999").rstrip("/")
+    try:
+        with httpx.Client(timeout=5, follow_redirects=False, trust_env=False) as client:
+            health = client.get(f"{url}/healthz")
+            health.raise_for_status()
+            schema = client.get(f"{url}/openapi.json")
+            schema.raise_for_status()
+            paths = schema.json().get("paths", {})
+            required = ("/execute_tmux", "/upload_files", "/download_files")
+            ok = health.json().get("status") == "ok" and all(p in paths for p in required)
+        return {
+            "ok": ok,
+            "detail": "HTTP sandbox live; tmux/file APIs advertised"
+            if ok
+            else "HTTP sandbox liveness or advertised capabilities incomplete",
+        }
+    except Exception as exc:
+        return {"ok": False, "detail": f"HTTP sandbox probe failed ({type(exc).__name__})"}
+
+
 def _mcp_status() -> dict[str, Any]:
     token = os.environ.get("DECEPTICON_MCP_TOKEN")
     mode = "shared-secret" if token else "unauthenticated (loopback default)"
     return {"ok": True, "detail": f"MCP bridge auth mode: {mode}", "mode": mode}
 
 
-def slot_matrix() -> dict[str, Any]:
+def slot_matrix(kg_status: dict[str, Any] | None = None) -> dict[str, Any]:
     """For every configured role, report which of its slots resolve.
 
     Conditional slots (KG / HITL / model_fallback) are evaluated against the
@@ -160,7 +188,7 @@ def slot_matrix() -> dict[str, Any]:
     """
     hitl = _hitl_status()
     fallback = _model_fallback_status()
-    kg = _kg_status()
+    kg = kg_status if kg_status is not None else _kg_status()
     conditional = {
         MiddlewareSlot.HITL_APPROVAL: hitl,
         MiddlewareSlot.MODEL_FALLBACK: fallback,
@@ -172,6 +200,12 @@ def slot_matrix() -> dict[str, Any]:
         absent: dict[str, str] = {}
         for slot in slots:
             report = conditional.get(slot)
+            if slot == MiddlewareSlot.MODEL_FALLBACK:
+                count = fallback.get("roles", {}).get(role)
+                report = {
+                    "ok": isinstance(count, int) and count > 0,
+                    "detail": "no resolved fallback chain for this role",
+                }
             if report is None:
                 resolved.append(str(slot))
                 continue
@@ -183,10 +217,10 @@ def slot_matrix() -> dict[str, Any]:
     return matrix
 
 
-def deep_report() -> dict[str, Any]:
+def deep_report(engagement: str = "diagnostics") -> dict[str, Any]:
     hitl = _hitl_status()
     fallback = _model_fallback_status()
-    kg = _kg_status()
+    kg = _kg_status(engagement)
     skillogy = _skillogy_status()
     mcp = _mcp_status()
     components = {
@@ -195,17 +229,25 @@ def deep_report() -> dict[str, Any]:
         "kg": kg,
         "skillogy": skillogy,
         "mcp_auth": mcp,
+        "sandbox": _sandbox_status(),
     }
     required_ok = all(components[name]["ok"] for name in ("kg", "skillogy") if name in components)
     return {
         "ok": required_ok,
         "components": components,
-        "slot_matrix": slot_matrix(),
+        "slot_matrix": slot_matrix(kg),
     }
 
 
 def main() -> None:
-    report = deep_report()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--engagement", default="diagnostics")
+    args = parser.parse_args()
+    from decepticon_core.utils.engagement_scope import is_valid_engagement_label
+
+    if not is_valid_engagement_label(args.engagement):
+        parser.error("invalid engagement label")
+    report = deep_report(args.engagement)
     print(json.dumps(report, indent=2, default=str, ensure_ascii=False))
     raise SystemExit(0 if report["ok"] else 1)
 

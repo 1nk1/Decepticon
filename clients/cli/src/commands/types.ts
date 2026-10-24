@@ -14,7 +14,7 @@ export interface ChoicePickerRequest {
 /** Context passed to command handlers. */
 export interface CommandContext {
   readonly openPicker?: (request: ChoicePickerRequest) => void;
-  readonly runLocalCommand?: (name: "status" | "sessions" | "export" | "queue" | "alerts", args: string) => void | Promise<void>;
+  readonly runLocalCommand?: (name: "status" | "doctor" | "sessions" | "export" | "queue" | "alerts", args: string) => void | Promise<void>;
   /** Add a system event to the activity stream. */
   addSystemEvent: (content: string) => void;
   /** Clear all events from the activity stream. */
