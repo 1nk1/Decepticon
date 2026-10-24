@@ -292,15 +292,30 @@ quality-cli: node-install
 	npm run build --workspace=@decepticon/cli
 	npm run test --workspace=@decepticon/cli
 
+# The optional Worker has a separate lockfile; the root workspace audit cannot see it.
+.PHONY: telemetry-install telemetry-check telemetry-build quality-telemetry
+telemetry-install:
+	npm ci --prefix telemetry-gateway --no-audit --no-fund
+
+telemetry-check: telemetry-install
+	npm audit --prefix telemetry-gateway --audit-level=high
+	npm run typecheck --prefix telemetry-gateway
+	npm run test --prefix telemetry-gateway -- --maxWorkers=2
+
+telemetry-build: telemetry-install
+	cd telemetry-gateway && WRANGLER_SEND_METRICS=false npm exec -- wrangler deploy --dry-run --outdir .wrangler/deploy
+
+quality-telemetry: telemetry-check telemetry-build
+
 ## PR gate — mirrors CI PR lane (errors-only typecheck + fast pytest + CLI + Web).
 ## Use before opening a PR; passing this guarantees CI will pass.
-quality: ci-lint ci-test quality-cli web-lint web-test web-build
+quality: ci-lint ci-test quality-cli quality-telemetry web-lint web-test web-build
 	@echo ""
 	@echo "OK — PR gates passed (mirrors CI PR lane)"
 
 ## Release gate — mirrors CI main-push lane (coverage 60%) + full basedpyright
 ## audit (warnings + info). Run before tagging a release.
-quality-strict: ci-lint ci-test-coverage quality-cli web-lint web-test web-build
+quality-strict: ci-lint ci-test-coverage quality-cli quality-telemetry web-lint web-test web-build
 	@echo ""
 	@echo "==> basedpyright (full — warning + info audit, non-blocking)"
 	uv run basedpyright

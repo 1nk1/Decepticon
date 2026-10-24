@@ -103,7 +103,7 @@ telemetry = [
 # client) can drive engagements. Provides the ``decepticon-mcp`` script.
 # pyjwt[crypto] backs the JWT (OAuth 2.1 resource-server) auth mode on the
 # streamable-http transport; shared-secret + stdio modes never import it.
-mcp = ["mcp>=1.9.0", "pyjwt[crypto]>=2.10"]
+mcp = ["mcp>=1.30.0,<2", "pyjwt[crypto]>=2.10"]
 all = ["decepticon[neo4j,telemetry,mcp]"]
 
 [project.scripts]

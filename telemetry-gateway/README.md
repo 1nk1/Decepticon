@@ -92,3 +92,11 @@ change the other (a generator can replace the hand-mirror later).
 2. Consent CLI — `decepticon telemetry status|off|preview`, honor `DO_NOT_TRACK`.
 3. `TELEMETRY.md` — every field, the redaction rules, the endpoint.
 4. Tier-B classification/redaction behind `extended` consent.
+
+## Contributor dependency checks
+
+Use Node.js 22.12 or newer (Node 24 is used in CI) and the existing npm lockfile.
+`make quality-telemetry` runs the separate gateway audit, type check, contract /
+redaction tests and a Wrangler deployment dry run. It does not deploy the Worker.
+The patched validation dependency preserves schema 1.0's existing hexadecimal
+install IDs, UTF-16 text ceilings and finite nonnegative integer semantics.

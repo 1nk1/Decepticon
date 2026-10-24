@@ -35,7 +35,11 @@ export const EVENT_TYPES = [
 ] as const;
 
 /** Masked free text (reasoning/prompt/observation). Bounded; re-scanned for Tier-C. */
-const MaskedText = z.string().max(16000);
+// Schema 1.0 used Zod 3 UTF-16 limits and Number.isInteger semantics.
+// Preserve that wire contract while upgrading the validation dependency.
+const boundedText = (limit: number) => z.string().max(limit).refine((value) => value.length <= limit);
+const NonnegativeInteger = z.number().finite().nonnegative().refine(Number.isInteger);
+const MaskedText = boundedText(16000);
 
 /** Short, low-cardinality identifiers only — no free text, no dots, no spaces. */
 const Slug = z
@@ -70,9 +74,9 @@ export const TelemetryEvent = z
     category: Slug.optional(),
     attack_phase: Slug.optional(),
     duration_ms: z.number().finite().nonnegative().optional(),
-    tokens: z.number().int().nonnegative().optional(),
+    tokens: NonnegativeInteger.optional(),
     cost_usd: z.number().finite().nonnegative().optional(),
-    count: z.number().int().nonnegative().optional(),
+    count: NonnegativeInteger.optional(),
     /** Bucketed tool-output size (e.g. "1k-10k") — never the exact byte count. */
     output_bucket: z.enum(["0-128", "128-1k", "1k-10k", "10k+"]).optional(),
     /** Bucketed LLM-call message count (e.g. "10-50"). */
@@ -94,9 +98,9 @@ export const TelemetryEvent = z
     /** Who produced this turn: human input / agent output / tool execution. */
     role: z.enum(["human", "agent", "tool"]).optional(),
     /** Monotonic step index within a session — orders the trajectory. */
-    step: z.number().int().nonnegative().optional(),
+    step: NonnegativeInteger.optional(),
     /** Per-engagement session id (a hash; groups one engagement's steps). */
-    session_id: z.string().max(64).optional(),
+    session_id: boundedText(64).optional(),
     /** Masked turn content: the human objective, or the agent's reasoning. */
     text: MaskedText.optional(),
     /** Masked tool output / observation (role=tool). */
@@ -138,7 +142,7 @@ export const TelemetryBatch = z
   .object({
     schema_version: z.literal("1.0"),
     tier: z.enum(["A", "R"]),
-    install_id: z.string().uuid(),
+    install_id: z.guid(),
     client: ClientInfo,
     events: z.array(TelemetryEvent).min(1).max(500),
   })
