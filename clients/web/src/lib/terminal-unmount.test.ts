@@ -12,7 +12,8 @@ const { JSDOM } = require("jsdom") as {
   JSDOM: new (html: string) => { window: Window & typeof globalThis };
 };
 
-test("unmount during xterm loading does not allocate abandoned terminal resources", async () => {
+for (const scenario of ["unmount", "strict-remount"] as const) {
+test(`xterm loading respects initialization lifetime: ${scenario}`, async () => {
   const dom = new JSDOM("<div id='root'></div>");
   const priorWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
   const priorDocument = Object.getOwnPropertyDescriptor(globalThis, "document");
@@ -25,10 +26,28 @@ test("unmount during xterm loading does not allocate abandoned terminal resource
   let observerCount = 0;
   let socketCount = 0;
   const errors: unknown[][] = [];
+  const sockets: Socket[] = [];
+  const timers = new Map<number, () => void>();
+  let timerId = 0;
+  const threadIds: string[] = [];
+  class Socket {
+    static OPEN = 1; static CLOSED = 3; static CLOSING = 2;
+    readyState = Socket.OPEN;
+    onopen?: () => void; onclose?: (event: { code: number }) => void;
+    onmessage?: (event: { data: string }) => void; onerror?: () => void;
+    constructor() { socketCount++; sockets.push(this); }
+    close(): void { this.readyState = Socket.CLOSED; this.onclose?.({ code: 1006 }); }
+    send(): void {}
+  }
   class Terminal {
     constructor() { terminalCount++; }
     loadAddon(): void {}
     open(): void {}
+    cols = 80; rows = 24;
+    onData(): { dispose(): void } { return { dispose() {} }; }
+    write(): void {}
+    writeln(): void {}
+    reset(): void {}
     dispose(): void {}
   }
   let finishImport!: (module: { Terminal: typeof Terminal }) => void;
@@ -51,29 +70,49 @@ test("unmount during xterm loading does not allocate abandoned terminal resource
     require: (name: string) => Object.hasOwn(modules, name) ? modules[name] : require(name),
     window: dom.window, document: dom.window.document, process: { env: {} },
     console: { ...console, error: (...args: unknown[]) => { errors.push(args); } },
-    setTimeout, clearTimeout, setInterval, clearInterval,
+    setTimeout: (callback: () => void) => { const id = ++timerId; timers.set(id, callback); return id; },
+    clearTimeout: (id: number) => { timers.delete(id); },
+    setInterval: () => ++timerId, clearInterval: () => {},
     ResizeObserver: class {
       constructor() { observerCount++; }
       observe(): void {}
       disconnect(): void {}
     },
-    WebSocket: class { constructor() { socketCount++; } },
+    WebSocket: Socket,
   });
   const root = createRoot(dom.window.document.getElementById("root")!);
   try {
     await act(async () => {
-      root.render(React.createElement(terminalModule.exports.WebTerminal, {
+      root.render(React.createElement(React.StrictMode, null, React.createElement(terminalModule.exports.WebTerminal, {
         engagementId: "owned", engagementSlug: "owned", targetType: "web_url",
-        targetValue: "https://example.invalid", authorizationConfirmed: true,
-      }));
+        targetValue: "https://example.invalid", authorizationConfirmed: true, onThreadId: (id: string) => threadIds.push(id),
+      })));
     });
     assert.equal(terminalCount, 0, "the import is still pending");
-    await act(async () => { root.unmount(); });
+    if (scenario === "unmount") await act(async () => { root.unmount(); });
     await act(async () => { finishImport({ Terminal }); });
     assert.deepEqual(errors, [], "initialization must not hide an error");
-    assert.equal(terminalCount, 0, "unmounted terminals must not allocate xterm");
-    assert.equal(observerCount, 0, "unmounted terminals must not install observers");
-    assert.equal(socketCount, 0, "unmounted terminals must not connect");
+    const expected = scenario === "unmount" ? 0 : 1;
+    assert.equal(terminalCount, expected, "an obsolete import must not allocate xterm");
+    assert.equal(observerCount, expected, "only the current initialization installs observers");
+    assert.equal(socketCount, expected, "StrictMode must connect once after deferred imports");
+    if (scenario === "strict-remount") {
+      await act(async () => { sockets[0].onopen?.(); });
+      sockets[0].readyState = Socket.CLOSED;
+      await act(async () => { dom.window.dispatchEvent(new dom.window.Event("online")); });
+      assert.equal(socketCount, 2);
+      await act(async () => { sockets[1].onopen?.(); });
+      await act(async () => {
+        sockets[0].onclose?.({ code: 1006 });
+        sockets[0].onerror?.();
+        sockets[0].onmessage?.({ data: JSON.stringify({ type: "threadId", threadId: "obsolete" }) });
+      });
+      assert.equal(timers.size, 0, "obsolete callbacks must not schedule reconnects");
+      assert.deepEqual(threadIds, [], "obsolete data must not replace the current session");
+      assert.match(dom.window.document.body.textContent ?? "", /Connected/);
+      await act(async () => { sockets[1].onclose?.({ code: 1006 }); });
+      assert.equal(timers.size, 1, "the current socket still reconnects after an actual failure");
+    }
   } finally {
     await act(async () => { root.unmount(); });
     dom.window.close();
@@ -84,3 +123,5 @@ test("unmount during xterm loading does not allocate abandoned terminal resource
     environment.IS_REACT_ACT_ENVIRONMENT = priorAct;
   }
 });
+
+}
