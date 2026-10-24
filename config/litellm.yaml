@@ -333,45 +333,50 @@ model_list:
   - model_name: auth/claude-opus-4-8
     litellm_params:
       model: auth/claude-opus-4-8
-      allowed_openai_params: [reasoning_effort]
       additional_drop_params:
         - temperature
       max_tokens: 128000
+      allowed_openai_params:
+        - reasoning_effort
     model_info:
       input_cost_per_token: 5.0e-06
       output_cost_per_token: 2.5e-05
   - model_name: auth/claude-opus-4-7
     litellm_params:
       model: auth/claude-opus-4-7
-      allowed_openai_params: [reasoning_effort]
       additional_drop_params:
         - temperature
       max_tokens: 128000
+      allowed_openai_params:
+        - reasoning_effort
     model_info:
       input_cost_per_token: 5.0e-06
       output_cost_per_token: 2.5e-05
   - model_name: auth/claude-sonnet-4-6
     litellm_params:
       model: auth/claude-sonnet-4-6
-      allowed_openai_params: [reasoning_effort]
       max_tokens: 64000
+      allowed_openai_params:
+        - reasoning_effort
     model_info:
       input_cost_per_token: 3.0e-06
       output_cost_per_token: 1.5e-05
   - model_name: auth/claude-haiku-4-5
     litellm_params:
       model: auth/claude-haiku-4-5
-      allowed_openai_params: [reasoning_effort]
       max_tokens: 64000
+      allowed_openai_params:
+        - reasoning_effort
     model_info:
       input_cost_per_token: 1.0e-06
       output_cost_per_token: 5.0e-06
   - model_name: auth/claude-opus-5
     litellm_params:
       model: auth/claude-opus-5
-      allowed_openai_params: [reasoning_effort]
       additional_drop_params:
         - temperature
+      allowed_openai_params:
+        - reasoning_effort
     model_info:
       input_cost_per_token: 5.0e-06
       output_cost_per_token: 2.5e-05
@@ -381,7 +386,8 @@ model_list:
   - model_name: auth/claude-sonnet-5
     litellm_params:
       model: auth/claude-sonnet-5
-      allowed_openai_params: [reasoning_effort]
+      allowed_openai_params:
+        - reasoning_effort
     model_info:
       input_cost_per_token: 2.0e-06
       output_cost_per_token: 1.0e-05

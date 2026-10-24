@@ -17,7 +17,9 @@ Keep proposed and unmerged changes out of released sections.
 
 - Proposed [PR #1077](https://github.com/BitterSecurity/Decepticon/pull/1077) (issue #1044): subscription effort routing correction: allow the
   reasoning-effort parameter on Codex OAuth and Claude subscription routes
-  whose custom handlers already translate it. Fix the actual gateway HTTP 400
+  whose custom handlers already translate it. Declare the Claude allowlist in
+  the local model overlay and regenerate its YAML, preserving the shared
+  catalog drift gate. Fix the actual gateway HTTP 400
   seen with per-session/host-selected effort; keep ordinary provider validation,
   default effort and scoped credential handling unchanged. No account migration.
 
