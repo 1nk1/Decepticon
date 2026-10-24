@@ -15,6 +15,12 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed subscription effort routing correction (issue #1044): allow the
+  reasoning-effort parameter on Codex OAuth and Claude subscription routes
+  whose custom handlers already translate it. Fix the actual gateway HTTP 400
+  seen with per-session/host-selected effort; keep ordinary provider validation,
+  default effort and scoped credential handling unchanged. No account migration.
+
 - Proposed public Claude legacy selection ([PR #1075](https://github.com/BitterSecurity/Decepticon/pull/1075)): expose Opus 4.8/4.7 and Sonnet 4.6 picker metadata and add active Opus 4.6/4.5 public API routes. Keep public identity separate from tenant subscription access; no provider calls, package publication or SaaS deployment is implied.
 
 - Proposed [PR #1073](https://github.com/BitterSecurity/Decepticon/pull/1073) (issue #1044): add per-session fallback, effort and

@@ -897,27 +897,45 @@ _SUBSCRIPTION_ROUTES: dict[str, list[dict[str, Any]]] = {
         # https://learn.chatgpt.com/docs/models (2026-10-14).
         {
             "model_name": "auth/gpt-6-astra",
-            "litellm_params": {"model": "codex-oauth/oauth-gpt-6-astra"},
+            "litellm_params": {
+                "model": "codex-oauth/oauth-gpt-6-astra",
+                "allowed_openai_params": ["reasoning_effort"],
+            },
         },
         {
             "model_name": "auth/gpt-6.1-sol",
-            "litellm_params": {"model": "codex-oauth/oauth-gpt-6.1-sol"},
+            "litellm_params": {
+                "model": "codex-oauth/oauth-gpt-6.1-sol",
+                "allowed_openai_params": ["reasoning_effort"],
+            },
         },
         {
             "model_name": "auth/gpt-6-luna",
-            "litellm_params": {"model": "codex-oauth/oauth-gpt-6-luna"},
+            "litellm_params": {
+                "model": "codex-oauth/oauth-gpt-6-luna",
+                "allowed_openai_params": ["reasoning_effort"],
+            },
         },
         {
             "model_name": "auth/gpt-5.6-sol",
-            "litellm_params": {"model": "codex-oauth/oauth-gpt-5.6-sol"},
+            "litellm_params": {
+                "model": "codex-oauth/oauth-gpt-5.6-sol",
+                "allowed_openai_params": ["reasoning_effort"],
+            },
         },
         {
             "model_name": "auth/gpt-5.6-terra",
-            "litellm_params": {"model": "codex-oauth/oauth-gpt-5.6-terra"},
+            "litellm_params": {
+                "model": "codex-oauth/oauth-gpt-5.6-terra",
+                "allowed_openai_params": ["reasoning_effort"],
+            },
         },
         {
             "model_name": "auth/gpt-5.6-luna",
-            "litellm_params": {"model": "codex-oauth/oauth-gpt-5.6-luna"},
+            "litellm_params": {
+                "model": "codex-oauth/oauth-gpt-5.6-luna",
+                "allowed_openai_params": ["reasoning_effort"],
+            },
         },
     ],
     "DECEPTICON_AUTH_GEMINI": [
