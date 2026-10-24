@@ -77,7 +77,7 @@ Keep proposed and unmerged changes out of released sections.
   are read through `decepticon_engagement_findings` (MCP) or the
   workspace graph instead of a local SARIF file.
 
-- Proposed (session polish, issue #1034): reattach once after an interrupted
+- Proposed [PR #1072](https://github.com/BitterSecurity/Decepticon/pull/1072): reattach once after an interrupted
   stream using the existing run and event cursor; show reconnect progress.
   Transcript view gains bounded PgUp/PgDn navigation and the normal slash-command
   dispatcher. Existing error dismissal, numbered question answers, contextual
