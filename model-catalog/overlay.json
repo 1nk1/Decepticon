@@ -314,7 +314,10 @@
               "additional_drop_params": [
                 "temperature"
               ],
-              "max_tokens": 128000
+              "max_tokens": 128000,
+              "allowed_openai_params": [
+                "reasoning_effort"
+              ]
             },
             "model_info": {
               "input_cost_per_token": 5e-06,
@@ -330,7 +333,10 @@
               "additional_drop_params": [
                 "temperature"
               ],
-              "max_tokens": 128000
+              "max_tokens": 128000,
+              "allowed_openai_params": [
+                "reasoning_effort"
+              ]
             },
             "model_info": {
               "input_cost_per_token": 5e-06,
@@ -343,7 +349,10 @@
             "model_name": "auth/claude-sonnet-4-6",
             "litellm_params": {
               "model": "auth/claude-sonnet-4-6",
-              "max_tokens": 64000
+              "max_tokens": 64000,
+              "allowed_openai_params": [
+                "reasoning_effort"
+              ]
             },
             "model_info": {
               "input_cost_per_token": 3e-06,
@@ -356,7 +365,10 @@
             "model_name": "auth/claude-haiku-4-5",
             "litellm_params": {
               "model": "auth/claude-haiku-4-5",
-              "max_tokens": 64000
+              "max_tokens": 64000,
+              "allowed_openai_params": [
+                "reasoning_effort"
+              ]
             },
             "model_info": {
               "input_cost_per_token": 1e-06,
@@ -371,6 +383,9 @@
               "model": "auth/claude-opus-5",
               "additional_drop_params": [
                 "temperature"
+              ],
+              "allowed_openai_params": [
+                "reasoning_effort"
               ]
             },
             "model_info": {
@@ -386,7 +401,10 @@
           "private": {
             "model_name": "auth/claude-sonnet-5",
             "litellm_params": {
-              "model": "auth/claude-sonnet-5"
+              "model": "auth/claude-sonnet-5",
+              "allowed_openai_params": [
+                "reasoning_effort"
+              ]
             },
             "model_info": {
               "input_cost_per_token": 2e-06,

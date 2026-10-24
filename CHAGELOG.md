@@ -16,6 +16,13 @@ Keep proposed and unmerged changes out of released sections.
 ## [Unreleased]
 
 - Proposed [PR #1080](https://github.com/BitterSecurity/Decepticon/pull/1080): align launcher-bound web sessions with the CLI/server engagement mount, while keeping existing web checkpoint namespaces and files intact. Reject sibling engagement connections and stale model/tool dispatch after a runtime rebind; shared-root Compose and native policy adapters retain their existing behavior.
+- Proposed [PR #1077](https://github.com/BitterSecurity/Decepticon/pull/1077) (issue #1044): subscription effort routing correction: allow the
+  reasoning-effort parameter on Codex OAuth and Claude subscription routes
+  whose custom handlers already translate it. Declare the Claude allowlist in
+  the local model overlay and regenerate its YAML, preserving the shared
+  catalog drift gate. Fix the actual gateway HTTP 400
+  seen with per-session/host-selected effort; keep ordinary provider validation,
+  default effort and scoped credential handling unchanged. No account migration.
 
 - Proposed [PR #1074](https://github.com/BitterSecurity/Decepticon/pull/1074): dependency security refresh: update the workspace lockfile and
   Next.js/Sharp/test-runner versions to patched releases; remove unused OpenUI

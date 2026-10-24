@@ -326,12 +326,30 @@ def test_merge_dynamic_models_registers_only_supported_chatgpt_oauth_routes() ->
     # provider because the ``gpt-*`` slug collides with OpenAI's aliases.
     entries = {entry["model_name"]: entry["litellm_params"] for entry in merged["model_list"]}
     assert entries == {
-        "auth/gpt-6-astra": {"model": "codex-oauth/oauth-gpt-6-astra"},
-        "auth/gpt-6.1-sol": {"model": "codex-oauth/oauth-gpt-6.1-sol"},
-        "auth/gpt-6-luna": {"model": "codex-oauth/oauth-gpt-6-luna"},
-        "auth/gpt-5.6-sol": {"model": "codex-oauth/oauth-gpt-5.6-sol"},
-        "auth/gpt-5.6-terra": {"model": "codex-oauth/oauth-gpt-5.6-terra"},
-        "auth/gpt-5.6-luna": {"model": "codex-oauth/oauth-gpt-5.6-luna"},
+        "auth/gpt-6-astra": {
+            "model": "codex-oauth/oauth-gpt-6-astra",
+            "allowed_openai_params": ["reasoning_effort"],
+        },
+        "auth/gpt-6.1-sol": {
+            "model": "codex-oauth/oauth-gpt-6.1-sol",
+            "allowed_openai_params": ["reasoning_effort"],
+        },
+        "auth/gpt-6-luna": {
+            "model": "codex-oauth/oauth-gpt-6-luna",
+            "allowed_openai_params": ["reasoning_effort"],
+        },
+        "auth/gpt-5.6-sol": {
+            "model": "codex-oauth/oauth-gpt-5.6-sol",
+            "allowed_openai_params": ["reasoning_effort"],
+        },
+        "auth/gpt-5.6-terra": {
+            "model": "codex-oauth/oauth-gpt-5.6-terra",
+            "allowed_openai_params": ["reasoning_effort"],
+        },
+        "auth/gpt-5.6-luna": {
+            "model": "codex-oauth/oauth-gpt-5.6-luna",
+            "allowed_openai_params": ["reasoning_effort"],
+        },
     }
     assert merged["litellm_settings"]["fallbacks"] == [
         {"auth/gpt-6-astra": ["auth/gpt-6.1-sol"]},
@@ -1219,3 +1237,22 @@ def test_compat_gateway_respects_provider_priority(explicit_gateway_first: bool)
         chain = auth_inventory().resolved_chain
     # Then default and explicit ordering are honored.
     assert chain == expected
+
+
+def test_subscription_routes_forward_effort_to_their_custom_handlers() -> None:
+    config = yaml.safe_load((_MODULE_PATH.parent / "litellm.yaml").read_text())
+    merged = merge_dynamic_models(config, {"DECEPTICON_AUTH_CHATGPT": "true"})
+    checked = set()
+    for route in merged["model_list"]:
+        params = route["litellm_params"]
+        model = params.get("model", "")
+        if model.startswith(("codex-oauth/oauth-gpt-", "auth/claude-")):
+            assert "reasoning_effort" in params.get("allowed_openai_params", []), model
+            checked.add(model.split("/")[0])
+    assert checked == {"codex-oauth", "auth"}
+    # Claude-only installs may use the base YAML without dynamic generation.
+    for route in config["model_list"]:
+        params = route["litellm_params"]
+        if params.get("model", "").startswith("auth/claude-"):
+            assert "reasoning_effort" in params.get("allowed_openai_params", [])
+    assert not merged.get("litellm_settings", {}).get("drop_params", False)
