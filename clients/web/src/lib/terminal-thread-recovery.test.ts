@@ -40,9 +40,10 @@ function response(status: number, threadId = "created"): Response {
 function server(options: {
   fetch?: (url: string, request: Request) => Promise<Response>;
   scope?: Promise<Buffer>;
+  env?: Record<string, string>;
 } = {}) {
   const calls: { url: string; method: string; body?: string }[] = [];
-  const terms: { threadId: string; killed: boolean }[] = [];
+  const terms: { threadId: string; killed: boolean; env?: Record<string, string> }[] = [];
   let handler!: (socket: Socket, request: { headers: { origin: string }; url: string }) => Promise<void>;
   let now = 0;
   let timerId = 0;
@@ -63,6 +64,7 @@ function server(options: {
     },
     pty: { spawn(_command: string, _args: string[], config: { env: Record<string, string> }) {
       const term = { threadId: config.env.DECEPTICON_THREAD_ID, killed: false };
+      Object.defineProperty(term, "env", { value: config.env, enumerable: false });
       terms.push(term);
       return {
         pid: terms.length, onData(): void {}, onExit(): void {},
@@ -79,7 +81,7 @@ function server(options: {
       if (request.method === "PATCH") return response(200);
       return options.fetch ? options.fetch(url, request) : response(200);
     },
-    process: { env: {}, on(): void {}, exit(): never { throw new Error("Unexpected exit"); } },
+    process: { env: options.env ?? {}, on(): void {}, exit(): never { throw new Error("Unexpected exit"); } },
     console: { log(): void {}, error(): void {} },
     URL, Buffer, AbortController,
     setTimeout(callback: () => void, delay: number): number {
@@ -250,3 +252,42 @@ test("late validation from a disconnected socket cannot replace a successful rec
   fixture.advance(60_000);
   assert.deepEqual(fixture.terms, [{ threadId: "reconnected", killed: true }]);
 });
+
+for (const binding of ["", "owned-case"]) {
+  test(`new web session separates local file access from runtime mount (${binding || "shared root"})`, async () => {
+    const fixture = server({ env: { DECEPTICON_RUNTIME_ENGAGEMENT: binding, WORKSPACE_PATH: "/host-view" } });
+    await fixture.connect(new Socket(), "");
+    const expected = binding ? "/workspace" : "/workspace/owned-case";
+    const created = JSON.parse(fixture.calls.find(call => call.method === "POST")!.body!);
+    assert.equal(created.metadata.workspace_path, expected);
+    assert.equal(fixture.terms[0].env!.DECEPTICON_WORKSPACE_PATH, "/host-view/owned-case");
+    assert.equal(fixture.terms[0].env!.DECEPTICON_RUNTIME_WORKSPACE_PATH, expected);
+  });
+}
+
+test("a launcher bound to a sibling refuses before creating a thread or terminal", async () => {
+  const fixture = server({ env: { DECEPTICON_RUNTIME_ENGAGEMENT: "sibling" } });
+  const socket = new Socket();
+  await fixture.connect(socket, "");
+  assert.equal(socket.closeCode, 1008);
+  assert.equal(fixture.calls.length, 0);
+  assert.equal(fixture.terms.length, 0);
+});
+
+test("existing web checkpoints retain their pre-upgrade workspace without replacement", async () => {
+  const fixture = server({ env: { DECEPTICON_RUNTIME_ENGAGEMENT: "owned-case" }, fetch: async () => ({ ...response(200), json: async () => ({ metadata: { engagement_name: "owned-case", workspace_path: "/workspace/owned-case" } }) }) });
+  await fixture.connect(new Socket());
+  assert.equal(fixture.terms[0].env!.DECEPTICON_RUNTIME_WORKSPACE_PATH, "/workspace/owned-case");
+  assert.deepEqual(fixture.calls.map(call => call.method), ["GET", "PATCH"]);
+});
+
+for (const metadata of [{ engagement_name: "sibling", workspace_path: "/workspace" }, { engagement_name: "owned-case", workspace_path: "/workspace/sibling" }]) {
+  test(`foreign binding refuses without replacement: ${JSON.stringify(metadata)}`, async () => {
+    const fixture = server({ env: { DECEPTICON_RUNTIME_ENGAGEMENT: "owned-case" }, fetch: async () => ({ ...response(200), json: async () => ({ metadata }) }) });
+    const socket = new Socket();
+    await fixture.connect(socket);
+    assert.equal(socket.closeCode, 1011);
+    assert.equal(fixture.terms.length, 0);
+    assert.deepEqual(fixture.calls.map(call => call.method), ["GET"]);
+  });
+}

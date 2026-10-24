@@ -343,6 +343,14 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 	if err := os.Setenv("DECEPTICON_ENGAGEMENT_WORKSPACE", choice.WorkspacePath); err != nil {
 		return fmt.Errorf("set engagement workspace env: %w", err)
 	}
+	// Bind the service namespace independently of the web container host view.
+	runtimeEngagement := ""
+	if desktopRuntime == nil {
+		runtimeEngagement = choice.Engagement
+	}
+	if err := os.Setenv("DECEPTICON_RUNTIME_ENGAGEMENT", runtimeEngagement); err != nil {
+		return fmt.Errorf("set runtime engagement: %w", err)
+	}
 	if err := opsinternal.RecordEngagementWorkspace(choice.Engagement, choice.WorkspacePath); err != nil {
 		return fmt.Errorf("record engagement workspace for opscontrol: %w", err)
 	}

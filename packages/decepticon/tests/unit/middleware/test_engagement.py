@@ -773,3 +773,63 @@ def test_build_language_policy_helper_handles_aliases_and_no_op_cases() -> None:
     # Wenyan special mode
     policy_wenyan = build_language_policy("wenyan")
     assert policy_wenyan is not None and "文言文" in policy_wenyan
+
+
+@pytest.mark.parametrize("path", ["/workspace", "/workspace/owned-case"])
+def test_launcher_binding_preserves_canonical_and_old_web_namespaces(monkeypatch, path):
+    from decepticon.middleware.engagement import _assert_runtime_binding
+
+    monkeypatch.setenv("DECEPTICON_RUNTIME_ENGAGEMENT", "owned-case")
+    state = {"engagement_name": "owned-case", "workspace_path": path}
+    _assert_runtime_binding(state, state.copy())
+
+
+@pytest.mark.parametrize(
+    "state,config",
+    [
+        ({"engagement_name": "sibling"}, {"engagement_name": "owned-case"}),
+        ({"engagement_name": "owned-case"}, {"engagement_name": "sibling"}),
+        ({"engagement_name": "owned-case", "workspace_path": "/workspace/sibling"}, {}),
+        (
+            {"engagement_name": "owned-case", "workspace_path": "/workspace"},
+            {"workspace_path": "/workspace/owned-case"},
+        ),
+        ({}, {}),
+    ],
+)
+def test_launcher_binding_rejects_stale_or_foreign_context(monkeypatch, state, config):
+    from decepticon.middleware.engagement import _assert_runtime_binding
+
+    monkeypatch.setenv("DECEPTICON_RUNTIME_ENGAGEMENT", "owned-case")
+    with pytest.raises(ValueError):
+        _assert_runtime_binding(state, config)
+
+
+@pytest.mark.parametrize("async_mode", [False, True])
+@pytest.mark.parametrize("kind", ["model", "tool"])
+async def test_bound_runtime_rejects_dispatch_after_engagement_rebind(
+    monkeypatch, async_mode, kind
+):
+    from types import SimpleNamespace
+
+    monkeypatch.setenv("DECEPTICON_RUNTIME_ENGAGEMENT", "new-engagement")
+    request = SimpleNamespace(
+        state={"engagement_name": "old-engagement", "workspace_path": "/workspace"},
+        runtime=SimpleNamespace(config={"configurable": {}}),
+    )
+    middleware = EngagementContextMiddleware()
+    called = False
+
+    def handler(_request):
+        nonlocal called
+        called = True
+
+    async def ahandler(_request):
+        handler(_request)
+
+    with pytest.raises(ValueError, match="launcher runtime engagement"):
+        if async_mode:
+            await getattr(middleware, f"awrap_{kind}_call")(request, ahandler)
+        else:
+            getattr(middleware, f"wrap_{kind}_call")(request, handler)
+    assert not called

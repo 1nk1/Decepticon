@@ -176,6 +176,37 @@ def _configurable_from_runnable_config() -> dict[str, Any]:
     return configurable if isinstance(configurable, dict) else {}
 
 
+def _assert_runtime_binding(state: Any, configurable: dict[str, Any] | None = None) -> None:
+    """A launcher-scoped mount must not dispatch a sibling/stale engagement."""
+    active = os.environ.get("DECEPTICON_RUNTIME_ENGAGEMENT", "")
+    if not active:
+        return  # Shared-root Compose and native policy adapters retain their contract.
+    if not is_valid_engagement_label(active):
+        raise ValueError("Invalid launcher runtime engagement")
+    state = state if isinstance(state, dict) else {}
+    cfg = configurable if configurable is not None else _configurable_from_runnable_config()
+    if (state.get("engagement_name") or cfg.get("engagement_name")) != active:
+        raise ValueError("Session does not belong to the launcher runtime engagement")
+    for source in (state, cfg):
+        if source.get("engagement_name") and source["engagement_name"] != active:
+            raise ValueError("Session does not belong to the launcher runtime engagement")
+        path = source.get("workspace_path")
+        if path and path not in {"/workspace", f"/workspace/{active}"}:
+            raise ValueError("Session does not belong to the launcher runtime workspace")
+    if (
+        state.get("workspace_path")
+        and cfg.get("workspace_path")
+        and state["workspace_path"] != cfg["workspace_path"]
+    ):
+        raise ValueError("Checkpoint and run workspace mismatch")
+
+
+def _assert_request_binding(request: Any) -> None:
+    config = getattr(getattr(request, "runtime", None), "config", None)
+    cfg = config.get("configurable", {}) if isinstance(config, dict) else None
+    _assert_runtime_binding(request.state, cfg)
+
+
 def _hydrate_engagement_state(state: Any) -> dict[str, Any] | None:
     """Copy ``engagement_name``/``workspace_path`` from runnable config into state.
 
@@ -192,6 +223,7 @@ def _hydrate_engagement_state(state: Any) -> dict[str, Any] | None:
     """
     get = state.get if hasattr(state, "get") else (lambda _k, _d=None: None)
     configurable = _configurable_from_runnable_config()
+    _assert_runtime_binding(state, configurable)
     updates: dict[str, Any] = {}
 
     engagement_label: str | None = get("engagement_name")
@@ -426,6 +458,7 @@ class EngagementContextMiddleware(AgentMiddleware):
 
     @override
     async def abefore_agent(self, state, runtime) -> dict[str, Any] | None:
+        _assert_runtime_binding(state)
         if native_startup.REGISTRATIONS_PATH.exists():
             await native_startup.initialize_native_browser(get_config())
         return _hydrate_engagement_state(state)
@@ -442,6 +475,7 @@ class EngagementContextMiddleware(AgentMiddleware):
     def wrap_tool_call(
         self, request: ToolCallRequest, handler: Callable[[ToolCallRequest], ToolMessage | Command]
     ) -> ToolMessage | Command:
+        _assert_request_binding(request)
         if request.tool and request.tool.name in _REPORT_SCOPE_TOOLS:
             token = set_active_engagement(_trusted_report_scope(request))
             try:
@@ -465,6 +499,7 @@ class EngagementContextMiddleware(AgentMiddleware):
         request: ToolCallRequest,
         handler: Callable[[ToolCallRequest], Awaitable[ToolMessage | Command]],
     ) -> ToolMessage | Command:
+        _assert_request_binding(request)
         if request.tool and request.tool.name in _REPORT_SCOPE_TOOLS:
             token = set_active_engagement(_trusted_report_scope(request))
             try:
@@ -483,6 +518,7 @@ class EngagementContextMiddleware(AgentMiddleware):
         return await handler(request)
 
     def _inject(self, request):
+        _assert_request_binding(request)
         state = request.state or {}
         get = state.get if hasattr(state, "get") else (lambda _k, _d=None: None)
 

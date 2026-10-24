@@ -96,3 +96,20 @@ restart. It must also reject another engagement's thread, missing Red scope and
 cross-purpose workflow pins. Record actual model responses and terminal/service
 ownership separately from configuration checks. See
 [extension contract](extension-contract.md) and [release gates](../../RELEASE.md).
+
+## Local mount views
+
+The OSS launcher binds the selected engagement at `/workspace` in the agent,
+sandbox and CLI containers. The web container retains a parent workspace mount,
+so its CLI child reads local operator files at `/workspace/<slug>` while sending
+`/workspace` to LangGraph for new sessions. `DECEPTICON_RUNTIME_ENGAGEMENT` is a
+launcher-owned process binding; it cannot be replaced through run input. The web
+adapter refuses sibling connections, and the runtime rechecks this binding before
+model/tool dispatch, including resumed checkpoints after a service rebind.
+
+Existing web threads with the matching slug and `/workspace/<slug>` checkpoint
+retain that server namespace and their existing files. Switching modes or sessions
+keeps the namespace with the thread; a new session uses the canonical runtime
+root. This is compatibility handling, not file migration or checkpoint rewriting.
+Manual Compose without the launcher binding keeps its shared-root layout. Native
+adapters continue to use their host-owned policy binding.

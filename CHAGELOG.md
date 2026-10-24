@@ -23,7 +23,8 @@ Keep proposed and unmerged changes out of released sections.
   final quality, CI/security and distribution checks. See
   [qualification record](docs/releases/1.6.0-qualification.md).
 
-- Proposed [PR #1077](https://github.com/BitterSecurity/Decepticon/pull/1077) (issue #1044): subscription effort routing correction: allow the
+- Merged [PR #1080](https://github.com/BitterSecurity/Decepticon/pull/1080): align launcher-bound web sessions with the CLI/server engagement mount, while keeping existing web checkpoint namespaces and files intact. Reject sibling engagement connections and stale model/tool dispatch after a runtime rebind; shared-root Compose and native policy adapters retain their existing behavior.
+- Merged [PR #1077](https://github.com/BitterSecurity/Decepticon/pull/1077) (issue #1044): subscription effort routing correction: allow the
   reasoning-effort parameter on Codex OAuth and Claude subscription routes
   whose custom handlers already translate it. Declare the Claude allowlist in
   the local model overlay and regenerate its YAML, preserving the shared

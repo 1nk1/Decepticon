@@ -1146,6 +1146,31 @@ describe("useAgent — engagement handoff lifecycle", () => {
     expect(mockState.client?.runs.stream).toHaveBeenCalledWith("plan-thread", "soundwave", expect.anything());
   });
 
+  it("keeps a restored web namespace with its thread across modes and resets it for a new session", async () => {
+    const { validateThread } = await import("../utils/threadStore.js");
+    vi.mocked(validateThread).mockResolvedValueOnce({ threadId: "old-web", assistantId: "soundwave", engagementName: "eng-abc", workspacePath: "/workspace/eng-abc", legacyMetadata: false });
+    vi.stubEnv("DECEPTICON_RUNTIME_WORKSPACE_PATH", "/workspace");
+    const mc = mockState.client!;
+    mc.runs.stream.mockImplementation(() => createMockStream([noopValuesEvent]));
+    const { result } = renderHook(() => useAgent());
+    act(() => result.current.resume("old-web"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    act(() => result.current.submit("continue old session"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    await act(async () => { await result.current.selectAssistant("decepticon"); });
+    act(() => result.current.submit("new Red session"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    await act(async () => { await result.current.selectAssistant("soundwave"); });
+    act(() => result.current.submit("return to old session"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    act(() => result.current.clearEvents());
+    act(() => result.current.submit("new Plan session"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    expect(mc.runs.stream.mock.calls.map(call => (call[2].config as { configurable: { workspace_path: string } }).configurable.workspace_path)).toEqual(["/workspace/eng-abc", "/workspace", "/workspace/eng-abc", "/workspace"]);
+    expect(mc.runs.stream.mock.calls[0][0]).toBe("old-web");
+    expect(mc.runs.stream.mock.calls[2][0]).toBe("old-web");
+  });
+
   it("keeps queuedMessage intact after a legacy engagement_ready event", async () => {
     const firstStream = createControllableStream();
     const secondStream = createMockStream([noopValuesEvent]);
