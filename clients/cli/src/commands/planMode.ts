@@ -1,3 +1,4 @@
+import { machineScopeTargets } from "@decepticon/streaming";
 import { lstat, open } from "node:fs/promises";
 import path from "node:path";
 
@@ -22,7 +23,7 @@ export async function assertRedApproved(): Promise<void> {
   // the check and the read cannot redirect the content that gets parsed, and
   // the symlink refusal compares the path itself against the opened identity.
   const handle = await open(roePath, "r");
-  let roe: { machine_enforcement?: { mode?: string; in_scope?: unknown[] } };
+  let roe: unknown;
   try {
     const opened = await handle.stat();
     if (!opened.isFile()) throw new Error("Refusing a non-regular scope path.");
@@ -38,7 +39,7 @@ export async function assertRedApproved(): Promise<void> {
   } finally {
     await handle.close();
   }
-  if (!roe.machine_enforcement || roe.machine_enforcement.mode !== "enforce" || !roe.machine_enforcement.in_scope?.length) {
+  if (!machineScopeTargets(roe).length) {
     throw new Error("The engagement scope has no enforced machine block. Create the engagement with targets, or import an updated plan/roe.json with /scope import <file> --confirm.");
   }
 }

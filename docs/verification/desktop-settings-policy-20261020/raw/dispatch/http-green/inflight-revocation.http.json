@@ -1,0 +1,10 @@
+[
+  {
+    "path": "/tools/echo",
+    "payload": {
+      "arguments": {
+        "text": "revoked in flight"
+      }
+    }
+  }
+]

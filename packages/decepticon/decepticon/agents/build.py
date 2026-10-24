@@ -149,6 +149,11 @@ def resolve_role_model(role: str) -> str | None:
     rather than editing the OSS tier map. Returns the winning model id
     or ``None`` when neither an env nor a bundle override is set.
     """
+    from decepticon.desktop_policy import read_desktop_policy
+
+    policy = read_desktop_policy()
+    if policy is not None:
+        return policy.selection(role).model
     # Desktop Local selects one model for this invocation.  The proxy's
     # DECEPTICON_MODEL route alone does not change the framework's per-role
     # assignments, so apply the selection at the factory boundary too.
@@ -514,6 +519,22 @@ def build_tools(
         base = dict(standard_tools)
     else:
         base = {_tool_name(t): t for t in standard_tools}
+
+    from decepticon.desktop_policy import read_desktop_policy
+    from decepticon.desktop_tools import policy_tools
+
+    if read_desktop_policy() is not None:
+        _check_safety_gate(
+            role=role,
+            mw_replace={},
+            mw_disable=frozenset(),
+            tool_replace=overrides or {},
+            tool_disable=frozenset(disabled_tools or ()),
+        )
+        for name in disabled_tools or ():
+            base.pop(name, None)
+        base.update(overrides or {})
+        return [*base.values(), *policy_tools(role)]
 
     resolved = _resolve_overrides(
         role=role,

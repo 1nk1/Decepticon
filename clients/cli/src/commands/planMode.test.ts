@@ -1,12 +1,12 @@
 import { mkdtemp, mkdir, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { assertRedApproved } from "./planMode.js";
 
 const MACHINE_SCOPE = JSON.stringify({
   engagement_name: "test",
-  machine_enforcement: { mode: "enforce", in_scope: ["example.com"], out_of_scope: [] },
+  machine_enforcement: { in_scope: ["example.com"], out_of_scope: [] },
 });
 
 const LEGACY_SCOPE = JSON.stringify({
@@ -20,6 +20,7 @@ const LEGACY_SCOPE = JSON.stringify({
 });
 
 describe("Red scope gate", () => {
+  afterEach(() => vi.unstubAllEnvs());
   it("refuses Red outside an engagement workspace", async () => {
     vi.stubEnv("DECEPTICON_ENGAGEMENT", "");
     await expect(assertRedApproved()).rejects.toThrow("engagement workspace");
@@ -66,13 +67,22 @@ describe("Red scope gate", () => {
     await expect(assertRedApproved()).rejects.toThrow("no enforced machine block");
   });
 
-  it("refuses an audit-mode machine scope", async () => {
+  it.each(["enforce", "audit", "warn"])("accepts legacy mode %s because runtime enforcement is unconditional", async (mode) => {
     const root = await mkdtemp(path.join(tmpdir(), "decepticon-audit-scope-"));
     await mkdir(path.join(root, "plan"));
     await writeFile(path.join(root, "plan", "roe.json"), JSON.stringify({
       engagement_name: "test",
-      machine_enforcement: { mode: "audit", in_scope: ["example.com"] },
+      machine_enforcement: { mode, in_scope: ["example.com"] },
     }));
+    vi.stubEnv("DECEPTICON_ENGAGEMENT", "test");
+    vi.stubEnv("DECEPTICON_WORKSPACE_PATH", root);
+    await expect(assertRedApproved()).resolves.toBeUndefined();
+  });
+
+  it.each([null, {}, { in_scope: "example.com" }, { in_scope: [] }, { in_scope: [null, {}, 42, "", "   "] }])("refuses unusable machine scope %j", async (block) => {
+    const root = await mkdtemp(path.join(tmpdir(), "decepticon-invalid-scope-"));
+    await mkdir(path.join(root, "plan"));
+    await writeFile(path.join(root, "plan", "roe.json"), JSON.stringify({ machine_enforcement: block }));
     vi.stubEnv("DECEPTICON_ENGAGEMENT", "test");
     vi.stubEnv("DECEPTICON_WORKSPACE_PATH", root);
     await expect(assertRedApproved()).rejects.toThrow("no enforced machine block");
