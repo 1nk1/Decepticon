@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
@@ -125,6 +126,13 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 	desktopRuntime, err := parseDesktopRuntime(existingEngagement != "")
 	if err != nil {
 		return err
+	}
+	terminalOwner, err := desktopTerminalRequest()
+	if err != nil {
+		return err
+	}
+	if terminalOwner != nil && (existingEngagement == "" || attachInteractive || desktopRuntime == nil) {
+		return fmt.Errorf("owned terminal registration requires Desktop service startup")
 	}
 	workflowEnv, err := workflowEnvironment(cmd)
 	if err != nil {
@@ -271,7 +279,7 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 		_ = os.Setenv("CODEX_AUTH_VOLUME", nullDevice())
 	} else {
 		credsPath := filepath.Join(userHome, ".claude", ".credentials.json")
-		if _, statErr := os.Stat(credsPath); statErr == nil {
+		if _, statErr := os.Stat(credsPath); statErr == nil && (desktopRuntime == nil || desktopRuntime.provider == "claude_code") {
 			_ = os.Setenv("CLAUDE_CREDENTIALS_VOLUME", credsPath)
 		} else {
 			_ = os.Setenv("CLAUDE_CREDENTIALS_VOLUME", nullDevice())
@@ -281,7 +289,7 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 		// The new auth/ ChatGPT handler reads (and writes) this file directly so
 		// a host-side `codex login` flows into the container without a rebuild.
 		codexAuthPath := filepath.Join(userHome, ".codex", "auth.json")
-		if _, statErr := os.Stat(codexAuthPath); statErr == nil {
+		if _, statErr := os.Stat(codexAuthPath); statErr == nil && (desktopRuntime == nil || desktopRuntime.provider == "chatgpt") {
 			_ = os.Setenv("CODEX_AUTH_VOLUME", codexAuthPath)
 		} else {
 			_ = os.Setenv("CODEX_AUTH_VOLUME", nullDevice())
@@ -289,6 +297,10 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 	}
 
 	checkStartupUpdate(env, version, skipUpdate || existingEngagement != "")
+	// A native-selected profile overrides home discovery, including Windows
+	// account files explicitly translated for a WSL launcher. Other accounts
+	// stay unmounted. Ordinary CLI startup keeps its existing discovery.
+	applyDesktopAccountFile(desktopRuntime)
 
 	// 2.6. One-time GitHub star ask. Idempotent across launches — the
 	// ack file at $DECEPTICON_HOME/.starred suppresses the prompt
@@ -390,8 +402,20 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 		c.OverlayFile = overlay
 	}
 
+	if terminalOwner != nil {
+		overlay, err := writeDesktopTerminalOverlay(home, c.OverlayFile, terminalOwner)
+		if err != nil {
+			return err
+		}
+		defer os.Remove(overlay)
+		c.OverlayFile = overlay
+	}
 	ui.Info("[4/5] Services · starting and waiting for readiness")
-	if err := c.Up(compose.Profiles.CLI); err != nil {
+	startServices := func() error { return c.Up(compose.Profiles.CLI) }
+	if existingEngagement != "" && !attachInteractive {
+		startServices = c.UpDesktop
+	}
+	if err := startServices(); err != nil {
 		return fmt.Errorf("start services: %w; inspect with `decepticon doctor` and `decepticon logs` (services kept)", err)
 	}
 
@@ -404,6 +428,17 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 	// no terminal. Attach keeps going: its whole point is the interactive
 	// CLI on the existing engagement.
 	if existingEngagement != "" && !attachInteractive {
+		if terminalOwner != nil {
+			receipt, err := terminalOwner.receipt()
+			if err != nil {
+				return err
+			}
+			encoded, err := json.Marshal(receipt)
+			if err != nil {
+				return err
+			}
+			fmt.Println("DECEPTICON_DESKTOP_TERMINAL=" + string(encoded))
+		}
 		ui.Success("Desktop agent service ready for " + choice.Engagement)
 		fmt.Println("DECEPTICON_DESKTOP_ASSISTANT=" + choice.AssistantID)
 		return nil

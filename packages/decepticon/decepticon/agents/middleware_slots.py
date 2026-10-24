@@ -255,7 +255,9 @@ def _make_model_fallback(*, fallback_models: list | None = None, **_: Any):
     fallback simply skips the slot, mirroring the legacy
     ``if fallback_models: middleware.append(...)`` branch.
     """
-    if not fallback_models:
+    from decepticon.desktop_policy import read_desktop_policy
+
+    if read_desktop_policy() is not None or not fallback_models:
         return None
     return ModelFallbackMiddleware(*fallback_models)
 

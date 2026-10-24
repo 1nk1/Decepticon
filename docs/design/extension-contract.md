@@ -1,5 +1,10 @@
 # Extension contract: capabilities, skills, workflows and clients
 
+Desktop hosts may opt into the proposed [settings policy adapter](desktop-settings-policy.md).
+Its scope and tool approvals come from host-owned read-only custody, not graph
+input; absence of the opt-in preserves the existing client contract. Policy
+validation does not acknowledge runtime tool registration.
+
 This is the current contributor entry point for extending agents, knowledge,
 business workflows and client adapters. It describes the source-tree contract;
 installation and deployment of this revision are separate release steps. The

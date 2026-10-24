@@ -80,3 +80,4 @@ uv.lock              text eol=lf -diff
 go.sum               text eol=lf
 yarn.lock            text eol=lf -diff
 pnpm-lock.yaml       text eol=lf -diff
+docs/verification/desktop-settings-policy-20261020/raw/** -text -whitespace

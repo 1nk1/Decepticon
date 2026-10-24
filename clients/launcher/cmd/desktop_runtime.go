@@ -2,18 +2,23 @@ package cmd
 
 import (
 	"fmt"
+	"net"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/config"
 )
 
 type desktopModelRuntime struct {
-	provider string
-	model    string
-	keyEnv   string
-	secret   string
+	provider   string
+	model      string
+	keyEnv     string
+	secret     string
+	ollamaBase string
+	authFile   string
 }
 
 var desktopProviderKeys = map[string]string{
@@ -79,17 +84,39 @@ func parseDesktopRuntime(serve bool) (*desktopModelRuntime, error) {
 	provider := os.Getenv("DECEPTICON_DESKTOP_PROVIDER")
 	model := os.Getenv("DECEPTICON_DESKTOP_MODEL")
 	key := os.Getenv("DECEPTICON_DESKTOP_API_KEY")
-	if provider == "" && model == "" && key == "" {
+	authFile := os.Getenv("DECEPTICON_DESKTOP_AUTH_FILE")
+	if provider == "" && model == "" && key == "" && authFile == "" {
 		return nil, nil
 	}
 	if !validDesktopModel(model) {
 		return nil, fmt.Errorf("select a valid Desktop model before starting the service")
 	}
+	if authFile != "" {
+		if provider != "chatgpt" && provider != "claude_code" {
+			return nil, fmt.Errorf("a native account file requires the selected subscription provider")
+		}
+		info, err := os.Lstat(authFile)
+		if !filepath.IsAbs(authFile) || err != nil || !info.Mode().IsRegular() || info.Size() > 1024*1024 {
+			return nil, fmt.Errorf("the selected native account file is unavailable or invalid")
+		}
+	}
 	if provider == "ollama" {
 		if !strings.HasPrefix(model, "ollama_chat/") || key != "" {
 			return nil, fmt.Errorf("Desktop Ollama requires an ollama_chat model and no API key")
 		}
-		return &desktopModelRuntime{provider: provider, model: model}, nil
+		base := os.Getenv("DECEPTICON_DESKTOP_OLLAMA_BASE")
+		if base != "" {
+			endpoint, err := url.Parse(base)
+			if err != nil || endpoint.Scheme != "http" || endpoint.User != nil || endpoint.Path != "" || endpoint.RawQuery != "" || endpoint.Fragment != "" {
+				return nil, fmt.Errorf("invalid native Local model relay")
+			}
+			address := net.ParseIP(endpoint.Hostname())
+			port, err := strconv.Atoi(endpoint.Port())
+			if address == nil || !address.IsPrivate() || err != nil || port < 1 || port > 65535 {
+				return nil, fmt.Errorf("invalid native Local model relay")
+			}
+		}
+		return &desktopModelRuntime{provider: provider, model: model, ollamaBase: base}, nil
 	}
 	if provider == "chatgpt" || provider == "claude_code" {
 		prefix := "auth/gpt-"
@@ -99,7 +126,7 @@ func parseDesktopRuntime(serve bool) (*desktopModelRuntime, error) {
 		if !strings.HasPrefix(model, prefix) || key != "" {
 			return nil, fmt.Errorf("Desktop subscription requires a matching auth model and no API key")
 		}
-		return &desktopModelRuntime{provider: provider, model: model}, nil
+		return &desktopModelRuntime{provider: provider, model: model, authFile: authFile}, nil
 	}
 	keyEnv, ok := desktopProviderKeys[provider]
 	if !ok {
@@ -115,7 +142,33 @@ func parseDesktopRuntime(serve bool) (*desktopModelRuntime, error) {
 	return &desktopModelRuntime{provider: provider, model: model, keyEnv: keyEnv, secret: key}, nil
 }
 
+func applyDesktopAccountFile(selected *desktopModelRuntime) {
+	if selected == nil || selected.authFile == "" {
+		return
+	}
+	_ = os.Setenv("CODEX_AUTH_VOLUME", nullDevice())
+	_ = os.Setenv("CLAUDE_CREDENTIALS_VOLUME", nullDevice())
+	if selected.provider == "chatgpt" {
+		_ = os.Setenv("CODEX_AUTH_VOLUME", selected.authFile)
+	}
+	if selected.provider == "claude_code" {
+		_ = os.Setenv("CLAUDE_CREDENTIALS_VOLUME", selected.authFile)
+	}
+}
+
 func writeDesktopRuntimeOverlay(home string, selected *desktopModelRuntime) (string, error) {
+	image := os.Getenv("DECEPTICON_DESKTOP_AGENT_IMAGE")
+	if image != "" {
+		const prefix = "decepticon-desktop-agent:sha-"
+		revision := strings.TrimPrefix(image, prefix)
+		if !strings.HasPrefix(image, prefix) || len(revision) != 40 || strings.Trim(revision, "0123456789abcdef") != "" {
+			return "", fmt.Errorf("invalid native Desktop agent image")
+		}
+	}
+	policyEnv, policyMount, err := desktopPolicyOverlay()
+	if err != nil {
+		return "", err
+	}
 	file, err := os.CreateTemp(home, ".desktop-compose-*.yml")
 	if err != nil {
 		return "", fmt.Errorf("create Desktop runtime overlay: %w", err)
@@ -125,7 +178,11 @@ func writeDesktopRuntimeOverlay(home string, selected *desktopModelRuntime) (str
 	model := "${DECEPTICON_DESKTOP_MODEL:?Desktop model missing}"
 	serviceEnv := "      DECEPTICON_MODEL: " + model + "\n" + "      DECEPTICON_DESKTOP_MODEL: " + model + "\n"
 	if selected.provider == "ollama" {
-		serviceEnv += "      OLLAMA_API_BASE: http://host.docker.internal:11434\n"
+		base := selected.ollamaBase
+		if base == "" {
+			base = "http://host.docker.internal:11434"
+		}
+		serviceEnv += "      OLLAMA_API_BASE: " + base + "\n"
 		serviceEnv += "      OLLAMA_MODEL: " + strings.TrimPrefix(selected.model, "ollama_chat/") + "\n"
 	} else if selected.provider == "chatgpt" {
 		serviceEnv += "      DECEPTICON_AUTH_CHATGPT: 'true'\n"
@@ -143,7 +200,11 @@ func writeDesktopRuntimeOverlay(home string, selected *desktopModelRuntime) (str
 	if selected.provider == "ollama" {
 		agentEnv += "      DECEPTICON_LLM__TIMEOUT: '600'\n"
 	}
-	content := "services:\n  litellm:\n    environment:\n" + serviceEnv + "  langgraph:\n    environment:\n" + agentEnv
+	agentService := "  langgraph:\n"
+	if image != "" {
+		agentService += "    image: " + image + "\n"
+	}
+	content := "services:\n  litellm:\n    environment:\n" + serviceEnv + agentService + "    environment:\n" + agentEnv + policyEnv + policyMount
 	if err := config.ProtectPrivateFile(path); err != nil {
 		os.Remove(path)
 		return "", fmt.Errorf("protect Desktop runtime overlay: %w", err)
