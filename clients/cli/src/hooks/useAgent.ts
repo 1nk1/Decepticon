@@ -1,3 +1,4 @@
+import { runtimeWorkspace } from "../utils/runtimeWorkspace.js";
 /**
  * useAgent — LangGraph SDK streaming hook for Ink.
  *
@@ -48,7 +49,7 @@ function workflowSetting(name: string, version = false): string | undefined {
 // planning interview against the wrong workspace (#973). Model selection
 // goes through the declared `model_override` graph input channel instead,
 // since it must survive checkpointing rather than reset per request.
-function buildConfigurable(purpose: RolePurpose): Record<string, unknown> | undefined {
+function buildConfigurable(purpose: RolePurpose, workspacePath: string): Record<string, unknown> | undefined {
   readRunControls();
   const configurable: Record<string, unknown> = {};
   if (purpose === "planning") {
@@ -63,8 +64,7 @@ function buildConfigurable(purpose: RolePurpose): Record<string, unknown> | unde
   const slug = process.env.DECEPTICON_ENGAGEMENT;
   if (slug) {
     configurable.engagement_name = slug;
-    configurable.workspace_path =
-      process.env.DECEPTICON_WORKSPACE_PATH ?? "/workspace";
+    configurable.workspace_path = workspacePath;
   }
   const targetValue = process.env.DECEPTICON_TARGET;
   if (targetValue) {
@@ -235,8 +235,10 @@ export function useAgent({
   const askedQuestionIds = useRef<Set<string>>(new Set());
   const assistantIdRef = useRef<string>(INITIAL_ASSISTANT_ID);
   const threadAssistantRef = useRef<string>(INITIAL_ASSISTANT_ID);
+  const workspaceRef = useRef(runtimeWorkspace());
   const modeSessionsRef = useRef(new Map<string, {
     threadId: string | null;
+    workspacePath: string;
     events: AgentEvent[];
     lastCount: number;
     runState: RunState;
@@ -275,6 +277,7 @@ export function useAgent({
         setActiveQuestion(activeQuestionRef.current);
         if (activeQuestionRef.current) { runStateRef.current = "paused"; setRunState("paused"); }
         threadIdRef.current = saved.threadId;
+        workspaceRef.current = saved.workspacePath ?? runtimeWorkspace();
         assistantIdRef.current = saved.assistantId;
         threadAssistantRef.current = saved.assistantId;
         setAssistantId(saved.assistantId);
@@ -907,6 +910,7 @@ export function useAgent({
     eventsRef.current = [];
     setEvents([]);
     threadIdRef.current = null;
+    workspaceRef.current = runtimeWorkspace();
     lastCountRef.current = 0;
     runIdRef.current = null;
     queuedMessageRef.current = [];
@@ -937,6 +941,7 @@ export function useAgent({
       if (next === current) return true;
       modeSessionsRef.current.set(current, {
         threadId: threadIdRef.current,
+        workspacePath: workspaceRef.current,
         events: [...eventsRef.current],
         lastCount: lastCountRef.current,
         runState: pausedState,
@@ -963,6 +968,7 @@ export function useAgent({
         });
       }
       threadIdRef.current = saved?.threadId ?? previous?.threadId ?? null;
+      workspaceRef.current = saved?.workspacePath ?? previous?.workspacePath ?? runtimeWorkspace();
       lastCountRef.current = saved?.lastCount ?? previousCount;
       eventsRef.current = [...(saved?.events ?? previousEvents)];
       setEvents(eventsRef.current);
@@ -1041,7 +1047,7 @@ export function useAgent({
 
         let configurable: Record<string, unknown> | undefined;
         try {
-          configurable = buildConfigurable(await assertAssistantReady(selectedAssistant, apiUrl));
+          configurable = buildConfigurable(await assertAssistantReady(selectedAssistant, apiUrl), workspaceRef.current);
         } catch (error) {
           if (abortController.signal.aborted) return;
           const denied = error instanceof Error ? error.message : "Mode prerequisite failed.";
@@ -1060,7 +1066,7 @@ export function useAgent({
               const thread = await client.threads.create();
               if (abortController.signal.aborted) return;
               threadIdRef.current = thread.thread_id;
-              await saveThread(thread.thread_id, selectedAssistant, message).catch((error: unknown) => {
+              await saveThread(thread.thread_id, selectedAssistant, message, workspaceRef.current).catch((error: unknown) => {
                 addSystemEvent(`Session metadata could not be saved: ${error instanceof Error ? error.message : String(error)}`);
               });
               break;
@@ -1143,7 +1149,7 @@ export function useAgent({
 
   const prepareResume = useCallback(async (controller: AbortController): Promise<{ readonly configurable: Record<string, unknown> | undefined } | null> => {
     try {
-      const configurable = buildConfigurable(await assertAssistantReady(threadAssistantRef.current, apiUrl));
+      const configurable = buildConfigurable(await assertAssistantReady(threadAssistantRef.current, apiUrl), workspaceRef.current);
       return controller.signal.aborted ? null : { configurable };
     } catch (error) {
       if (controller.signal.aborted) return null;
@@ -1323,6 +1329,7 @@ export function useAgent({
           setActiveQuestion(activeQuestionRef.current);
           if (activeQuestionRef.current) { runStateRef.current = "paused"; setRunState("paused"); }
           threadIdRef.current = value;
+          workspaceRef.current = saved.workspacePath ?? runtimeWorkspace();
           assistantIdRef.current = saved.assistantId;
           threadAssistantRef.current = saved.assistantId;
           setAssistantId(saved.assistantId);
