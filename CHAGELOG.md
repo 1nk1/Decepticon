@@ -15,6 +15,8 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #1081](https://github.com/BitterSecurity/Decepticon/pull/1081): prevent web terminal reconnect loops from deferred StrictMode initialization and obsolete WebSocket callbacks. Only the current connection can update terminal/session state or schedule reconnection; real current-connection failures still recover.
+
 - Proposed [PR #1079](https://github.com/BitterSecurity/Decepticon/pull/1079): release qualification: integrate the final subscription-effort and
   Compose-discovery follow-ups, record actual WSL model/scope/upgrade evidence,
   and reconcile the already-published 1.5.4 history against its tag and real
