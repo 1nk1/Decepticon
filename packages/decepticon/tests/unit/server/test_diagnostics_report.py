@@ -72,7 +72,7 @@ def test_sandbox_probe_only_reads_health_and_advertised_apis(monkeypatch):
             self.end_headers()
             self.wfile.write(json.dumps(body).encode())
 
-        def log_message(self, *_args):
+        def log_message(self, format: str, *args: object) -> None:
             pass
 
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)

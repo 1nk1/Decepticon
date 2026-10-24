@@ -88,7 +88,7 @@ Keep proposed and unmerged changes out of released sections.
   OPPLAN revision, actual workflow ID/version/SHA pins, pending tasks, runtime
   plugin bundles, machine-scope readiness and budget. Launch selections are
   distinguished from persisted pins; unavailable reads are explicit and do not
-  start or mutate runs. Host `doctor --deep --engagement <name>` adds scoped KG
+  start or mutate runs; checkpoint reads have a shared 10-second deadline. Host `doctor --deep --engagement <name>` adds scoped KG
   revision/node counts, sandbox HTTP liveness/advertised API probes and per-role
   fallback-slot readiness. Addresses
   issue #1040; no migration is required.
