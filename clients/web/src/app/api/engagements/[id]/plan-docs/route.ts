@@ -1,3 +1,4 @@
+import { machineScopeTargets } from "@decepticon/streaming";
 import { requireAuth, AuthError } from "@/lib/auth-bridge";
 import { prisma } from "@/lib/prisma";
 import { resolveEngagementDir } from "@/lib/workspace";
@@ -16,10 +17,8 @@ const PLAN_DOCS = ["opplan", "roe", "threat-profile", "conops", "deconfliction",
 // approval marker or plan-bundle approval step.
 async function scopeReady(root: string): Promise<boolean> {
   try {
-    const roe = JSON.parse(await fs.readFile(path.join(root, "plan", "roe.json"), "utf-8")) as {
-      machine_enforcement?: { mode?: string; in_scope?: unknown[] };
-    };
-    return roe.machine_enforcement?.mode === "enforce" && Boolean(roe.machine_enforcement?.in_scope?.length);
+    const roe = JSON.parse(await fs.readFile(path.join(root, "plan", "roe.json"), "utf-8"));
+    return machineScopeTargets(roe).length > 0;
   } catch {
     return false;
   }

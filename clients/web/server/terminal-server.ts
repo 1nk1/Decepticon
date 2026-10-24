@@ -78,17 +78,13 @@ async function scopeState(slug: string): Promise<{ target: string; type: string;
     const roeBytes = await readFile(join(root, "plan", "roe.json"));
     const roe = JSON.parse(roeBytes.toString()) as {
       in_scope?: Array<{ target?: string; type?: string }>;
-      machine_enforcement?: { mode?: string; in_scope?: Array<string | { target?: string }> };
     };
     // Machine scope first (string-form and legacy object-form entries); the
     // legacy human list still yields a target for display.
-    let target: string | undefined;
-    let ready = false;
-    if (roe.machine_enforcement && Array.isArray(roe.machine_enforcement.in_scope)) {
-      const first = roe.machine_enforcement.in_scope[0];
-      target = typeof first === "string" ? first : first?.target;
-      ready = roe.machine_enforcement.mode === "enforce" && Boolean(target);
-    }
+    const { machineScopeTargets } = await import("@decepticon/streaming");
+    const targets = machineScopeTargets(roe);
+    let target: string | undefined = targets[0];
+    const ready = targets.length > 0;
     if (!target) target = roe.in_scope?.[0]?.target;
     if (!target) return null;
     const humanFirst = roe.in_scope?.[0];
