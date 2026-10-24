@@ -321,7 +321,8 @@ Keep proposed and unmerged changes out of released sections.
   the actual PTY CLI process, preserving CommonJS JSON dependencies. Fixes CLI
   startup exiting with a JSON parse error under `tsx/esm`; no dependency or
   workspace migration is required. A real WebSocket-to-PTY startup regression
-  check verifies the connected composer and absence of agent run creation.
+  check verifies the connected composer and absence of agent run creation,
+  with an explicitly interactive PTY child even when its parent runs in CI.
 
 - Proposed [PR #1009](https://github.com/BitterSecurity/Decepticon/pull/1009): add the Desktop `serve --engagement` adapter for existing local
   engagements, with native model selection, private runtime configuration and

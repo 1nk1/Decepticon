@@ -40,7 +40,7 @@ test("web terminal boots the real CLI and renders its connected composer", { tim
   await new Promise<void>(resolve => reservation.close(() => resolve()));
   const child = spawn(process.execPath, ["--import", "tsx", fileURLToPath(new URL("../../server/terminal-server.ts", import.meta.url))], {
     cwd: fileURLToPath(new URL("../../", import.meta.url)),
-    env: { ...process.env, TERMINAL_PORT: String(address.port), WEB_PORT: "3000", LANGGRAPH_API_URL: apiUrl, BLUE_MONITOR_URL: apiUrl, WORKSPACE_PATH: join(root, "workspace"), DECEPTICON_HOME: root, DECEPTICON_INITIAL_MESSAGE: "", DECEPTICON_LANGUAGE: "en" },
+    env: { ...process.env, CI: "false", CONTINUOUS_INTEGRATION: "false", TERMINAL_PORT: String(address.port), WEB_PORT: "3000", LANGGRAPH_API_URL: apiUrl, BLUE_MONITOR_URL: apiUrl, WORKSPACE_PATH: join(root, "workspace"), DECEPTICON_HOME: root, DECEPTICON_INITIAL_MESSAGE: "", DECEPTICON_LANGUAGE: "en" },
     stdio: ["ignore", "pipe", "pipe"],
   });
   let serverOutput = "";
