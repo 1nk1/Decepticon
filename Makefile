@@ -284,6 +284,7 @@ ci-test-coverage-report:
 	uv run --extra mcp pytest -n auto --cov --cov-report=xml --cov-report=term --cov-fail-under=0 -m "not slow"
 
 quality-cli: node-install
+	npm audit --audit-level=high
 	# streaming workspace must be built first — its package.json main
 	# resolves to dist/, which cli's typecheck + build consume.
 	npm run build --workspace=@decepticon/streaming

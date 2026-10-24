@@ -15,6 +15,13 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed dependency security refresh: update the workspace lockfile and
+  Next.js/Sharp/test-runner versions to patched releases; remove unused OpenUI
+  packages (the shipped chat uses its existing Markdown renderer). The npm
+  audit falls from 42 findings, including 4 critical, to zero without advisory
+  suppression. Add a blocking high-severity npm audit to CI/local quality gates.
+  No credentials, saved conversations or database migration are changed.
+
 - Proposed [PR #1073](https://github.com/BitterSecurity/Decepticon/pull/1073) (issue #1044): add per-session fallback, effort and
   autocompaction launcher flags and checkpointed overrides; show observed model
   routing, fallback attempts, context/compaction checks and cached budget usage
