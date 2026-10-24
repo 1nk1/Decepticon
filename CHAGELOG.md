@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed dependency security refresh: update the workspace lockfile and
+- Proposed [PR #1074](https://github.com/BitterSecurity/Decepticon/pull/1074): dependency security refresh: update the workspace lockfile and
   Next.js/Sharp/test-runner versions to patched releases; remove unused OpenUI
   packages (the shipped chat uses its existing Markdown renderer). The npm
   audit falls from 42 findings, including 4 critical, to zero without advisory
