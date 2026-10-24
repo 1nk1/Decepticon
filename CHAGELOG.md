@@ -84,6 +84,14 @@ Keep proposed and unmerged changes out of released sections.
   are read through `decepticon_engagement_findings` (MCP) or the
   workspace graph instead of a local SARIF file.
 
+- Proposed [PR #1072](https://github.com/BitterSecurity/Decepticon/pull/1072): reattach once after an interrupted
+  stream using the existing run and event cursor; show reconnect progress.
+  Transcript view gains bounded PgUp/PgDn navigation and the normal slash-command
+  dispatcher. Existing error dismissal, numbered question answers, contextual
+  Blue footer and unused-component cleanup are preserved. Blue notices follow
+  the configured English/Korean language, with English fallback. Internal runtime
+  directives remain outside the restored operator transcript. No migration required.
+
 - Proposed [PR #1046](https://github.com/BitterSecurity/Decepticon/pull/1046):
   add read-only runtime diagnostics — `decepticon doctor --deep` reports the
   middleware slot matrix for every role (KG/HITL/model_fallback previously
