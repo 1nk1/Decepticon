@@ -19,9 +19,9 @@ test("web terminal boots the real CLI and renders its connected composer", { tim
   const api = createServer((request, response) => {
     response.setHeader("Content-Type", "application/json");
     if (request.method !== "GET") mutations.push(`${request.method} ${request.url}`);
-    if (request.url === "/threads" && request.method === "POST") { response.end(JSON.stringify({ thread_id: "loader-thread" })); return; }
+    if (request.url === "/threads" && request.method === "POST") { let body = ""; request.on("data", chunk => { body += chunk; }); request.on("end", () => { assert.equal(JSON.parse(body).metadata.workspace_path, "/workspace"); }); response.end(JSON.stringify({ thread_id: "loader-thread" })); return; }
     if (request.url === "/threads/loader-thread") {
-      response.end(JSON.stringify({ thread_id: "loader-thread", updated_at: "2026-10-24", metadata: { assistantId: "decepticon", engagement_name: "loader-test", workspace_path: "/workspace/loader-test" } })); return;
+      response.end(JSON.stringify({ thread_id: "loader-thread", updated_at: "2026-10-24", metadata: { assistantId: "decepticon", engagement_name: "loader-test", workspace_path: "/workspace" } })); return;
     }
     if (request.url === "/threads/loader-thread/state") { response.end(JSON.stringify({ values: { messages: [] }, tasks: [], next: [] })); return; }
     if (request.url === "/ok") { response.end('{}'); return; }
@@ -40,7 +40,7 @@ test("web terminal boots the real CLI and renders its connected composer", { tim
   await new Promise<void>(resolve => reservation.close(() => resolve()));
   const child = spawn(process.execPath, ["--import", "tsx", fileURLToPath(new URL("../../server/terminal-server.ts", import.meta.url))], {
     cwd: fileURLToPath(new URL("../../", import.meta.url)),
-    env: { ...process.env, CI: "false", CONTINUOUS_INTEGRATION: "false", TERMINAL_PORT: String(address.port), WEB_PORT: "3000", LANGGRAPH_API_URL: apiUrl, BLUE_MONITOR_URL: apiUrl, WORKSPACE_PATH: join(root, "workspace"), DECEPTICON_HOME: root, DECEPTICON_INITIAL_MESSAGE: "", DECEPTICON_LANGUAGE: "en" },
+    env: { ...process.env, CI: "false", CONTINUOUS_INTEGRATION: "false", TERMINAL_PORT: String(address.port), WEB_PORT: "3000", LANGGRAPH_API_URL: apiUrl, BLUE_MONITOR_URL: apiUrl, WORKSPACE_PATH: join(root, "workspace"), DECEPTICON_RUNTIME_ENGAGEMENT: "loader-test", DECEPTICON_HOME: root, DECEPTICON_INITIAL_MESSAGE: "", DECEPTICON_LANGUAGE: "en" },
     stdio: ["ignore", "pipe", "pipe"],
   });
   let serverOutput = "";

@@ -1,3 +1,4 @@
+import { runtimeWorkspace, acceptsRuntimeWorkspace } from "./runtimeWorkspace.js";
 import { Client } from "@langchain/langgraph-sdk";
 
 export interface ThreadEntry {
@@ -32,11 +33,11 @@ function entry(thread: { thread_id: string; updated_at: string; metadata?: Recor
     legacyMetadata: engagementName === undefined,
   };
 }
-export async function saveThread(threadId: string, assistantId: string, title: string): Promise<void> {
+export async function saveThread(threadId: string, assistantId: string, title: string, workspacePath = runtimeWorkspace()): Promise<void> {
   await getClient().threads.update(threadId, { metadata: {
     assistantId, title: title.slice(0, 100), lastUsed: new Date().toISOString(),
     engagement_name: process.env.DECEPTICON_ENGAGEMENT ?? "",
-    workspace_path: process.env.DECEPTICON_WORKSPACE_PATH ?? "/workspace",
+    workspace_path: workspacePath,
   } });
 }
 export async function touchThread(threadId: string): Promise<void> {
@@ -67,7 +68,7 @@ export async function validateThread(threadId: string, signal?: AbortSignal): Pr
   const saved = entry(await getClient().threads.get(threadId, { signal }));
   if (saved.legacyMetadata) throw new SessionScopeError(threadId, "Legacy session has no engagement metadata. Review and migrate its metadata before resuming.");
   if (saved.engagementName !== (process.env.DECEPTICON_ENGAGEMENT ?? "") ||
-      (saved.workspacePath && saved.workspacePath !== (process.env.DECEPTICON_WORKSPACE_PATH ?? "/workspace"))) {
+      (saved.workspacePath && !acceptsRuntimeWorkspace(saved.workspacePath))) {
     throw new SessionScopeError(threadId, "Session belongs to a different engagement or workspace. Open that engagement to resume.");
   }
   if (!["soundwave", "decepticon", "blue_cell"].includes(saved.assistantId)) throw new SessionScopeError(threadId, "Session assistant metadata is missing or unsupported.");
@@ -83,21 +84,21 @@ export async function claimLegacyThread(threadId: string): Promise<ThreadEntry> 
   const values = state.values;
   if (values && typeof values === "object") {
     if ("engagement_name" in values && values.engagement_name && values.engagement_name !== process.env.DECEPTICON_ENGAGEMENT) throw new SessionScopeError(threadId, "Legacy checkpoint belongs to a different engagement.");
-    if ("workspace_path" in values && values.workspace_path && values.workspace_path !== (process.env.DECEPTICON_WORKSPACE_PATH ?? "/workspace")) throw new SessionScopeError(threadId, "Legacy checkpoint belongs to a different workspace.");
+    if ("workspace_path" in values && values.workspace_path && !acceptsRuntimeWorkspace(String(values.workspace_path))) throw new SessionScopeError(threadId, "Legacy checkpoint belongs to a different workspace.");
   }
-  await saveThread(threadId, saved.assistantId, saved.title);
+  await saveThread(threadId, saved.assistantId, saved.title, values && typeof values === "object" && "workspace_path" in values && typeof values.workspace_path === "string" && values.workspace_path ? values.workspace_path : runtimeWorkspace());
   return validateThread(threadId);
 }
 
 /** Read a scoped checkpoint for diagnostics without running or mutating it. */
 export async function readThreadSnapshot(threadId: string): Promise<unknown> {
   const signal = AbortSignal.timeout(10_000);
-  await validateThread(threadId, signal);
+  const saved = await validateThread(threadId, signal);
   const state = await getClient().threads.getState(threadId, undefined, { signal });
   const values = state.values;
   if (values && typeof values === "object") {
     if (("engagement_name" in values && values.engagement_name && values.engagement_name !== process.env.DECEPTICON_ENGAGEMENT) ||
-        ("workspace_path" in values && values.workspace_path && values.workspace_path !== (process.env.DECEPTICON_WORKSPACE_PATH ?? "/workspace"))) {
+        ("workspace_path" in values && values.workspace_path && values.workspace_path !== (saved.workspacePath ?? runtimeWorkspace()))) {
       throw new SessionScopeError(threadId, "Checkpoint belongs to a different engagement or workspace.");
     }
   }

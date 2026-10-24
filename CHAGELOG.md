@@ -15,6 +15,8 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed: align launcher-bound web sessions with the CLI/server engagement mount, while keeping existing web checkpoint namespaces and files intact. Reject sibling engagement connections and stale model/tool dispatch after a runtime rebind; shared-root Compose and native policy adapters retain their existing behavior.
+
 - Proposed [PR #1074](https://github.com/BitterSecurity/Decepticon/pull/1074): dependency security refresh: update the workspace lockfile and
   Next.js/Sharp/test-runner versions to patched releases; remove unused OpenUI
   packages (the shipped chat uses its existing Markdown renderer). The npm

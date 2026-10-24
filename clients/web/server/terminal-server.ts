@@ -41,6 +41,7 @@ const CLI_PATH = resolve(__dirname, "../../cli/src/index.tsx");
 const LANGGRAPH_API_URL = process.env.LANGGRAPH_API_URL ?? "http://localhost:2024";
 const ORPHAN_TTL = 60_000; // Kill orphaned PTYs after 60s with no WS
 const SCROLLBACK_LIMIT = 50_000; // chars of recent output to buffer for reattach
+const RUNTIME_ENGAGEMENT = process.env.DECEPTICON_RUNTIME_ENGAGEMENT ?? "";
 const THREAD_VALIDATION_TIMEOUT_MS = 10_000; // Bound validation like thread creation.
 
 const ALLOWED_ORIGINS = new Set(
@@ -122,7 +123,7 @@ function isAllowedOrigin(origin: string | undefined): boolean {
   try { return ALLOWED_ORIGINS.has(new URL(origin).origin); } catch { return false; }
 }
 
-async function createThread(engagementId: string, agentId: string, engagementSlug: string): Promise<string> {
+async function createThread(engagementId: string, agentId: string, engagementSlug: string, workspacePath: string): Promise<string> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 10000);
   try {
@@ -130,7 +131,7 @@ async function createThread(engagementId: string, agentId: string, engagementSlu
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ metadata: { engagement_id: engagementId, decepticon_assistant: agentId,
-        assistantId: agentId, engagement_name: engagementSlug, workspace_path: `/workspace/${engagementSlug}` } }),
+        assistantId: agentId, engagement_name: engagementSlug, workspace_path: workspacePath } }),
       signal: controller.signal,
     });
     if (!res.ok) throw new Error(`Thread create: ${res.status}`);
@@ -144,16 +145,24 @@ async function createThread(engagementId: string, agentId: string, engagementSlu
   }
 }
 
-async function threadExists(threadId: string): Promise<boolean> {
+async function threadWorkspace(threadId: string, slug: string, defaultPath: string): Promise<string | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), THREAD_VALIDATION_TIMEOUT_MS);
   try {
     const response = await fetch(`${LANGGRAPH_API_URL}/threads/${encodeURIComponent(threadId)}`, {
       signal: controller.signal,
     });
-    if (response.status === 404) return false;
+    if (response.status === 404) return null;
     if (!response.ok) throw new Error(`Thread read: ${response.status}`);
-    return true;
+    const thread = await response.json() as { metadata?: Record<string, unknown> };
+    const metadata = thread.metadata ?? {};
+    if (metadata.engagement_name && metadata.engagement_name !== slug) throw new Error("Session belongs to a different engagement");
+    const path = metadata.workspace_path;
+    if (typeof path === "string") {
+      if (path !== defaultPath && !(RUNTIME_ENGAGEMENT === slug && path === `/workspace/${slug}`)) throw new Error("Session belongs to a different workspace");
+      return path;
+    }
+    return defaultPath;
   } finally {
     clearTimeout(timer);
   }
@@ -189,6 +198,11 @@ wss.on("connection", async (ws: WebSocket, req) => {
   const authorizationConfirmed = url.searchParams.get("authorizationConfirmed") === "true";
   if (!/^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/.test(engagementSlug)) {
     ws.close(1008, "Invalid engagementSlug");
+    return;
+  }
+
+  if (RUNTIME_ENGAGEMENT && RUNTIME_ENGAGEMENT !== engagementSlug) {
+    ws.close(1008, "Open the engagement selected by the launcher");
     return;
   }
 
@@ -243,10 +257,13 @@ wss.on("connection", async (ws: WebSocket, req) => {
   }
 
   // ── Create new session ──
+  let workspacePath = RUNTIME_ENGAGEMENT ? "/workspace" : `/workspace/${engagementSlug}`;
   let threadId = url.searchParams.get("threadId") ?? "";
   if (threadId) {
     try {
-      if (!(await threadExists(threadId))) threadId = "";
+      const savedWorkspace = await threadWorkspace(threadId, engagementSlug, workspacePath);
+      if (savedWorkspace === null) threadId = "";
+      else workspacePath = savedWorkspace;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       sendJson(ws, { type: "error", message: `Thread validation failed: ${message}` });
@@ -257,7 +274,7 @@ wss.on("connection", async (ws: WebSocket, req) => {
   if (ws.readyState !== WebSocket.OPEN) return;
   if (!threadId) {
     try {
-      threadId = await createThread(engagementId, agentId, engagementSlug);
+      threadId = await createThread(engagementId, agentId, engagementSlug, workspacePath);
       console.log(`[terminal-server] Created thread: ${threadId}`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -280,7 +297,8 @@ wss.on("connection", async (ws: WebSocket, req) => {
     DECEPTICON_ASSISTANT_ID: agentId,
     DECEPTICON_WEB_TERMINAL: "true",
     DECEPTICON_ENGAGEMENT: engagementSlug,
-    DECEPTICON_WORKSPACE_PATH: engagementSlug ? `/workspace/${engagementSlug}` : "/workspace",
+    DECEPTICON_WORKSPACE_PATH: join(process.env.WORKSPACE_PATH ?? "/workspace", engagementSlug),
+    DECEPTICON_RUNTIME_WORKSPACE_PATH: workspacePath,
     DECEPTICON_API_URL: LANGGRAPH_API_URL,
     DECEPTICON_TARGET_TYPE: scope?.type ?? targetType,
     DECEPTICON_TARGET: scope?.target ?? targetValue,
