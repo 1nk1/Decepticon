@@ -336,6 +336,8 @@ model_list:
       additional_drop_params:
         - temperature
       max_tokens: 128000
+      allowed_openai_params:
+        - reasoning_effort
     model_info:
       input_cost_per_token: 5.0e-06
       output_cost_per_token: 2.5e-05
@@ -345,6 +347,8 @@ model_list:
       additional_drop_params:
         - temperature
       max_tokens: 128000
+      allowed_openai_params:
+        - reasoning_effort
     model_info:
       input_cost_per_token: 5.0e-06
       output_cost_per_token: 2.5e-05
@@ -352,6 +356,8 @@ model_list:
     litellm_params:
       model: auth/claude-sonnet-4-6
       max_tokens: 64000
+      allowed_openai_params:
+        - reasoning_effort
     model_info:
       input_cost_per_token: 3.0e-06
       output_cost_per_token: 1.5e-05
@@ -359,6 +365,8 @@ model_list:
     litellm_params:
       model: auth/claude-haiku-4-5
       max_tokens: 64000
+      allowed_openai_params:
+        - reasoning_effort
     model_info:
       input_cost_per_token: 1.0e-06
       output_cost_per_token: 5.0e-06
@@ -367,6 +375,8 @@ model_list:
       model: auth/claude-opus-5
       additional_drop_params:
         - temperature
+      allowed_openai_params:
+        - reasoning_effort
     model_info:
       input_cost_per_token: 5.0e-06
       output_cost_per_token: 2.5e-05
@@ -376,6 +386,8 @@ model_list:
   - model_name: auth/claude-sonnet-5
     litellm_params:
       model: auth/claude-sonnet-5
+      allowed_openai_params:
+        - reasoning_effort
     model_info:
       input_cost_per_token: 2.0e-06
       output_cost_per_token: 1.0e-05
