@@ -2,10 +2,46 @@ package cmd
 
 import (
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
 )
+
+func TestDesktopNativeAccountFileIsExplicitAndProviderScoped(t *testing.T) {
+	profile := filepath.Join(t.TempDir(), "account.json")
+	if err := os.WriteFile(profile, []byte(`{"tokens":{}}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("DECEPTICON_DESKTOP_PROVIDER", "chatgpt")
+	t.Setenv("DECEPTICON_DESKTOP_MODEL", "auth/gpt-5")
+	t.Setenv("DECEPTICON_DESKTOP_API_KEY", "")
+	t.Setenv("DECEPTICON_DESKTOP_AUTH_FILE", profile)
+	selected, err := parseDesktopRuntime(true)
+	if err != nil || selected.authFile != profile {
+		t.Fatalf("selected account: %v", err)
+	}
+	t.Setenv("CODEX_AUTH_VOLUME", "unselected")
+	t.Setenv("CLAUDE_CREDENTIALS_VOLUME", "unrelated")
+	applyDesktopAccountFile(selected)
+	if os.Getenv("CODEX_AUTH_VOLUME") != profile || os.Getenv("CLAUDE_CREDENTIALS_VOLUME") != nullDevice() {
+		t.Fatal("account source was mixed with an unrelated profile")
+	}
+	t.Setenv("DECEPTICON_DESKTOP_AUTH_FILE", "relative.json")
+	if _, err := parseDesktopRuntime(true); err == nil {
+		t.Fatal("relative account path admitted")
+	}
+	t.Setenv("DECEPTICON_DESKTOP_AUTH_FILE", filepath.Dir(profile))
+	if _, err := parseDesktopRuntime(true); err == nil {
+		t.Fatal("account directory admitted")
+	}
+	t.Setenv("DECEPTICON_DESKTOP_AUTH_FILE", profile)
+	t.Setenv("DECEPTICON_DESKTOP_PROVIDER", "ollama")
+	t.Setenv("DECEPTICON_DESKTOP_MODEL", "ollama_chat/qa")
+	if _, err := parseDesktopRuntime(true); err == nil {
+		t.Fatal("subscription profile admitted for Ollama")
+	}
+}
 
 func TestDesktopProviderCredentialsMatchRouter(t *testing.T) {
 	for _, tc := range []struct{ provider, model, keyEnv string }{

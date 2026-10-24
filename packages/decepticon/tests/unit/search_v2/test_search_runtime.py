@@ -55,12 +55,30 @@ def test_premature_final_response_when_search_is_unfinished(tmp_path: Path) -> N
         middleware=[
             SearchRuntimeMiddleware(FilesystemBackend(root_dir=tmp_path, virtual_mode=True))
         ],
+        checkpointer=InMemorySaver(),
     )
+    config = {
+        "configurable": {
+            "thread_id": "internal-directives",
+            "search_policy_version": 2,
+            "search_run_id": "run-1",
+        }
+    }
     with pytest.raises(SearchContractError, match="premature closure"):
         graph.invoke(
             {"messages": [HumanMessage(content="Find a verified High vulnerability")]},
-            config={"configurable": {"search_policy_version": 2, "search_run_id": "run-1"}},
+            config=config,
         )
+    directives = [
+        message
+        for message in graph.get_state(config).values["messages"]
+        if isinstance(message, HumanMessage)
+        and str(message.content).startswith("The search has no validated terminal receipt.")
+    ]
+    assert len(directives) == 3
+    assert all(
+        message.additional_kwargs.get("decepticon_internal") is True for message in directives
+    )
 
 
 def test_bounded_request_when_search_policy_is_legacy(tmp_path: Path) -> None:

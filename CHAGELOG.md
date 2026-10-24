@@ -15,6 +15,40 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #1066](https://github.com/BitterSecurity/Decepticon/pull/1066):
+  integrate host-scoped Desktop model/tool policy (#1027), native terminal and
+  selected-account handoff, and planning-role tool isolation (#1067). Preserve
+  existing default CLI behavior and saved policies. Fix qualification checks for
+  canonical macOS/Windows host paths and platform-specific permission semantics;
+  keep private POSIX modes enforced and format the integrated Python sources.
+
+- Proposed Desktop tool-scope correction ([#1067](https://github.com/BitterSecurity/Decepticon/pull/1067), follow-up to [#1066](https://github.com/BitterSecurity/Decepticon/pull/1066)): saved external HTTP tool grants no longer expand planning roles or prevent Soundwave's graph from loading. Honor registered role purpose, including custom planners, while preserving execution/observation grants, explicit model routing and stale-handle revocation. No release or version bump is implied.
+
+- Accept a native-selected, bounded regular subscription profile during Desktop service startup, including Windows account paths translated for WSL ([PR #1066](https://github.com/BitterSecurity/Decepticon/pull/1066)). Only the selected provider receives it; unrelated profiles remain unmounted and ordinary CLI home discovery is preserved. This connects native OS authorization custody to the existing provider adapters without sending account material through the renderer.
+
+- Tag internal search-continuation directives in message metadata so native transcript hosts can separate runtime coordination from the operator's own messages ([PR #1066](https://github.com/BitterSecurity/Decepticon/pull/1066)). The agent's search contract and checkpoint content are preserved.
+
+- Proposed native Desktop runtime integration ([PR #1066](https://github.com/BitterSecurity/Decepticon/pull/1066)): the following service, policy, image, model relay and terminal changes are source candidates. See the [native contract](docs/design/desktop-native-terminal.md); no published release or Windows acceptance is claimed.
+
+- Include the validated native policy revision in the agent service environment, so applying changed agent/tool settings reconstructs cached graphs during idle startup instead of leaving old policy handles active. Missing, oversized, redirected or mismatched owner policy files fail before Compose.
+
+- Native terminal startup reads inherited tmux status settings with an exact session/window target. Real sandbox qualification caught that a session-only target was rejected by show-options, preventing service registration despite healthy containers.
+
+- Desktop Ollama startup accepts only a native-provided private-IP relay endpoint and labels its owned model proxy independently from the terminal sandbox. This supports Linux loopback model access through the native host without exposing Ollama publicly. Desktop mounts only the selected subscription's credential file; Ollama and API-key sessions do not mount unrelated Codex/Claude account files. Normal interactive CLI credential discovery remains unchanged.
+
+- Native Desktop may supply its locally prepared agent image using the fixed `decepticon-desktop-agent:sha-<source commit>` identity. The private overlay applies it only to the agent service; malformed image references fail before Compose. This lets the packaged native host build its matching pinned runtime without depending on an unpublished registry image.
+
+- Desktop service-only startup now starts the agent/knowledge services and their dependencies without the separate web dashboard or interactive CLI container. Normal CLI start/attach retains its existing topology. This reduces unused local resources while preserving service health checks.
+
+- Proposed Desktop native terminal integration: accept a complete native-issued workspace/engagement/resource identity and nonce only during service startup, label the owned sandbox and return its immutable container identity plus the measured tmux status height. Preserve an existing agent shell, validate labels before publishing the registration and keep policy overlays private. Desktop independently verifies the container and mount before enabling PTY access. Integrates the pending #1027 settings policy with current main; no OSS version/tag or published image change is claimed.
+
+- Proposed [PR #1027](https://github.com/BitterSecurity/Decepticon/pull/1027)
+  Desktop settings policy adapter: host-owned,
+  workspace/engagement-scoped model routing and tool approval with explicit
+  selected-model failures and revocation checks before dispatch and result
+  publication. Existing behavior remains unchanged without the opt-in.
+  [Contract and qualification limits](docs/design/desktop-settings-policy.md).
+  Runtime pin, native qualification and release remain pending.
 - **Breaking** (SAST entry removal, [issue #1059](https://github.com/BitterSecurity/Decepticon/issues/1059)): the standalone
   static/CI code-scanning surface is removed — `decepticon-cli scan`
   loses `quick` mode, `--scope-mode diff`/`--diff-base`, `--sarif-output`
