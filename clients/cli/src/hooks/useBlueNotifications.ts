@@ -24,8 +24,28 @@ export interface BlueState {
   readonly aiStatus: "unknown" | "healthy" | "error";
   readonly error: string | null;
 }
-export function formatBlueNotification(notification: BlueNotification): string {
+export function formatBlueNotification(notification: BlueNotification, language = process.env.DECEPTICON_LANGUAGE || "en"): string {
   const { payload } = notification;
+  if (language.toLowerCase().startsWith("ko")) {
+    switch (notification.kind) {
+      case "coverage_gap": {
+        const reason = {
+          collector_restarted: "수집기가 재시작되었습니다. 수집 카운터와 최근 이벤트의 연속성을 확인하세요.",
+          receiver_state_replaced: "수신 저장소가 교체되거나 초기화되었습니다. 이전 관측 기록의 연속성을 확인하세요.",
+          collector_data_loss: "수집 과정에서 기록이 유실되었습니다. /blue metrics에서 확인하세요. 이 구간에 공격이 없었다고 판단할 수 없습니다.",
+        }[payload.reason ?? ""] ?? "수집기 또는 수신기가 응답하지 않습니다. /blue status에서 확인하세요.";
+        return `[Blue Cell] 관측 공백: ${reason}`;
+      }
+      case "coverage_restored": return "[Blue Cell] 수집기가 다시 응답합니다. 이전 관측 공백은 여전히 확인이 필요합니다.";
+      case "watch_alert": return `[Blue Cell] ${(payload.severity ?? "unknown").toUpperCase()} 상시 감시 경보. 근거 이벤트 ${payload.evidence?.event_seqs?.join(", ") ?? "?"}, 사건 ${payload.id}.`;
+      case "watch_error": return `[Blue Cell] 이벤트 ${payload.start_seq ?? "?"}–${payload.end_seq ?? "?"} AI 감시 실패. ${payload.error ?? "감시 상태를 확인하세요."}`;
+      case "assessment": return `[Blue Cell 조사] 사건 ${payload.id}: 평가가 준비되었습니다. /alerts에서 확인하세요.`;
+      case "analysis_error": return `[Blue Cell] 사건 ${payload.id}의 자동 조사가 완료되지 않았습니다. /blue analyze로 다시 시도하세요.`;
+      default: return `[Blue Cell] ${(payload.severity ?? "unknown").toUpperCase()} ${payload.rule_id ?? "탐지"} 감지. ` +
+        `${payload.evidence?.message_excerpt?.slice(0, 100) ?? [payload.evidence?.method, payload.evidence?.uri].filter(Boolean).join(" ")} ` +
+        `사건 ${payload.id}. 실제 영향은 조사 중입니다.`;
+    }
+  }
   if (notification.kind === "coverage_gap") {
     if (payload.reason === "collector_restarted") {
       return "[Blue Cell] Collector restarted. Review the persisted collection counters and recent target events for observation continuity.";

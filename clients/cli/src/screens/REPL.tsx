@@ -19,6 +19,7 @@ import { useOpplan } from "../hooks/useOpplan.js";
 import { useSubAgentSessions } from "../hooks/useSubAgentSessions.js";
 import { useGlobalKeybindings } from "../hooks/useGlobalKeybindings.js";
 import { useAppState } from "../state/AppState.js";
+import { TranscriptPager } from "../components/TranscriptPager.js";
 import { Banner } from "../components/Banner.js";
 import { BudgetFooter } from "../components/BudgetFooter.js";
 import { EventItem } from "../components/EventItem.js";
@@ -32,14 +33,11 @@ import { AgentSessionGroup } from "../components/agents/AgentSessionGroup.js";
 import { CoordinatorPanel } from "../components/agents/CoordinatorPanel.js";
 import { ScreenProvider } from "../components/shell/ScreenContext.js";
 import { ExpandOutputProvider } from "../components/shell/ExpandOutputContext.js";
-import { SubAgentProvider } from "../components/shell/SubAgentContext.js";
 import { parseSlashCommand, findCommand, suggestCommand } from "../commands/registry.js";
 import { groupConsecutiveTools } from "../utils/groupEvents.js";
-import { formatDuration } from "../utils/format.js";
-import { GLYPH_DOT, GLYPH_HOOK, GLYPH_SEP, AGENT_COLORS } from "../utils/theme.js";
 import { ToolGroupSummary } from "../components/messages/ToolGroupSummary.js";
 import type { CommandContext } from "../commands/types.js";
-import type { AgentEvent, ScreenMode, SubAgentSession } from "../types.js";
+import type { AgentEvent, ScreenMode } from "../types.js";
 import { ErrorMessage } from "../components/messages/ErrorMessage.js";
 import { CommandPicker } from "../components/CommandPicker.js";
 import { useLocalCommands } from "../hooks/useLocalCommands.js";
@@ -241,10 +239,14 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
       <ScreenProvider value="transcript">
         <Box flexDirection="row">
           <Box flexDirection="column" flexGrow={1}>
-            <TranscriptView
-              events={agent.events}
-              sessions={sessions}
-            />
+            <TranscriptPager events={agent.events} modalActive={local.picker != null || composerModal} />
+            {local.picker ? (
+              <CommandPicker request={local.picker} onClose={() => local.setPicker(null)} onError={agent.addSystemEvent} />
+            ) : (
+              <Prompt runState={agent.runState} assistantId={agent.assistantId} connectionStatus={connection}
+                onModalChange={setComposerModal} onDraftChange={draftChanged} clearDraftToken={clearDraftToken}
+                onSubmit={value => value.trim().startsWith("/") ? handleSubmit(value) : agent.addSystemEvent("Use a /command here, or Esc to return to chat.")} />
+            )}
             {agent.error && <ErrorMessage content={agent.error} onDismiss={agent.clearError} />}
           </Box>
         </Box>
@@ -352,176 +354,5 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
 
       </Box>
     </ScreenProvider>
-  );
-}
-
-// ── Transcript View ───────────────────────────────────────────────
-
-// ── Transcript helpers (Static-only rendering) ──────────────────
-
-function TranscriptSessionHeader({ session }: { session: SubAgentSession }) {
-  const color = AGENT_COLORS[session.agent] ?? "white";
-  const headerDesc = session.description.split("\n")[0] ?? session.description;
-
-  return (
-    <Box flexDirection="column" marginTop={1}>
-      <Text>
-        <Text color="gray">{`${GLYPH_DOT} `}</Text>
-        <Text bold color={color}>
-          {session.agent.charAt(0).toUpperCase() + session.agent.slice(1)}
-        </Text>
-        <Text dimColor italic>{`(${headerDesc})`}</Text>
-      </Text>
-      <Text dimColor>{`  ${GLYPH_HOOK}  Prompt:`}</Text>
-      {session.description.split("\n").map((line: string, i: number) => (
-        <Text key={`p${i}`} dimColor wrap="wrap">
-          {`       ${line}`}
-        </Text>
-      ))}
-    </Box>
-  );
-}
-
-function TranscriptSessionFooter({ session }: { session: SubAgentSession }) {
-  const elapsed = formatDuration((session.endTime ?? Date.now()) - session.startTime);
-  const toolText = `${session.toolCount} tool use${session.toolCount !== 1 ? "s" : ""}`;
-  const dotColor = session.status === "error" ? "red" : "green";
-
-  return (
-    <Box flexDirection="column">
-      <Text>
-        <Text color={dotColor}>{`${GLYPH_DOT} `}</Text>
-        <Text dimColor>{`Done (${toolText}${GLYPH_SEP}${elapsed})`}</Text>
-      </Text>
-    </Box>
-  );
-}
-
-/** Live-ticking footer for running sessions — the ONLY dynamic element. */
-function RunningSessionFooter({ session }: { session: SubAgentSession }) {
-  const [now, setNow] = React.useState(Date.now());
-  React.useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const elapsed = formatDuration(now - session.startTime);
-  const toolText = `${session.toolCount} tool use${session.toolCount !== 1 ? "s" : ""}`;
-  const color = AGENT_COLORS[session.agent] ?? "white";
-
-  return (
-    <Text dimColor italic>
-      {"  "}{GLYPH_HOOK}{"  "}
-      <Text color={color}>
-        {session.agent.charAt(0).toUpperCase() + session.agent.slice(1)}
-      </Text>
-      {` running (${toolText}${GLYPH_SEP}${elapsed})`}
-    </Text>
-  );
-}
-
-// ── Transcript View ───────────────────────────────────────────────
-
-function TranscriptView({
-  events,
-  sessions,
-}: {
-  events: AgentEvent[];
-  sessions: ReturnType<typeof useSubAgentSessions>;
-}) {
-  // Lookup maps
-  const sessionEventIds = useMemo(
-    () => new Set(sessions.flatMap((s) => s.eventIds)),
-    [sessions],
-  );
-  const sessionByStartId = useMemo(() => {
-    const map = new Map<string, (typeof sessions)[number]>();
-    for (const s of sessions) map.set(s.startEventId, s);
-    return map;
-  }, [sessions]);
-  const sessionByEndId = useMemo(() => {
-    const map = new Map<string, (typeof sessions)[number]>();
-    for (const s of sessions) {
-      if (s.endEventId) map.set(s.endEventId, s);
-    }
-    return map;
-  }, [sessions]);
-
-  const runningSessions = useMemo(
-    () => sessions.filter((s) => s.status === "running"),
-    [sessions],
-  );
-
-  // ALL events → Static items (append-only, no scroll disruption)
-  const staticItems = useMemo(() => {
-    type Item =
-      | { id: string; kind: "header" }
-      | { id: string; kind: "event"; event: AgentEvent }
-      | { id: string; kind: "session-header"; session: SubAgentSession }
-      | { id: string; kind: "session-event"; event: AgentEvent }
-      | { id: string; kind: "session-footer"; session: SubAgentSession };
-
-    const items: Item[] = [{ id: "__transcript-header__", kind: "header" }];
-
-    for (const event of events) {
-      // Session start → header
-      const startedSession = sessionByStartId.get(event.id);
-      if (startedSession) {
-        items.push({ id: `sh-${startedSession.id}`, kind: "session-header", session: startedSession });
-        continue;
-      }
-
-      // Session end → footer
-      const endedSession = sessionByEndId.get(event.id);
-      if (endedSession) {
-        items.push({ id: `sf-${endedSession.id}`, kind: "session-footer", session: endedSession });
-        continue;
-      }
-
-      // Inner session event (skip raw subagent_start/end)
-      if (sessionEventIds.has(event.id)) {
-        if (event.type === "subagent_start" || event.type === "subagent_end") continue;
-        items.push({ id: event.id, kind: "session-event", event });
-        continue;
-      }
-
-      // Regular event
-      items.push({ id: event.id, kind: "event", event });
-    }
-    return items;
-  }, [events, sessions, sessionEventIds, sessionByStartId, sessionByEndId]);
-
-  return (
-    <Box flexDirection="column">
-      <Static items={staticItems}>
-        {(item) => (
-          <Box key={item.id}>
-            {item.kind === "header" ? (
-              <Box marginBottom={1}>
-                <Text bold inverse>{" TRANSCRIPT "}</Text>
-                <Text dimColor>{" ctrl+o or Esc to close"}</Text>
-              </Box>
-            ) : item.kind === "session-header" ? (
-              <TranscriptSessionHeader session={item.session} />
-            ) : item.kind === "session-footer" ? (
-              <TranscriptSessionFooter session={item.session} />
-            ) : item.kind === "session-event" ? (
-              <Box marginLeft={3}>
-                <SubAgentProvider value={true}>
-                  <EventItem event={item.event} />
-                </SubAgentProvider>
-              </Box>
-            ) : (
-              <EventItem event={item.event} />
-            )}
-          </Box>
-        )}
-      </Static>
-
-      {/* Minimal dynamic region: only live-ticking footers for running sessions */}
-      {runningSessions.map((s) => (
-        <RunningSessionFooter key={s.id} session={s} />
-      ))}
-    </Box>
   );
 }
