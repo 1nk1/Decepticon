@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed launcher startup correction: allow a bounded 15 seconds for the
+- Proposed [PR #1078](https://github.com/BitterSecurity/Decepticon/pull/1078): launcher startup correction: allow a bounded 15 seconds for the
   Compose version probe, avoiding false missing-plugin errors when a healthy
   Docker installation takes longer than three seconds to respond. Report
   timeout/cancellation distinctly with a direct diagnostic command. A local
