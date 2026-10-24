@@ -82,6 +82,16 @@ Keep proposed and unmerged changes out of released sections.
   middleware slot matrix for every role (KG/HITL/model_fallback previously
   failed silently), KG reachability, Skillogy health and MCP auth mode.
   Addresses issue #1040.
+
+- Proposed [PR #1065](https://github.com/BitterSecurity/Decepticon/pull/1065):
+  add read-only in-session `/doctor` diagnostics, including scoped checkpoint ID,
+  OPPLAN revision, actual workflow ID/version/SHA pins, pending tasks, runtime
+  plugin bundles, machine-scope readiness and budget. Launch selections are
+  distinguished from persisted pins; unavailable reads are explicit and do not
+  start or mutate runs; checkpoint reads have a shared 10-second deadline. Host `doctor --deep --engagement <name>` adds scoped KG
+  revision/node counts, sandbox HTTP liveness/advertised API probes and per-role
+  fallback-slot readiness. Addresses
+  issue #1040; no migration is required.
 - Proposed (launcher scope recommendations): engagement creation now runs
   passive discovery — certificate-transparency logs (crt.sh) and passive DNS
   (HackerTarget, both keyless) — against the first hostname target and

@@ -1,6 +1,8 @@
 import { useCallback, useRef, useState } from "react";
 import type { ChoicePickerRequest, CommandContext } from "../commands/types.js";
 import { getModelOverride } from "../commands/modelOverride.js";
+import { formatDoctorReport } from "../commands/doctorReport.js";
+import { readSessionDoctor } from "../commands/sessionDoctor.js";
 import { CLI_VERSION } from "../utils/version.js";
 import { claimLegacyThread, listThreads } from "../utils/threadStore.js";
 import { exportSession } from "../utils/exportSession.js";
@@ -71,6 +73,26 @@ export function useLocalCommands({ agent, blue, connection, onSessionSelected }:
             ...(connection === "disconnected" ? ["Run decepticon doctor on the host, then /resume to reconnect."] : []),
             "Leaving the chat keeps services running. Use decepticon stop on the host to stop them.",
           ].join("\n"));
+          return;
+        case "doctor":
+          agent.addSystemEvent(formatDoctorReport({
+            live: await readSessionDoctor(agent.threadId),
+            version: CLI_VERSION,
+            engagement: process.env.DECEPTICON_ENGAGEMENT,
+            target: process.env.DECEPTICON_TARGET,
+            targetType: process.env.DECEPTICON_TARGET_TYPE,
+            authorizationConfirmed: process.env.DECEPTICON_AUTHORIZATION_CONFIRMED === "true",
+            workflowId: process.env.DECEPTICON_WORKFLOW_ID,
+            workflowVersion: process.env.DECEPTICON_WORKFLOW_VERSION,
+            planningWorkflowId: process.env.DECEPTICON_PLANNING_WORKFLOW_ID,
+            planningWorkflowVersion: process.env.DECEPTICON_PLANNING_WORKFLOW_VERSION,
+            assistantId: agent.assistantId,
+            runState: agent.runState,
+            modelOverride: getModelOverride() || undefined,
+            threadId: agent.threadId ?? undefined,
+            connection,
+            budgetUsage: agent.budgetUsage,
+          }));
           return;
         case "sessions": {
           const scope = args.trim() || "current";
