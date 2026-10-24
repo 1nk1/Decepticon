@@ -77,6 +77,10 @@ and authorization gates they require.
 
 ## Client and authorization contract
 
+The [engagement session contract](engagement-session-contract.md) defines shared
+thread/run identity, lifecycle operations and observation cursors for client
+adapters.
+
 Red execution needs operator-approved scope. Plan is optional and is entered
 explicitly; it is not an execution prerequisite. An operator provisions canonical
 `plan/roe.json`; Soundwave reads it and may draft a separate candidate but cannot
