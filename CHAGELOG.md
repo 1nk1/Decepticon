@@ -25,6 +25,14 @@ Keep proposed and unmerged changes out of released sections.
   startup deadline). No credentials, saved conversations or database migration
   are changed.
 
+- Proposed [PR #1076](https://github.com/BitterSecurity/Decepticon/pull/1076): image build availability fix: use Kali’s official Cloudflare CDN
+  package mirror for sandbox and Sliver images after the regional redirector
+  repeatedly selected an unreachable mirror. Preserve pinned base images, APT
+  signature verification and the existing HTTPS bootstrap; no runtime or data
+  migration changes.
+
+- Proposed public Claude legacy selection ([PR #1075](https://github.com/BitterSecurity/Decepticon/pull/1075)): expose Opus 4.8/4.7 and Sonnet 4.6 picker metadata and add active Opus 4.6/4.5 public API routes. Keep public identity separate from tenant subscription access; no provider calls, package publication or SaaS deployment is implied.
+
 - Proposed [PR #1073](https://github.com/BitterSecurity/Decepticon/pull/1073) (issue #1044): add per-session fallback, effort and
   autocompaction launcher flags and checkpointed overrides; show observed model
   routing, fallback attempts, context/compaction checks and cached budget usage

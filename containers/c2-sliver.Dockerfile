@@ -12,8 +12,11 @@ FROM kalilinux/kali-rolling@sha256:ab7f9873e9d976d62f59e172350604dd980339f567bfb
 # BuildKit cache mounts mirror the sandbox image — see that Dockerfile
 # for the rationale. Cache id is distinct so c2-sliver and sandbox
 # don't share an apt-lists race.
+# Use Kali's official CDN instead of a regional mirror selected by the redirector.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked,id=c2-sliver-apt-cache \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked,id=c2-sliver-apt-lists \
+    find /etc/apt -maxdepth 2 -type f \( -name '*.list' -o -name '*.sources' \) \
+        -exec sed -i 's|http.kali.org/kali|kali.download/kali|g' {} + && \
     rm -f /etc/apt/apt.conf.d/docker-clean && \
     echo "APT::Sandbox::User \"root\";" > /etc/apt/apt.conf.d/10sandbox && \
     sed -i 's|https://|http://|g' /etc/apt/sources.list* 2>/dev/null; \
