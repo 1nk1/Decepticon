@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed (release readiness dependency fix): update the locked setuptools
+- Proposed [PR #1069](https://github.com/BitterSecurity/Decepticon/pull/1069): update the locked setuptools
   dependency from 83.0.0 to 84.2.1, fixing GHSA-xmj3-9gf7-h52w and restoring
   the blocking dependency audit without suppressing findings. No API or data
   migration is required.
