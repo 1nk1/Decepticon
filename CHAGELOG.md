@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed subscription effort routing correction (issue #1044): allow the
+- Proposed [PR #1077](https://github.com/BitterSecurity/Decepticon/pull/1077) (issue #1044): subscription effort routing correction: allow the
   reasoning-effort parameter on Codex OAuth and Claude subscription routes
   whose custom handlers already translate it. Fix the actual gateway HTTP 400
   seen with per-session/host-selected effort; keep ordinary provider validation,
