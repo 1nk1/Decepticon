@@ -1166,7 +1166,7 @@ class _DeepSeekThinkingChatOpenAI(_ProxiedChatOpenAI):
         extra_body = payload.get("extra_body") or {}
         extra_body["thinking"] = {"type": "enabled"}
         payload["extra_body"] = extra_body
-        payload["reasoning_effort"] = "high"
+        payload.setdefault("reasoning_effort", "high")
 
         # Walk the messages array and inject reasoning_content from
         # additional_kwargs back into assistant message dicts so the

@@ -335,7 +335,17 @@ class BudgetEnforcementMiddleware(AgentMiddleware):
                     return
                 self._cache.set(scope_key, cached)
             frac = cached / cap_usd if cap_usd else 0.0
+            from decepticon.middleware.run_controls import emit_custom_event
+
+            payload = {
+                "scope": scope_kind,
+                "spent_usd": round(cached, 4),
+                "cap_usd": cap_usd,
+                "used_pct": round(frac * 100, 1),
+            }
+            emit_custom_event("budget_usage", payload)
             if frac >= 1.0:
+                emit_custom_event("budget_exceeded", payload)
                 raise BudgetExceeded(scope_kind, cached, cap_usd)
             warn_key = f"{scope_kind}:{scope_key}"
             already_warned = warn_key in self._warned_scopes

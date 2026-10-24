@@ -35,7 +35,7 @@ from typing import Any
 from deepagents.middleware.patch_tool_calls import PatchToolCallsMiddleware
 from deepagents.middleware.subagents import SubAgentMiddleware
 from deepagents.middleware.summarization import create_summarization_middleware
-from langchain.agents.middleware import AgentMiddleware, ModelFallbackMiddleware
+from langchain.agents.middleware import AgentMiddleware
 from langchain_anthropic.middleware import AnthropicPromptCachingMiddleware
 
 from decepticon.agents._benchmark_mode import benchmark_skill_sources
@@ -259,7 +259,9 @@ def _make_model_fallback(*, fallback_models: list | None = None, **_: Any):
 
     if read_desktop_policy() is not None or not fallback_models:
         return None
-    return ModelFallbackMiddleware(*fallback_models)
+    from decepticon.middleware.run_controls import VisibleModelFallbackMiddleware
+
+    return VisibleModelFallbackMiddleware(*fallback_models)
 
 
 class _SafeSummarizationProxy(AgentMiddleware):
@@ -304,12 +306,31 @@ class _SafeSummarizationProxy(AgentMiddleware):
         # stubs) has nothing to rebind — use the inner middleware as-is rather
         # than raising into the fallback below, which would silently drop
         # summarization for the turn.
+        from decepticon.middleware.run_controls import read_run_controls
+
+        controls = read_run_controls(request)
         model = getattr(request, "model", None)
-        if model is None or model is self._inner.model:
+        effort = (getattr(request, "model_settings", None) or {}).get("reasoning_effort")
+        if (
+            effort is None
+            and controls.autocompact == "auto"
+            and (model is None or model is self._inner.model)
+        ):
             return self._inner
         scoped_inner = copy.copy(self._inner)
         scoped_helper = copy.copy(self._inner._lc_helper)
-        scoped_helper.model = model
+        if model is not None:
+            if effort is not None and "reasoning_effort" in getattr(
+                type(model), "model_fields", {}
+            ):
+                model = model.model_copy(update={"reasoning_effort": effort})
+            scoped_helper.model = model
+        if isinstance(controls.autocompact, int):
+            trigger = ("tokens", controls.autocompact)
+            scoped_helper.trigger = trigger
+            scoped_helper._trigger_clauses = scoped_helper._normalize_trigger(trigger)
+            scoped_helper._trigger_conditions = scoped_helper._legacy_trigger_conditions(trigger)
+            scoped_helper.keep = ("tokens", max(256, controls.autocompact // 10))
         scoped_inner._lc_helper = scoped_helper
         return scoped_inner
 
@@ -326,6 +347,14 @@ class _SafeSummarizationProxy(AgentMiddleware):
         shutdown.py and resume read — not an orphaned
         ``engagements/<id>/events.jsonl`` no consumer opens.
         """
+        from decepticon.middleware.run_controls import emit_custom_event
+
+        emit_custom_event(
+            "summarization_skipped"
+            if event_type == "compact.summarization_skipped"
+            else event_type,
+            {"detail": detail},
+        )
         try:
             from decepticon.runtime.event_log import EventLog  # noqa: PLC0415
             from decepticon.telemetry.sink import (  # noqa: PLC0415

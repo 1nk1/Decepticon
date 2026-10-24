@@ -161,6 +161,38 @@ describe("useAgent — engagement handoff lifecycle", () => {
     await act(async () => { stream.end(); await vi.runAllTimersAsync(); });
   });
 
+  it.each(["resume", "answerQuestion"] as const)("carries runtime controls on submit and %s", async method => {
+    vi.stubEnv("DECEPTICON_LLM__FALLBACK_MODELS", '["openai/fallback"]');
+    vi.stubEnv("DECEPTICON_LLM__EFFORT", "low");
+    vi.stubEnv("DECEPTICON_LLM__AUTOCOMPACT", "4096");
+    const stream = mockState.client!.runs.stream as Mock;
+    stream.mockReturnValueOnce(createMockStream([{ event: "custom", data: { type: "ask_user_question", question: "Continue?" } }]));
+    const { result } = renderHook(() => useAgent());
+    act(() => result.current.submit("start"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    act(() => result.current[method]("yes"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    const expected = { fallback_models: ["openai/fallback"], effort: "low", autocompact: 4096 };
+    expect(stream.mock.calls[0]?.[2].input.run_controls).toEqual(expected);
+    expect(stream.mock.calls[1]?.[2].command.update.run_controls).toEqual(expected);
+  });
+
+  it("displays observed model routing, provider usage and budget events", async () => {
+    const stream = mockState.client!.runs.stream as Mock;
+    stream.mockReturnValueOnce(createMockStream([
+      { event: "custom", data: { type: "runtime_status", model: "openai/primary", effort: "low", context_tokens: 100, autocompact: 4096 } },
+      { event: "custom", data: { type: "model_fallback_engaged", model: "openai/fallback", attempt: 1 } },
+      { event: "custom", data: { type: "compact.end" } },
+      { event: "custom", data: { type: "budget_usage", spent_usd: 0.5, cap_usd: 1, used_pct: 50 } },
+      { event: "values", data: { messages: [{ type: "ai", content: "verified", response_metadata: { model_name: "served-model", token_usage: { prompt_tokens: 120, total_tokens: 125, completion_tokens: 5 } } }] } },
+    ]));
+    const { result } = renderHook(() => useAgent());
+    act(() => result.current.submit("start"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    expect(result.current.runtimeStatus).toMatchObject({ route: "openai/fallback", servedModel: "served-model", contextTokens: 120, estimated: false, compaction: "checked", fallbackAttempt: 1 });
+    expect(result.current.budgetUsage).toEqual({ spent: 0.5, cap: 1, pct: 50 });
+  });
+
   it("disconnects the client stream without cancelling server work when the CLI unmounts", async () => {
     // Given an attached stream
     const client = mockState.client;
