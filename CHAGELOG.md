@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed: integrate external [PR #1082](https://github.com/BitterSecurity/Decepticon/pull/1082) with current localized Blue notifications. Back off optional-monitor failures to a 30-second cap, reset to normal polling on success and stop retries on unmount. Preserve the ES2022 CLI target and existing non-overlapping pagination; no Blue service is required for ordinary Red/Plan use.
+- Proposed [PR #1083](https://github.com/BitterSecurity/Decepticon/pull/1083): integrate external [PR #1082](https://github.com/BitterSecurity/Decepticon/pull/1082) with current localized Blue notifications. Back off optional-monitor failures to a 30-second cap, reset to normal polling on success and stop retries on unmount. Preserve the ES2022 CLI target and existing non-overlapping pagination; no Blue service is required for ordinary Red/Plan use.
 
 - Proposed [PR #1081](https://github.com/BitterSecurity/Decepticon/pull/1081): prevent web terminal reconnect loops from deferred StrictMode initialization and obsolete WebSocket callbacks. Only the current connection can update terminal/session state or schedule reconnection; real current-connection failures still recover.
 
