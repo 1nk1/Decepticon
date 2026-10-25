@@ -1096,36 +1096,36 @@ func runOnboard(cmd *cobra.Command, args []string) error {
 	}
 
 	// Summary
-	fmt.Println()
-	fmt.Println(ui.Green.Render("  ✓ Configuration saved"))
-	fmt.Println()
-	fmt.Println(ui.Dim.Render("  ┌──────────────────────────────────┐"))
-	fmt.Println(ui.Dim.Render("  │") + ui.Cyan.Render("  Methods   ") + ui.Dim.Render(strings.Join(priority, ", ")))
-	fmt.Println(ui.Dim.Render("  │") + ui.Cyan.Render("  Profile   ") + ui.Dim.Render(profile))
-	fmt.Println(ui.Dim.Render("  │") + ui.Cyan.Render("  Language  ") + ui.Dim.Render(language))
+	ui.Println()
+	ui.Println(ui.Green.Render("  ✓ Configuration saved"))
+	ui.Println()
+	ui.Println(ui.Dim.Render("  ┌──────────────────────────────────┐"))
+	ui.Println(ui.Dim.Render("  │") + ui.Cyan.Render("  Methods   ") + ui.Dim.Render(strings.Join(priority, ", ")))
+	ui.Println(ui.Dim.Render("  │") + ui.Cyan.Render("  Profile   ") + ui.Dim.Render(profile))
+	ui.Println(ui.Dim.Render("  │") + ui.Cyan.Render("  Language  ") + ui.Dim.Render(language))
 	if useLangSmith {
-		fmt.Println(ui.Dim.Render("  │") + ui.Cyan.Render("  LangSmith ") + ui.Green.Render("enabled"))
+		ui.Println(ui.Dim.Render("  │") + ui.Cyan.Render("  LangSmith ") + ui.Green.Render("enabled"))
 	}
 	if telemetryChoice != "off" {
-		fmt.Println(ui.Dim.Render("  │") + ui.Cyan.Render("  Telemetry ") + ui.Green.Render(telemetryChoice))
+		ui.Println(ui.Dim.Render("  │") + ui.Cyan.Render("  Telemetry ") + ui.Green.Render(telemetryChoice))
 	}
-	fmt.Println(ui.Dim.Render("  │"))
-	fmt.Println(ui.Dim.Render("  │  ") + ui.Dim.Render(config.EnvPath()))
-	fmt.Println(ui.Dim.Render("  └──────────────────────────────────┘"))
-	fmt.Println()
+	ui.Println(ui.Dim.Render("  │"))
+	ui.Println(ui.Dim.Render("  │  ") + ui.Dim.Render(config.EnvPath()))
+	ui.Println(ui.Dim.Render("  └──────────────────────────────────┘"))
+	ui.Println()
 
 	// Install opscontrol as a managed service (ADR-0006). Idempotent
 	// — re-running onboard re-templates the unit so a launcher
 	// upgrade picks up the new ExecStart path. On hosts without
 	// systemd-user / launchd this is a no-op announcement, and the
 	// launcher's spawn fallback takes over at `decepticon start`.
-	fmt.Println()
+	ui.Println()
 	if err := infracontrol.EnsureInstalled(); err != nil {
 		// Non-fatal: onboarding can complete without managed-service
 		// mode, the user will just stay on launcher-spawn fallback.
 		ui.Warning("infracontrol install skipped: " + err.Error())
 	}
-	fmt.Println()
+	ui.Println()
 
 	// One-time GitHub star ask — the natural post-onboarding moment.
 	// Suppressed on subsequent runs by the ack file at

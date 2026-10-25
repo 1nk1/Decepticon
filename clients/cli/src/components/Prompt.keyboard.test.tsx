@@ -170,3 +170,14 @@ it("preserves literal text resembling a terminal key sequence", () => {
 
   expect(view.container.textContent).toContain("› [27;2;13~");
 });
+
+it("does not echo pasted terminal control packets back into the terminal", () => {
+  const view = prompt();
+  act(() => {
+    keyboard.handler?.("[200~", {});
+    keyboard.handler?.("plain\u001b[<0;12;6Mtext", {});
+    keyboard.handler?.("[201~", {});
+  });
+  expect(view.container.textContent).toContain("plaintext");
+  expect(view.container.textContent).not.toContain("[<0;");
+});

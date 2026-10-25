@@ -41,13 +41,13 @@ export const BackgroundCompleteMessage = React.memo(
     return (
       <Box marginTop={1} flexDirection="column">
         <Text color={failed ? PALETTE.error : PALETTE.success}>
-          {GLYPH_DOT} <Text bold>Background command</Text>
+          {GLYPH_DOT} <Text color={PALETTE.text} bold>Background command</Text>
           {command ? ` "${command}"` : ""} completed{exitStr}
-          <Text dimColor>{suffix}</Text>
+          <Text color={PALETTE.text} dimColor>{suffix}</Text>
         </Text>
         {output ? (
           <Box marginLeft={2} marginTop={0}>
-            <Text dimColor wrap="wrap">
+            <Text color={PALETTE.text} dimColor wrap="wrap">
               {output}
             </Text>
           </Box>

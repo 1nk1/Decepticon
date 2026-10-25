@@ -1,3 +1,4 @@
+import { PALETTE } from "../utils/theme.js";
 import React, { useMemo, useState } from "react";
 import { Box, Text, useInput } from "ink";
 import stringWidth from "string-width";
@@ -43,8 +44,8 @@ export function TranscriptPager({ events, modalActive }: { readonly events: read
     if (key.pageDown) setOffset(start + pageSize >= last ? null : start + pageSize);
   }, { isActive: !modalActive });
   return <Box flexDirection="column">
-    <Text bold>TRANSCRIPT · {lines.length ? start + 1 : 0}–{Math.min(start + pageSize, lines.length)} / {lines.length}</Text>
-    <Text dimColor>PgUp/PgDn scroll · /commands · Esc closes</Text>
-    <Box height={pageSize} overflowY="hidden"><Text>{lines.slice(start, start + pageSize).join("\n")}</Text></Box>
+    <Text color={PALETTE.text} bold>TRANSCRIPT · {lines.length ? start + 1 : 0}–{Math.min(start + pageSize, lines.length)} / {lines.length}</Text>
+    <Text color={PALETTE.text} dimColor>PgUp/PgDn scroll · /commands · Esc closes</Text>
+    <Box height={pageSize} overflowY="hidden"><Text color={PALETTE.text}>{lines.slice(start, start + pageSize).join("\n")}</Text></Box>
   </Box>;
 }

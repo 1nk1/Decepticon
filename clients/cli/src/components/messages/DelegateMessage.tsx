@@ -24,13 +24,13 @@ export const DelegateMessage = React.memo(function DelegateMessage({
 
   return (
     <Box flexDirection="column" marginTop={1}>
-      <Text>
+      <Text color={PALETTE.text}>
         <Text color={PALETTE.info}>{`${GLYPH_DOT} `}</Text>
         <Text color={PALETTE.text} bold>{"Delegate"}</Text>
         <Text color={PALETTE.muted} italic>{` (${agent})`}</Text>
       </Text>
       {screen === "transcript" && content && (
-        <Text dimColor wrap="wrap">{`  ${GLYPH_HOOK}  ${content}`}</Text>
+        <Text color={PALETTE.text} dimColor wrap="wrap">{`  ${GLYPH_HOOK}  ${content}`}</Text>
       )}
     </Box>
   );

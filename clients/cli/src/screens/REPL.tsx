@@ -43,6 +43,13 @@ import { ErrorMessage } from "../components/messages/ErrorMessage.js";
 import { CommandPicker } from "../components/CommandPicker.js";
 import { useLocalCommands } from "../hooks/useLocalCommands.js";
 import { useServiceStatus } from "../hooks/useServiceStatus.js";
+import { ConversationViewport } from "../components/ConversationViewport.js";
+import { SessionFooter } from "../components/SessionFooter.js";
+import { useTerminalUI } from "../terminal/TerminalUI.js";
+import { useTerminalSize } from "../hooks/useTerminalSize.js";
+import { PALETTE } from "../utils/theme.js";
+import { getModelOverride } from "../commands/modelOverride.js";
+import { CLI_VERSION } from "../utils/version.js";
 import type { ToolGroup } from "../utils/groupEvents.js";
 
 export type Screen = ScreenMode;
@@ -54,6 +61,8 @@ interface REPLProps {
 
 export function REPL({ initialMessage, resumeThread }: REPLProps) {
   const { exit } = useApp();
+  const terminal = useTerminalUI();
+  const size = useTerminalSize();
   const agent = useAgent({ resumeThread });
   const blue = useBlueNotifications(agent.addSystemEvent);
   const connection = useServiceStatus();
@@ -68,9 +77,9 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
   // Increment to force <Static> re-mount on session switch (resets its internal render history)
   const [sessionKey, setSessionKey] = useState(0);
   const onSessionSelected = useCallback(() => {
-    process.stdout.write("\x1B[2J\x1B[H");
+    if (terminal.mode === "inline") process.stdout.write("\x1B[2J\x1B[H");
     setSessionKey((value) => value + 1);
-  }, []);
+  }, [terminal.mode]);
   const local = useLocalCommands({ agent, blue, connection, onSessionSelected });
   const initialPickerOpened = useRef(false);
   useEffect(() => {
@@ -116,11 +125,21 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
       selectAssistant: agent.selectAssistant,
       mutateWorkspace: agent.mutateWorkspace,
       resume: agent.resume,
+      restoreSession: id => agent.resume(id, true),
+      terminalCommand: (name, value) => {
+        if (name === "tui") {
+          if (value === "inline" || value === "fullscreen") terminal.setMode(value);
+          else agent.addSystemEvent(`Terminal: ${terminal.mode}. Usage: /tui inline | fullscreen`);
+        } else {
+          if (value === "on" || value === "off") terminal.setMouse(value === "on");
+          else agent.addSystemEvent(`Mouse: ${terminal.mouse ? "on" : "off"}. Usage: /mouse on | off. Shift+drag uses native terminal selection.`);
+        }
+      },
       exit,
       openPicker: local.setPicker,
       runLocalCommand: local.runLocalCommand,
     }),
-    [agent.addSystemEvent, agent.clearEvents, agent.submit, agent.selectAssistant, agent.mutateWorkspace, agent.resume, exit, local.setPicker, local.runLocalCommand],
+    [agent.addSystemEvent, agent.clearEvents, agent.submit, agent.selectAssistant, agent.mutateWorkspace, agent.resume, exit, local.setPicker, local.runLocalCommand, terminal],
   );
 
   const handleSubmit = useCallback(
@@ -131,23 +150,7 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
       // Slash commands always execute immediately (even during streaming)
       const parsed = parseSlashCommand(trimmed);
       if (parsed) {
-        // /resume with no args → open interactive session picker
-        if ((parsed.name === "resume" || parsed.name === "r" || parsed.name === "continue") && !parsed.args) {
-          // If paused, resume from checkpoint directly
-          if (agent.activeQuestion) {
-            setQuestionCommands(false);
-            return;
-          }
-          if (agent.runState === "paused") {
-            agent.resume();
-            return;
-          }
-          void local.openSessions().catch((error: unknown) => {
-            agent.addSystemEvent(error instanceof Error ? error.message : "Unable to load sessions.");
-          });
-          return;
-        }
-
+        if (parsed.name === "answer" && agent.activeQuestion) { setQuestionCommands(false); return; }
         const cmd = findCommand(parsed.name);
         if (cmd) {
           Promise.resolve().then(() => cmd.execute(parsed.args, commandContext)).then((result) => {
@@ -233,8 +236,28 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
     return null;
   }, [mainEvents]);
 
+  const footer = <SessionFooter assistantId={agent.assistantId} activeAgent={agent.activeAgent}
+    engagement={process.env.DECEPTICON_ENGAGEMENT} model={getModelOverride()}
+    connection={connection} runState={agent.runState} runtime={agent.runtimeStatus} budget={agent.budgetUsage} onCommand={handleSubmit} />;
+  if (terminal.mode === "fullscreen" && !agent.isRestoring) {
+    const viewportEvents: AgentEvent[] = agent.streamingText ? [...agent.events, { id: "__streaming__", type: "ai_message", timestamp: Date.now(), content: agent.streamingText }] : agent.events;
+    return <ScreenProvider value={screen}><Box flexDirection="column" height={size.rows} width={size.columns} overflowY="hidden" backgroundColor={PALETTE.ground}>
+      <Box flexShrink={0} paddingX={1} backgroundColor={PALETTE.raised}><Text bold color={PALETTE.focus}>Decepticon · {CLI_VERSION}</Text><Text color={PALETTE.muted}> · {screen === "transcript" ? "Transcript · Esc back" : "Conversation"} · /tui inline · /mouse off</Text></Box>
+      <ConversationViewport expandedAll={screen === "transcript"} events={viewportEvents} modalActive={local.picker != null || composerModal || agent.activeQuestion != null} sessionKey={`${sessionKey}-${agent.assistantId}`} />
+      <Box flexDirection="column" flexShrink={0}>
+        <ActivityIndicator runState={agent.runState} streamStats={agent.streamStats} assistantId={agent.assistantId} />
+        {agent.pendingTool && <Text color={PALETTE.muted} wrap="truncate-end">Running: {agent.pendingTool.name}</Text>}
+        {agent.error && <ErrorMessage content={agent.error} onDismiss={agent.clearError} />}
+        {local.picker ? <CommandPicker request={local.picker} onClose={() => local.setPicker(null)} onError={agent.addSystemEvent} />
+          : agent.activeQuestion && !questionCommands ? <QuestionPicker question={agent.activeQuestion} onSubmit={agent.answerQuestion} onCancel={() => setQuestionCommands(true)} />
+          : <Prompt hideStatus runState={agent.runState} onSubmit={handleSubmit} assistantId={agent.assistantId} onDraftChange={draftChanged} onModalChange={setComposerModal} clearDraftToken={clearDraftToken} queuedMessage={agent.queuedMessage} onEditQueue={agent.enqueue} />}
+        {footer}
+      </Box>
+    </Box></ScreenProvider>;
+  }
+
   // ── TRANSCRIPT MODE ─────────────────────────────────────────────
-  if (agent.isRestoring) return <Text dimColor>Restoring conversation…</Text>;
+  if (agent.isRestoring) return <Text color={PALETTE.text} dimColor>Restoring conversation…</Text>;
   if (screen === "transcript") {
     return (
       <ScreenProvider value="transcript">
@@ -244,11 +267,12 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
             {local.picker ? (
               <CommandPicker request={local.picker} onClose={() => local.setPicker(null)} onError={agent.addSystemEvent} />
             ) : (
-              <Prompt runState={agent.runState} assistantId={agent.assistantId} connectionStatus={connection}
+              <Prompt hideStatus runState={agent.runState} assistantId={agent.assistantId} connectionStatus={connection}
                 onModalChange={setComposerModal} onDraftChange={draftChanged} clearDraftToken={clearDraftToken}
                 onSubmit={value => value.trim().startsWith("/") ? handleSubmit(value) : agent.addSystemEvent("Use a /command here, or Esc to return to chat.")} />
             )}
             {agent.error && <ErrorMessage content={agent.error} onDismiss={agent.clearError} />}
+            {footer}
           </Box>
         </Box>
       </ScreenProvider>
@@ -326,10 +350,10 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
                 onSubmit={agent.answerQuestion}
                 onCancel={() => setQuestionCommands(true)}
               />
-              <Text dimColor>Esc opens commands without discarding this question. /resume returns to the question.</Text>
+              <Text color={PALETTE.text} dimColor>Esc opens commands without discarding this question. /answer returns to the question.</Text>
             </Box>
           ) : (
-            <Prompt
+            <Prompt hideStatus
               runState={agent.runState}
               onSubmit={handleSubmit}
               activeAgent={agent.activeAgent}
@@ -344,13 +368,12 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
           )}
           <Box flexDirection="column" marginTop={1}>
             {blue.status === "connected" || blue.unreadCount > 0 ? (
-              <Text dimColor wrap="truncate-end">
+              <Text color={PALETTE.text} dimColor wrap="truncate-end">
                 Blue · collector {blue.collectorStatus} · AI {blue.aiStatus} · unread {blue.unreadCount} · /alerts
               </Text>
             ) : null}
-            <RuntimeFooter status={agent.runtimeStatus} />
-            <BudgetFooter usage={agent.budgetUsage} />
-            {agent.queuedMessages.length > 0 && <Text dimColor>{agent.queuedMessages.length} waiting · /queue to edit or remove</Text>}
+            {footer}
+            {agent.queuedMessages.length > 0 && <Text color={PALETTE.text} dimColor>{agent.queuedMessages.length} waiting · /queue to edit or remove</Text>}
           </Box>
         </Box>
 

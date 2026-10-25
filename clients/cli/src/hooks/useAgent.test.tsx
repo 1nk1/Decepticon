@@ -1219,4 +1219,28 @@ describe("useAgent — engagement handoff lifecycle", () => {
     // After the handoff auto-submit fires, queuedMessage is cleared
     expect(result.current.queuedMessage).toBeNull();
   });
+  it("restores a chosen saved conversation from pause without sending the thread ID to the model", async () => {
+    const client = mockState.client!;
+    client.runs.stream.mockReturnValueOnce(createMockStream([
+      { event: "metadata", data: { run_id: "old-run" } },
+      { event: "custom", data: { type: "ask_user_question", question: "Continue?", id: "pending" } },
+    ]));
+    const { result } = renderHook(() => useAgent());
+    act(() => result.current.submit("original"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    expect(result.current.runState).toBe("paused");
+    (client.threads.getState as Mock).mockResolvedValueOnce({ values: { messages: [{ type: "ai", content: "Saved answer" }] }, next: [] });
+    act(() => result.current.resume("chosen-thread", true));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    expect(client.runs.stream).toHaveBeenCalledTimes(1);
+    expect(result.current.threadId).toBe("chosen-thread");
+    expect(result.current.runState).toBe("idle");
+    expect(result.current.events.some(event => event.content === "Saved answer")).toBe(true);
+    act(() => result.current.submit("next message"));
+    await act(async () => { await vi.runAllTimersAsync(); });
+    expect(client.runs.stream).toHaveBeenCalledTimes(2);
+    expect((client.runs.stream as Mock).mock.calls[1]?.[0]).toBe("chosen-thread");
+    expect((client.runs.stream as Mock).mock.calls[1]?.[2]).not.toHaveProperty("command");
+    expect(client.runs.cancel).not.toHaveBeenCalled();
+  });
 });

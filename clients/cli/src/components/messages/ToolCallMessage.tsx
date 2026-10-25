@@ -58,12 +58,13 @@ function ToolCallHeader({
     const argsStr = Object.entries(args)
       .filter(([, v]) => v != null && v !== "")
       .map(([k, v]) => {
-        const val = typeof v === "string" ? `"${v}"` : String(v);
+        const raw = typeof v === "string" ? JSON.stringify(v) : JSON.stringify(v) ?? String(v);
+        const val = raw.length > 240 ? raw.slice(0, 237) + "…" : raw;
         return `${k}=${val}`;
       })
-      .join(", ");
+      .join(", ").slice(0, 600);
     return (
-      <Text>
+      <Text color={PALETTE.text}>
         <Text color={dotColor}>{`${status === "error" ? "✗" : GLYPH_DOT} `}</Text>
         <Text color={PALETTE.text} bold>{toolName}</Text>
         <Text color={PALETTE.muted} italic>{` (${argsStr})`}</Text>
@@ -122,7 +123,7 @@ function ToolCallHeader({
   }
 
   return (
-    <Text>
+    <Text color={PALETTE.text}>
       <Text color={dotColor}>{`${status === "error" ? "✗" : GLYPH_DOT} `}</Text>
       <Text color={PALETTE.text} bold>{label}</Text>
       {detail ? <Text color={PALETTE.muted} italic>{` (${detail})`}</Text> : null}
@@ -145,7 +146,7 @@ function ResultContent({
   return (
     <>
       {display.map((line, i) => (
-        <Text key={i} dimColor wrap="wrap">
+        <Text color={PALETTE.text} key={i} dimColor wrap="wrap">
           {i === 0 ? `  ${GLYPH_HOOK}  ` : "     "}{line}
         </Text>
       ))}
@@ -171,7 +172,7 @@ export const ToolCallMessage = React.memo(function ToolCallMessage({
   if (skillName) {
     return (
       <Box flexDirection="column" marginTop={1}>
-        <Text>
+        <Text color={PALETTE.text}>
           <Text color={PALETTE.success}>{`${GLYPH_DOT} `}</Text>
           <Text color={PALETTE.text} bold>{"Skill"}</Text>
           <Text color={PALETTE.muted} italic>{` (${skillName})`}</Text>
@@ -204,7 +205,7 @@ export const ToolCallMessage = React.memo(function ToolCallMessage({
     const dotColor = event.status === "error" ? PALETTE.error : PALETTE.success;
     return (
       <Box flexDirection="column" marginTop={1}>
-        <Text>
+        <Text color={PALETTE.text}>
           <Text color={dotColor}>{`${event.status === "error" ? "✗" : GLYPH_DOT} `}</Text>
           <Text color={PALETTE.text} bold>{label}</Text>
           {hint ? <Text color={PALETTE.muted} italic>{` (${hint})`}</Text> : null}

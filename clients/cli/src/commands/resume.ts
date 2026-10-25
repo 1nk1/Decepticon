@@ -2,11 +2,12 @@ import type { Command } from "./types.js";
 
 const resume: Command = {
   name: "resume",
-  description: "Resume paused run or continue previous session",
+  description: "Choose a saved session and continue its conversation",
   aliases: ["r", "continue"],
-  argumentHint: "[message]",
+  argumentHint: "[thread-id]",
   execute(args, ctx) {
-    ctx.resume(args || undefined);
+    if (args.trim()) ctx.restoreSession?.(args.trim());
+    else return ctx.runLocalCommand?.("sessions", "current");
   },
 };
 

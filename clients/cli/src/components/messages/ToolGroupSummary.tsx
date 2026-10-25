@@ -22,9 +22,9 @@ export const ToolGroupSummary = React.memo(function ToolGroupSummary({
   const summary = formatToolGroup(group);
   return (
     <Box flexDirection="column" marginTop={1}>
-      <Text>
+      <Text color={PALETTE.text}>
         <Text color={PALETTE.success}>{`${GLYPH_DOT} `}</Text>
-        <Text dimColor>{summary}</Text>
+        <Text color={PALETTE.text} dimColor>{summary}</Text>
         <CtrlOToExpand />
       </Text>
     </Box>

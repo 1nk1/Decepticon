@@ -166,11 +166,11 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 			}
 		} else {
 			ui.Warning("No configuration found. Running setup wizard...")
-			fmt.Println()
+			ui.Println()
 			if err := runOnboard(cmd, nil); err != nil {
 				return err
 			}
-			fmt.Println()
+			ui.Println()
 		}
 	}
 
@@ -191,6 +191,10 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 	env, err := config.LoadEnv(config.EnvPath())
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
+	}
+
+	if config.Get(env, "DECEPTICON_MOUSE", "") == "0" {
+		ui.DisableMouse = true
 	}
 
 	// 2.1. Apply idempotent config/policy migrations for already-onboarded
@@ -321,7 +325,7 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 	// container starts with /workspace bound to the chosen engagement
 	// directory. Without this, the operator would briefly see the whole
 	// workspace through the sandbox before any picking happens.
-	fmt.Println()
+	ui.Println()
 	ui.Info("[3/5] Engagement · select a workspace")
 	var choice engagement.Choice
 	if existingEngagement == "" {
@@ -464,7 +468,7 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 	}
 
 	// 6. Launch CLI
-	fmt.Println()
+	ui.Println()
 	ui.Info("[5/5] Connect · launching the conversation")
 
 	cliEnv := map[string]string{
@@ -473,6 +477,17 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 		"DECEPTICON_RUN_MODE":       choice.Mode,
 		"DECEPTICON_ENGAGEMENT":     choice.Engagement,
 		"DECEPTICON_WORKSPACE_PATH": "/workspace",
+	}
+	for _, key := range []string{"DECEPTICON_TUI", "DECEPTICON_MOUSE"} {
+		if value := config.Get(env, key, ""); value != "" {
+			cliEnv[key] = value
+		}
+	}
+	if disabled, _ := cmd.Flags().GetBool("no-alt-screen"); disabled {
+		cliEnv["DECEPTICON_TUI"] = "inline"
+	}
+	if disabled, _ := cmd.Flags().GetBool("no-mouse"); disabled {
+		cliEnv["DECEPTICON_MOUSE"] = "0"
 	}
 	for key, value := range workflowEnv {
 		cliEnv[key] = value

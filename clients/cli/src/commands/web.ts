@@ -58,7 +58,7 @@ function composeArgs(): string[] {
 function startWeb(context: CommandContext): Promise<void> {
   const hostHome = process.env["DECEPTICON_HOST_HOME"];
   if (!hostHome) {
-    context.addSystemEvent("❌ Cannot start web: host install path is unavailable. Update the Decepticon CLI stack and retry.");
+    context.addSystemEvent("✗ Cannot start web: host install path is unavailable. Update the Decepticon CLI stack and retry.");
     return Promise.resolve();
   }
   return runDockerCompose(
@@ -67,7 +67,7 @@ function startWeb(context: CommandContext): Promise<void> {
     {
       env: { ...process.env, DECEPTICON_HOME: hostHome },
       pending: "Starting web dashboard…",
-      success: () => `✅ Web dashboard up: ${url()}`,
+      success: () => `✓ Web dashboard up: ${url()}`,
       failure: (code, stderr) => formatComposeFailure("start", code, stderr),
     },
   );
@@ -79,7 +79,7 @@ function stopWeb(context: CommandContext): Promise<void> {
     [...composeArgs(), "stop", "web"],
     {
       pending: "Stopping web dashboard…",
-      success: () => "✅ Web dashboard stopped (container kept for fast re-up)",
+      success: () => "✓ Web dashboard stopped (container kept for fast re-up)",
       failure: (code, stderr) => formatComposeFailure("stop", code, stderr),
     },
   );
@@ -116,7 +116,7 @@ function runDockerCompose(
       // CLI (pre-v1.1.8). Surface it directly so the operator does not
       // hunt through stack traces.
       context.addSystemEvent(
-        `❌ Could not exec docker: ${err.message}. ` +
+        `✗ Could not exec docker: ${err.message}. ` +
           "Is the docker CLI installed in this image? (cli.Dockerfile v1.1.8+)",
       );
       resolve();
@@ -135,5 +135,5 @@ function runDockerCompose(
 export function formatComposeFailure(action: "start" | "stop", code: number | null, stderr: string): string {
   const output = stderr.trim();
   const tail = output.length > 1200 ? `…\n${output.slice(-1200)}` : output;
-  return `❌ Failed to ${action} web (exit ${code}): ${tail}`;
+  return `✗ Failed to ${action} web (exit ${code}): ${tail}`;
 }

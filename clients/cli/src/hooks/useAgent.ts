@@ -132,7 +132,7 @@ interface UseAgentReturn {
   /** Hard cancel the current run (Ctrl+C double, or from paused). State lost. */
   cancel: () => void;
   /** Resume a paused run with optional operator feedback. */
-  resume: (value?: string) => void;
+  resume: (value?: string, restoreSession?: boolean) => void;
   /** Enqueue a message to auto-submit when current run completes. */
   enqueue: (message: string) => void;
   /** Clear the queued message. */
@@ -754,7 +754,7 @@ export function useAgent({
       if (!completionReceived && !serverErrorReceived && !abortController.signal.aborted && !interrupted) {
         addSystemEvent(
           "\u26a0\ufe0f Connection to server lost. The run continues server-side. "
-          + "Use /resume to reconnect.",
+          + "Use /resume and select this saved session to reconnect.",
         );
         setRunState("idle");
       }
@@ -1248,14 +1248,14 @@ export function useAgent({
   // ── Resume (pause point OR previous session) ───────────────────
 
   const resume = useCallback(
-    (value?: string): void => {
+    (value?: string, restoreSession = false): void => {
       if (switchingRef.current || abortRef.current || restoringRef.current) return;
       streamReadyRef.current = null;
       const isPaused = runStateRef.current === "paused";
       const hasThread = !!threadIdRef.current;
 
       // Case 1: Paused — resume from checkpoint with Command({ resume })
-      if (isPaused && hasThread) {
+      if (isPaused && hasThread && !restoreSession) {
         const abortController = new AbortController();
         abortRef.current = abortController;
 
@@ -1313,7 +1313,7 @@ export function useAgent({
       }
 
       // Case 2: Load a specific thread by ID (from session picker or --resume)
-      if (value && runStateRef.current === "idle") {
+      if (value && (runStateRef.current === "idle" || (restoreSession && runStateRef.current === "paused"))) {
         if (queuedMessageRef.current.length > 0) {
           addSystemEvent("Handle waiting messages with /queue before switching sessions.");
           return;
@@ -1325,9 +1325,12 @@ export function useAgent({
           const state = await client.threads.getState(value);
           eventsRef.current = [];
           setEvents([]);
+          runIdRef.current = null;
+          setRuntimeStatus(null);
+          setBudgetUsage(null);
           activeQuestionRef.current = restoredQuestion(state);
           setActiveQuestion(activeQuestionRef.current);
-          if (activeQuestionRef.current) { runStateRef.current = "paused"; setRunState("paused"); }
+          setRunState(activeQuestionRef.current ? "paused" : "idle");
           threadIdRef.current = value;
           workspaceRef.current = saved.workspacePath ?? runtimeWorkspace();
           assistantIdRef.current = saved.assistantId;

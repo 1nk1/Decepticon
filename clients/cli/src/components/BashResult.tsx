@@ -68,7 +68,7 @@ export const BashResult = React.memo(function BashResult({
 
   return (
     <Box flexDirection="column">
-      <Text>
+      <Text color={PALETTE.text}>
         <Text color={PALETTE.success} bold>{"┌──("}</Text>
         <Text color={PALETTE.error} bold>{"root㉿sandbox"}</Text>
         <Text color={PALETTE.success} bold>{")-["}</Text>
@@ -76,9 +76,9 @@ export const BashResult = React.memo(function BashResult({
         <Text color={PALETTE.success} bold>{"]"}</Text>
       </Text>
 
-      <Text>
+      <Text color={PALETTE.text}>
         <Text color={PALETTE.success} bold>{"└─# "}</Text>
-        <Text bold>{command}</Text>
+        <Text color={PALETTE.text} bold>{command}</Text>
       </Text>
 
       {displayLines

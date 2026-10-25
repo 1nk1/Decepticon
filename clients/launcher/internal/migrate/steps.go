@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"charm.land/huh/v2"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/ui"
 
 	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/config"
 )
@@ -19,13 +20,12 @@ const TelemetryPolicyID = "telemetry-policy-2026-06"
 // confirm is indirected so tests can answer the prompt without a TTY.
 var confirm = func(title, description, affirmative, negative string, defaultYes bool) bool {
 	v := defaultYes
-	if err := huh.NewConfirm().
+	if err := ui.RunField(huh.NewConfirm().
 		Title(title).
 		Description(description).
 		Affirmative(affirmative).
 		Negative(negative).
-		Value(&v).
-		Run(); err != nil {
+		Value(&v)); err != nil {
 		// A prompt error (e.g. aborted) must not silently enable a
 		// data-collection setting — fail to the conservative answer.
 		return false

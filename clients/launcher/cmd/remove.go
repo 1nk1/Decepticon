@@ -57,7 +57,7 @@ func runRemove(cmd *cobra.Command, args []string) error {
 					Negative("Cancel").
 					Value(&confirm),
 			),
-		)
+		).WithTheme(huh.ThemeFunc(ui.DecepticonTheme))
 		if err := form.Run(); err != nil || !confirm {
 			ui.Info("Removal cancelled")
 			return nil
@@ -74,7 +74,7 @@ func runRemove(cmd *cobra.Command, args []string) error {
 			Description(filepath.Join(home, "workspace")).
 			Affirmative("Yes, keep my data").
 			Negative("No, delete everything").
-			Value(&preserveWorkspace)))
+			Value(&preserveWorkspace))).WithTheme(huh.ThemeFunc(ui.DecepticonTheme))
 		if err := form.Run(); err != nil {
 			return fmt.Errorf("workspace preservation selection cancelled: %w", err)
 		}

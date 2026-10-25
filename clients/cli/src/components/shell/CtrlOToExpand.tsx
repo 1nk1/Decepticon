@@ -1,3 +1,4 @@
+import { PALETTE } from "../../utils/theme.js";
 /**
  * CtrlOToExpand — consistent "(ctrl+o to expand)" hint for truncated content.
  *
@@ -22,7 +23,7 @@ export const CtrlOToExpand = React.memo(function CtrlOToExpand() {
   }
 
   return (
-    <Text dimColor italic>
+    <Text color={PALETTE.text} dimColor italic>
       {" (ctrl+o to expand)"}
     </Text>
   );
