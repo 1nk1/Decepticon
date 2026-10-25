@@ -130,6 +130,13 @@ Reproduce the current inventory/payload check with
 does not connect to the configured providers. The dated CSV is a fixed research
 snapshot, not an automatic claim about models added after the cutoff.
 
+The affected test commands are
+`PYTEST_XDIST_AUTO_NUM_WORKERS=2 uv run pytest packages/decepticon/tests/unit/llm -n 2 -q`,
+`uv run model-catalog/generate.py --check` and
+`uv run model-catalog/test_catalog.py`. PR #1089 targets main to execute the
+repository's required CI/Security workflows, while retaining #1088 as its
+prerequisite ancestry. The two PRs should be integrated in that order.
+
 Local results: **829 LLM tests passed** with two workers; **8 catalog tests
 passed**; generation drift check clean (204 records / four outputs); repository
 Ruff check and format check passed; basedpyright reported zero errors. The CSV's
