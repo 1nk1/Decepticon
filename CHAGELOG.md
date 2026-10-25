@@ -17,7 +17,7 @@ Keep proposed and unmerged changes out of released sections.
 
 - Release record: document actual 1.6.1 publication, immutable distributions,
   measured port recovery, neutral onboarding and same-volume WSL acceptance
-  ([release record PR](https://github.com/BitterSecurity/Decepticon/pulls?q=is%3Apr+head%3Adocs%2Foss-1.6.1-terminal-release-record-20261025)).
+  ([PR #1094](https://github.com/BitterSecurity/Decepticon/pull/1094)).
   This post-tag documentation does not move the release tag or change runtime versions.
 
 ## [1.6.1] — 2026-10-25
