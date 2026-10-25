@@ -1,5 +1,9 @@
 # Model output-limit audit — issue #1087
 
+Follow-up: [the all-route audit dated 2026-10-25](model-contract-audit-2026-10-25.md)
+extends this scope and corrects the AWS Bedrock Sonnet 4.6 exception: AWS allows
+64000, while direct Anthropic/OpenRouter retain 128000.
+
 Checked against main `6f7d0c5047a858e673b97dba6732ad70b1b80872` and the
 published 1.6.0 factory. This is a source/request-contract audit, with controlled
 local HTTP verification. It does not claim successful paid provider inference.

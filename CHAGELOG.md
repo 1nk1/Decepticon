@@ -15,6 +15,17 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #1089](https://github.com/BitterSecurity/Decepticon/pull/1089),
+  following #1088: audit all 293 configured model routes as of 2026-10-25 KST,
+  with per-route sources, explicit unresolved contracts and redacted managed
+  identities. Correct 13 provider-specific output defaults (including AWS's
+  Sonnet 4.6 exception); preserve positive global overrides. Local/custom
+  deployments now use server output defaults unless explicitly overridden,
+  which may shorten responses. Remove three embedding-only models from the
+  CLI agent picker while retaining their embedding routes. Includes local HTTP
+  regressions and a [full audit](docs/model-contract-audit-2026-10-25.md);
+  provider inference and release qualification remain explicitly unverified.
+
 - Proposed [PR #1088](https://github.com/BitterSecurity/Decepticon/pull/1088)
   (fixes #1087): resolve Claude output ceilings by model/version across provider,
   dotted, dated and Bedrock IDs. Opus/Sonnet 4.5 default to 64000; newer supported

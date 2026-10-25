@@ -36,6 +36,7 @@ from langchain_core.messages import AIMessage, BaseMessage
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
+from decepticon.llm.model_contracts import ROUTE_OUTPUT_DEFAULTS, RUNTIME_DEFINED_PROVIDERS
 from decepticon.llm.router import ModelRouter
 from decepticon_core.registry import RoleRegistry
 from decepticon_core.types.llm import (
@@ -55,18 +56,19 @@ from decepticon_core.utils.logging import get_logger
 log = get_logger("llm.factory")
 
 
-# Output-token cap for every model created through this factory.
-# We must set one explicitly: the LiteLLM proxy applies the Anthropic default
+# Output-token defaults for models created through this factory.
+# Claude needs an explicit cap: the LiteLLM proxy applies the Anthropic default
 # of 4096 when the client sends no ``max_tokens``, and a single large
 # ``write_file`` tool call (e.g. a full finding report or a recon target model)
 # then truncates mid-argument — the tool-call JSON never closes, so the
 # ``content`` arg is dropped and the write fails. The cap is per-model: we hand
-# each model its OWN max-output ceiling so a big deliverable completes in one
-# call. It is a ceiling, not a forced value — short replies cost nothing extra.
-# Values above 64k require the streaming API path (the SDK already streams).
+# reviewed routes their own defaults so a big deliverable can complete in one
+# call. A cap is not a forced value — short replies cost nothing extra.
+# Some providers require streaming for large caps (the SDK already streams).
 # Reviewed high-output Claude versions are explicit below: family names alone
 # are not a capability contract (Opus/Sonnet 4.5 support only 64000).
-# Unknown models retain the 64k fallback. A positive
+# Unknown cloud routes retain the 64k fallback; local/custom deployments use
+# their server default because their actual model/context is unknown. A positive
 # ``DECEPTICON_LLM_MAX_TOKENS`` explicitly overrides the model default.
 DEFAULT_LLM_MAX_TOKENS = 64000
 LLM_MAX_TOKENS_ENV = "DECEPTICON_LLM_MAX_TOKENS"
@@ -124,24 +126,34 @@ def _claude_model_base(model: str) -> str:
 
 
 def _model_max_output_tokens(model: str) -> int:
-    """Resolve the reviewed output ceiling by model/version, across namespaces.
+    """Resolve a cloud-route default, preserving provider-specific limits.
 
     Opus/Sonnet 4.5 and Haiku 4.5 use 64000. Reviewed newer Claude models and
-    GPT-6 use 128000. Unknown models keep the existing 64k fallback, which is
+    GPT-6 use 128000. Exact reviewed route defaults take precedence. Unknown
+    cloud models keep the existing 64k fallback, which is
     not a guarantee of arbitrary providers' limits; operators can override it.
     """
+    route = model.lower()
+    if route in ROUTE_OUTPUT_DEFAULTS:
+        return ROUTE_OUTPUT_DEFAULTS[route]
+    # AWS's Sonnet 4.6 contract is 64K; Anthropic/OpenRouter allow 128K.
+    # Normalize regional inference profiles and pinned IDs only after checking
+    # the provider, so the lower AWS limit never leaks into another gateway.
+    if route.startswith("bedrock/") and _claude_model_base(model) == "claude-sonnet-4-6":
+        return 64000
     if _claude_model_base(model) in _CLAUDE_128K_MODELS or _model_uses_responses_api(model):
         return 128000
     return DEFAULT_LLM_MAX_TOKENS
 
 
-def _resolve_max_tokens(model: str) -> int:
+def _resolve_max_tokens(model: str) -> int | None:
     """Output-token cap for a factory-created model.
 
     ``DECEPTICON_LLM_MAX_TOKENS`` (explicit override) wins when set to a
-    positive int; otherwise the model's own max-output ceiling is used so a
-    large single-call deliverable (finding report, recon model) never truncates
-    at the proxy's 4096 default.
+    positive int; otherwise use the reviewed route default or existing cloud
+    fallback. Local/custom deployments omit the cap so their server chooses a
+    value appropriate to the loaded model/context. This does not reserve room
+    for the prompt or guarantee that a large deliverable fits in one response.
     """
     raw = os.environ.get(LLM_MAX_TOKENS_ENV)
     if raw:
@@ -151,6 +163,8 @@ def _resolve_max_tokens(model: str) -> int:
             value = 0
         if value > 0:
             return value
+    if model.split("/", 1)[0].lower() in RUNTIME_DEFINED_PROVIDERS:
+        return None
     return _model_max_output_tokens(model)
 
 

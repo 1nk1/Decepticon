@@ -200,7 +200,6 @@ class TestMaxTokensResolution:
             "anthropic/claude-opus-4-6",
             "openrouter/anthropic/claude-opus-4.7",
             "anthropic/claude-opus-4-8",
-            "bedrock/anthropic.claude-sonnet-4-6",
             "anthropic/claude-opus-5",
             "anthropic/claude-opus-5-5",
             "anthropic/claude-sonnet-5",
@@ -240,6 +239,14 @@ class TestMaxTokensResolution:
         monkeypatch.delenv(LLM_MAX_TOKENS_ENV, raising=False)
         assert _resolve_max_tokens("anthropic/claude-haiku-4-5") == 64000
 
+    @pytest.mark.parametrize("region", ["", "us.", "eu.", "apac.", "global."])
+    def test_bedrock_limit_does_not_leak_into_other_providers(self, region) -> None:
+        assert _resolve_max_tokens(f"bedrock/{region}anthropic.claude-sonnet-4-6") == 64000
+        assert _resolve_max_tokens("anthropic/claude-sonnet-4-6") == 128000
+        assert _resolve_max_tokens("openrouter/anthropic/claude-sonnet-4.6") == 128000
+        assert _resolve_max_tokens("bedrock/anthropic.claude-opus-4-7") == 128000
+        assert _resolve_max_tokens("openai/qwen-plus") == 64000
+
 
 class TestLLMFactory:
     def setup_method(self):
@@ -248,6 +255,25 @@ class TestLLMFactory:
         creds = Credentials.all_api_methods()
         self.mapping = LLMModelMapping.from_credentials_and_profile(creds, ModelProfile.ECO)
         self.factory = LLMFactory(self.proxy, self.mapping)
+
+    @pytest.mark.parametrize("provider", ["ollama_chat", "lm_studio", "llamacpp", "custom"])
+    @pytest.mark.parametrize("override", [None, "8192", "192000", "bad", "0", "-1"])
+    def test_runtime_defined_models_omit_unknown_output_cap(self, monkeypatch, provider, override):
+        if override is None:
+            monkeypatch.delenv(LLM_MAX_TOKENS_ENV, raising=False)
+        else:
+            monkeypatch.setenv(LLM_MAX_TOKENS_ENV, override)
+        model_id = f"{provider}/my-small-model"
+        client = self.factory._create_chat_model(model_id, 0.2)
+        assert isinstance(client, ChatOpenAI)
+        payload = client._get_request_payload("hello")
+        cap = payload.get("max_completion_tokens", payload.get("max_tokens"))
+        if override in {"8192", "192000"}:
+            assert cap == int(override)
+        else:
+            assert "max_tokens" not in payload
+            assert "max_completion_tokens" not in payload
+        assert payload["model"] == model_id
 
     @pytest.mark.parametrize(
         ("model_id", "expected"),
@@ -278,7 +304,23 @@ class TestLLMFactory:
 
     @pytest.mark.parametrize(
         ("model_id", "limit"),
-        [("anthropic/claude-opus-4-5", 64000), ("anthropic/claude-sonnet-4-5", 64000)],
+        [
+            ("anthropic/claude-opus-4-5", 64000),
+            ("anthropic/claude-sonnet-4-5", 64000),
+            ("bedrock/anthropic.claude-sonnet-4-6", 64000),
+            ("cerebras/qwen-3.8-27b", 32768),
+            ("cerebras/gpt-oss-120b", 32768),
+            ("groq/llama-3.3-70b-versatile", 32768),
+            ("dashscope/qwen-plus", 16384),
+            ("dashscope/qwen-max", 8192),
+            ("dashscope/qwen-turbo", 16384),
+            ("qianfan/ernie-4.5-turbo-128k", 12288),
+            ("qianfan/ernie-4.5-turbo-32k", 12288),
+            ("qianfan/ernie-speed-pro-128k", 4096),
+            ("cohere_chat/command-a-03-2025", 8000),
+            ("cohere_chat/command-r", 4000),
+            ("cohere_chat/command-r-plus", 4000),
+        ],
     )
     def test_legacy_model_request_passes_strict_proxy_limit(
         self, monkeypatch, model_id, limit
