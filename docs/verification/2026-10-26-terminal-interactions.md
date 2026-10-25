@@ -9,7 +9,7 @@ Research, reference links and interaction limits are in the
 
 - CLI: 286 tests across 40 files pass; TypeScript typecheck passes.
 - Launcher: `go test ./...` passes, including mouse selection/clamping and plain
-  output/newline preservation. Existing port/network recovery regressions pass.
+  output/newline preservation. Existing port/network recovery regressions pass. The fake-Docker port recovery fixture now retains its own HTTP listener and asserts the remapped destination at the transport boundary, avoiding macOS ephemeral-port reuse after a probe closes. The corrected fixture passes 20 consecutive runs; this is separate from the live Docker acceptance gate.
 - Real WSL PTY, 120 × 40, actual CLI source entry: fixed frame and footer,
   footer click → saved-session picker → click restore; zero model-run requests
   during restoration. Coalesced Korean typing/mouse placement inserts at the

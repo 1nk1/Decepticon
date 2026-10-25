@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -79,19 +80,30 @@ func TestPortRecoveryPersistsAndRewiresStartup(t *testing.T) {
 	if loaded["LANGGRAPH_PORT"] != strconv.Itoa(next) || os.Getenv("LANGGRAPH_PORT") != strconv.Itoa(next) {
 		t.Fatal("stale startup wiring")
 	}
-	server := &http.Server{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/assistants/search" {
 			fmt.Fprint(w, `[{"graph_id":"decepticon"}]`)
 		} else {
 			fmt.Fprint(w, `{}`)
 		}
-	})}
-	listener, err := net.Listen("tcp4", "127.0.0.1:"+strconv.Itoa(next))
-	if err != nil {
-		t.Fatal(err)
-	}
+	}))
 	defer server.Close()
-	go server.Serve(listener)
+	// The helper reports a successful Docker up without keeping a container
+	// socket open. Do not assume its released probe port stays available: on
+	// macOS the ephemeral allocator can reuse it before this assertion. Keep
+	// our HTTP fixture's listener owned and verify the remapped destination at
+	// the transport boundary before routing to that fixture.
+	previousTransport := http.DefaultTransport
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	dial := &net.Dialer{}
+	transport.DialContext = func(ctx context.Context, network, address string) (net.Conn, error) {
+		if address != net.JoinHostPort("127.0.0.1", strconv.Itoa(next)) {
+			return nil, fmt.Errorf("stale host probe destination: %s", address)
+		}
+		return dial.DialContext(ctx, network, server.Listener.Addr().String())
+	}
+	http.DefaultTransport = transport
+	t.Cleanup(func() { http.DefaultTransport = previousTransport; transport.CloseIdleConnections() })
 	if err := health.ProbeLangGraph(context.Background(), loaded); err != nil {
 		t.Fatal(err)
 	}
