@@ -646,6 +646,12 @@ class TestLLMFactory:
         payload = client._get_request_payload("check", top_p=0.9, top_k=5)
         assert payload["model"] == route
         assert not {"temperature", "top_p", "top_k"} & payload.keys()
+        extras = {"temperature": 0.2, "top_p": 0.9, "top_k": 5, "audit_extension": True}
+        extended = client._get_request_payload("check", extra_body=extras)
+        assert extended["extra_body"] == {"audit_extension": True}
+        assert extras["temperature"] == 0.2
+        assert extras["top_p"] == 0.9
+        assert extras["top_k"] == 5
         # Other gateways/direct routes declare different sampling contracts.
         other = self.factory._create_chat_model("vercel/openai/gpt-5.4", 0.2)
         assert isinstance(other, ChatOpenAI)

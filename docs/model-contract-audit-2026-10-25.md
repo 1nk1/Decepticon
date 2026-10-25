@@ -123,7 +123,9 @@ metadata remain available. The generator regression checks both behaviors.
   for `vercel/moonshotai/kimi-k3` do not advertise temperature/top_p/top_k.
   Omit these fields on those exact routes. Explicit invocation kwargs bypassed
   LangChain's binding-time `disabled_params` filtering (two regressions failed);
-  enforce unconditional exclusions after payload serialization too.
+  enforce unconditional exclusions after payload serialization too, including
+  `extra_body` fields that the SDK merges into the wire JSON. Copy that object
+  to preserve caller-owned dictionaries and unrelated extension fields.
 - [Groq's notice](https://console.groq.com/docs/deprecations) shuts Scout down
   for free/developer tiers on 2026-07-17 and Llama 3.1/3.3 on 2026-08-16;
   committed-spend enterprise customers are exempt. Automatic Groq defaults now

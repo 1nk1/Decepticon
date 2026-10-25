@@ -1018,6 +1018,16 @@ class _ProxiedChatOpenAI(ChatOpenAI):
         for name, values in (self.disabled_params or {}).items():
             if values is None:
                 payload.pop(name, None)
+        extra_body = payload.get("extra_body")
+        if isinstance(extra_body, dict):
+            # The OpenAI SDK merges extra_body into the final JSON object.
+            # Copy it so filtering never mutates a caller's reusable dict.
+            payload["extra_body"] = {
+                name: value
+                for name, value in extra_body.items()
+                if name not in (self.disabled_params or {})
+                or (self.disabled_params or {})[name] is not None
+            }
         if self.disable_streaming == "tool_calling" and payload.get("tools"):
             payload["stream"] = False
             payload.pop("stream_options", None)

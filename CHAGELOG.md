@@ -30,7 +30,8 @@ Keep proposed and unmerged changes out of released sections.
   Existing configured role caps now take effect instead of being ignored.
   Follow-up checks resolve 76 previously unverified output contracts/policies,
   with explicit account/registry limitations for the remainder. Honor exact
-  Kilo/Vercel sampling exclusions even on invocation kwargs. Fix three MiMo
+  Kilo/Vercel sampling exclusions even on invocation kwargs/extra request bodies,
+  preserving caller-owned dictionaries. Fix three MiMo
   routes to use the inference API host while preserving IDs and explicit dynamic
   base overrides. New automatic Groq defaults use current GPT-OSS models after
   free/developer Llama retirements; explicitly selected legacy IDs remain intact.
