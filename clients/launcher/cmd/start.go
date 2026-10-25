@@ -436,6 +436,8 @@ func runStartMode(cmd *cobra.Command, args []string, existingEngagement string, 
 		return fmt.Errorf("start services: %w; inspect with `decepticon doctor` and `decepticon logs` (services kept)", err)
 	}
 
+	c.RefreshPorts(env)
+
 	// 5. Health checks
 	if err := waitForStartupServices(cmd.Context(), c, env, existingEngagement); err != nil {
 		return fmt.Errorf("service readiness: %w; inspect `decepticon doctor` and `decepticon logs` (services kept)", err)

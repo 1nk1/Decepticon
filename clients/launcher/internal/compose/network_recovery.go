@@ -53,11 +53,19 @@ func (c *Compose) upWithNetworkRecovery(args []string) error {
 	}
 	var networks map[string]composeNetwork
 	repaired := make(map[string]bool)
+	portRetries := 0
 	for {
 		diagnostics := diagnosticTail{limit: 64 << 10}
 		err := c.runWithStderr(args, false, io.MultiWriter(os.Stderr, &diagnostics))
 		if err == nil {
 			return nil
+		}
+		if match := allocatedPort.FindSubmatch(diagnostics.bytes); match != nil && portRetries < 32 {
+			if repairErr := c.recoverAllocatedPort(args, string(match[1])); repairErr != nil {
+				return fmt.Errorf("%w; port recovery: %w", err, repairErr)
+			}
+			portRetries++
+			continue
 		}
 		match := missingNetwork.FindSubmatch(diagnostics.bytes)
 		if match == nil {
