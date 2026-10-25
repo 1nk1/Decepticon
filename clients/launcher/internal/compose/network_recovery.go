@@ -11,6 +11,7 @@ import (
 	"slices"
 
 	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/infracontrol"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/ui"
 )
 
 var missingNetwork = regexp.MustCompile(`(?m)^Error response from daemon: [^\r\n]*\bnetwork ([0-9a-f]{64}) (?:not found|does not exist)\r?$`)
@@ -56,7 +57,7 @@ func (c *Compose) upWithNetworkRecovery(args []string) error {
 	portRetries := 0
 	for {
 		diagnostics := diagnosticTail{limit: 64 << 10}
-		err := c.runWithStderr(args, false, io.MultiWriter(os.Stderr, &diagnostics))
+		err := c.runWithStderr(args, false, io.MultiWriter(ui.NeutralWriter{Writer: os.Stderr}, &diagnostics))
 		if err == nil {
 			return nil
 		}

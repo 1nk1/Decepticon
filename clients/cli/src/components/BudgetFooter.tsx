@@ -1,3 +1,4 @@
+import { PALETTE } from "../utils/theme.js";
 import React from "react";
 import { Text } from "ink";
 
@@ -15,7 +16,7 @@ export function BudgetFooter({
 }): React.ReactElement | null {
   if (!usage) return null;
   return (
-    <Text dimColor>
+    <Text color={PALETTE.text} dimColor>
       budget {usage.pct}% ({usage.spent} / {usage.cap} USD)
     </Text>
   );

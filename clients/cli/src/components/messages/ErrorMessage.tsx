@@ -1,3 +1,4 @@
+import { terminalText } from "../../utils/terminalText.js";
 import { PALETTE } from "../../utils/theme.js";
 /**
  * ErrorMessage — structured error display with truncation.
@@ -48,9 +49,10 @@ interface Props {
 }
 
 export const ErrorMessage = React.memo(function ErrorMessage({
-  content,
+  content: original,
   onDismiss,
 }: Props) {
+  const content = terminalText(original);
   const isTruncated = useScreen() !== "transcript" && content.length > MAX_ERROR_CHARS;
   const headLen = Math.floor(MAX_ERROR_CHARS * 0.6);
   const tailLen = MAX_ERROR_CHARS - headLen;
@@ -71,26 +73,26 @@ export const ErrorMessage = React.memo(function ErrorMessage({
   if (structured) {
     return (
       <Box flexDirection="column" marginTop={1}>
-        <Text>
+        <Text color={PALETTE.text}>
           <Text color={PALETTE.error} bold>{"error> "}</Text>
           <Text bold color={PALETTE.warning}>{`[${structured.tool}] `}</Text>
           <Text color={PALETTE.error} wrap="wrap">{structured.cause}</Text>
         </Text>
         {structured.recovery && (
-          <Text dimColor wrap="wrap">{`  Recovery: ${structured.recovery}`}</Text>
+          <Text color={PALETTE.text} dimColor wrap="wrap">{`  Recovery: ${structured.recovery}`}</Text>
         )}
-        {onDismiss && <Text dimColor>{"  esc to dismiss"}</Text>}
+        {onDismiss && <Text color={PALETTE.text} dimColor>{"  esc to dismiss"}</Text>}
       </Box>
     );
   }
 
   return (
     <Box flexDirection="column" marginTop={1}>
-      <Text>
+      <Text color={PALETTE.text}>
         <Text color={PALETTE.error} bold>{"error> "}</Text>
         <Text color={PALETTE.error} wrap="wrap">{display}</Text>
       </Text>
-      {onDismiss && <Text dimColor>{isTruncated ? "ctrl+o to expand · esc to dismiss" : "esc to dismiss"}</Text>}
+      {onDismiss && <Text color={PALETTE.text} dimColor>{isTruncated ? "ctrl+o to expand · esc to dismiss" : "esc to dismiss"}</Text>}
       {isTruncated && <CtrlOToExpand />}
     </Box>
   );

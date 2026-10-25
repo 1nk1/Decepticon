@@ -159,13 +159,12 @@ func touchAck(path string) {
 // as Skip — a user can never be accidentally signed up for an action.
 func runConfirm(title, description, affirmative, negative string) bool {
 	var v bool
-	err := huh.NewConfirm().
+	err := ui.RunField(huh.NewConfirm().
 		Title(title).
 		Description(description).
 		Affirmative(affirmative).
 		Negative(negative).
-		Value(&v).
-		Run()
+		Value(&v))
 	if err != nil {
 		return false
 	}

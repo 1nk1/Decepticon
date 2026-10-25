@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -42,6 +43,15 @@ Run 'decepticon <command> --help' for details on a command.`,
 
 func Execute() {
 	decorateLauncherHelp()
+	defaultHelp := rootCmd.HelpFunc()
+	rootCmd.SetHelpFunc(func(cmd *cobra.Command, args []string) {
+		out := cmd.OutOrStdout()
+		var text bytes.Buffer
+		cmd.SetOut(&text)
+		defer cmd.SetOut(out)
+		defaultHelp(cmd, args)
+		_, _ = (ui.NeutralWriter{Writer: out}).Write(text.Bytes())
+	})
 	command, err := rootCmd.ExecuteC()
 	if err != nil {
 		if errors.Is(err, errDoctorFailed) {
@@ -57,6 +67,8 @@ func Execute() {
 }
 
 func init() {
+	rootCmd.PersistentFlags().Bool("no-alt-screen", false, "Use native terminal scrollback instead of the fullscreen conversation")
+	rootCmd.PersistentFlags().BoolVar(&ui.DisableMouse, "no-mouse", false, "Disable terminal mouse capture")
 	rootCmd.Version = version
 	rootCmd.SetVersionTemplate(fmt.Sprintf("Decepticon %s\n", version))
 }

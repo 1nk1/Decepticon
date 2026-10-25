@@ -29,11 +29,11 @@ export const PendingToolMessage = React.memo(function PendingToolMessage({
   const args = describeArgs(tool.args);
   return (
     <Box marginTop={1}>
-      <Text>
+      <Text color={PALETTE.text}>
         <Text color={PALETTE.warning}>{`${GLYPH_DOT} `}</Text>
-        <Text bold>{tool.name}</Text>
-        {args ? <Text dimColor>({args})</Text> : null}
-        <Text dimColor> …</Text>
+        <Text color={PALETTE.text} bold>{tool.name}</Text>
+        {args ? <Text color={PALETTE.text} dimColor>({args})</Text> : null}
+        <Text color={PALETTE.text} dimColor> …</Text>
       </Text>
     </Box>
   );

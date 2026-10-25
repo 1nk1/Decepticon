@@ -14,7 +14,7 @@ export const QAQuestionMessage = React.memo(function QAQuestionMessage({
   return (
     <Box flexDirection="row" marginTop={1}>
       {header ? <Text color={PALETTE.info} bold>{`[${header}] `}</Text> : null}
-      <Text wrap="wrap">{question}</Text>
+      <Text color={PALETTE.text} wrap="wrap">{question}</Text>
     </Box>
   );
 });

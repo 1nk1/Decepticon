@@ -1,3 +1,4 @@
+import { terminalText } from "../utils/terminalText.js";
 import React from "react";
 import { Box } from "ink";
 import type { AgentEvent } from "../types.js";
@@ -17,8 +18,9 @@ interface EventItemProps {
 
 /** Routes an AgentEvent to the appropriate visual renderer. */
 export const EventItem = React.memo(function EventItem({
-  event,
+  event: original,
 }: EventItemProps) {
+  const event = { ...original, content: terminalText(original.content) };
   switch (event.type) {
     case "user":
       return <UserMessage content={event.content} />;

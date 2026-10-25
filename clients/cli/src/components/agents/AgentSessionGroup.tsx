@@ -75,23 +75,23 @@ function SessionHeader({
   return (
     <>
       {/* Header: ● AgentType(short description) */}
-      <Text>
+      <Text color={PALETTE.text}>
         <Text color={dotColor}>{`${session.status === "error" ? "✗" : GLYPH_DOT} `}</Text>
         <Text bold color={color}>{capitalize(session.agent)}</Text>
-        <Text dimColor italic>{`(${headerDesc})`}</Text>
+        <Text color={PALETTE.text} dimColor italic>{`(${headerDesc})`}</Text>
       </Text>
 
       {/* Prompt section — hidden in prompt mode (shown via DelegateMessage instead) */}
       {maxPromptLines > 0 && (
         <>
-          <Text dimColor>{`  ${GLYPH_HOOK}  Prompt:`}</Text>
+          <Text color={PALETTE.text} dimColor>{`  ${GLYPH_HOOK}  Prompt:`}</Text>
           {prompt.lines.map((line, i) => (
-            <Text key={`p${i}`} dimColor wrap="wrap">
+            <Text color={PALETTE.text} key={`p${i}`} dimColor wrap="wrap">
               {`       ${line}`}
             </Text>
           ))}
           {prompt.truncated && (
-            <Text dimColor italic>{"       ..."}</Text>
+            <Text color={PALETTE.text} dimColor italic>{"       ..."}</Text>
           )}
         </>
       )}
@@ -120,9 +120,9 @@ function SessionFooter({
   const statsText = `${toolText}${GLYPH_SEP}${elapsed}`;
 
   return isRunning ? (
-    <Text dimColor italic>{`  ${GLYPH_HOOK}  Running (${statsText})`}</Text>
+    <Text color={PALETTE.text} dimColor italic>{`  ${GLYPH_HOOK}  Running (${statsText})`}</Text>
   ) : (
-    <Text dimColor>{`  ${GLYPH_HOOK}  Done (${statsText})`}</Text>
+    <Text color={PALETTE.text} dimColor>{`  ${GLYPH_HOOK}  Done (${statsText})`}</Text>
   );
 }
 
@@ -203,25 +203,25 @@ export const AgentSessionGroup = React.memo(function AgentSessionGroup({
 
         {/* Compact tool calls */}
         {visibleTools.map((line, i) => (
-          <Text key={`t${i}`} dimColor>
+          <Text color={PALETTE.text} key={`t${i}`} dimColor>
             {`  ${GLYPH_HOOK}  ${line}`}
           </Text>
         ))}
         {hiddenToolCount > 0 && (
-          <Text dimColor italic>{`  ${GLYPH_HOOK}  ... +${hiddenToolCount} more`}</Text>
+          <Text color={PALETTE.text} dimColor italic>{`  ${GLYPH_HOOK}  ... +${hiddenToolCount} more`}</Text>
         )}
 
         {/* Compact response */}
         {resp && (
           <>
-            <Text dimColor>{`  ${GLYPH_HOOK}  Response:`}</Text>
+            <Text color={PALETTE.text} dimColor>{`  ${GLYPH_HOOK}  Response:`}</Text>
             {resp.lines.map((line, i) => (
-              <Text key={`r${i}`} dimColor wrap="wrap">
+              <Text color={PALETTE.text} key={`r${i}`} dimColor wrap="wrap">
                 {`       ${line}`}
               </Text>
             ))}
             {resp.truncated && (
-              <Text dimColor italic>{"       ..."}</Text>
+              <Text color={PALETTE.text} dimColor italic>{"       ..."}</Text>
             )}
           </>
         )}

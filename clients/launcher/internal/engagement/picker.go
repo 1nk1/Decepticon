@@ -373,6 +373,28 @@ func (m pickerModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 		m.resizeList()
 		return m, nil
+	case tea.MouseWheelMsg:
+		if !m.confirmDelete && !ui.DisableMouse && os.Getenv("DECEPTICON_MOUSE") != "0" {
+			switch msg.Button {
+			case tea.MouseWheelUp:
+				m.list.Select(max(0, m.list.Index()-1))
+			case tea.MouseWheelDown:
+				m.list.Select(min(len(m.list.Items())-1, m.list.Index()+1))
+			}
+		}
+		return m, nil
+	case tea.MouseClickMsg:
+		if !m.confirmDelete && !ui.DisableMouse && os.Getenv("DECEPTICON_MOUSE") != "0" && msg.Button == tea.MouseLeft {
+			// Default list delegate: two content rows plus one spacing row.
+			// TitleBar adds one bottom-padding row. A click selects only;
+			// Enter remains the explicit action that opens an engagement.
+			top := lipgloss.Height(m.list.Styles.TitleBar.Render(m.list.Styles.Title.Render(m.list.Title)))
+			index := m.list.Paginator.Page*m.list.Paginator.PerPage + (msg.Y-top)/3
+			if msg.Y >= top && index >= 0 && index < len(m.list.Items()) && (msg.Y-top)%3 < 2 {
+				m.list.Select(index)
+			}
+		}
+		return m, nil
 
 	case tea.KeyMsg:
 		if m.confirmDelete {
@@ -434,8 +456,8 @@ var (
 			Padding(0, 1).
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(lipgloss.Color(ui.ColorText))
-	confirmTextStyle = lipgloss.NewStyle().Bold(true)
-	confirmHintStyle = lipgloss.NewStyle().Faint(true)
+	confirmTextStyle = ui.Bold
+	confirmHintStyle = ui.Dim
 )
 
 func (m pickerModel) View() tea.View {
@@ -448,6 +470,9 @@ func (m pickerModel) View() tea.View {
 	}
 	v := tea.NewView(content)
 	v.AltScreen = true
+	if !ui.DisableMouse && os.Getenv("DECEPTICON_MOUSE") != "0" {
+		v.MouseMode = tea.MouseModeCellMotion
+	}
 	return v
 }
 

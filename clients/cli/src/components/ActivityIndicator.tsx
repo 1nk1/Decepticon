@@ -33,7 +33,7 @@ function ShimmerText({ text, tick }: { text: string; tick: number }) {
   // Slow down: shift every 2 ticks
   const offset = Math.floor(tick / 2);
   return (
-    <Text>
+    <Text color={PALETTE.text}>
       {chars.map((ch, i) => {
         const colorIdx =
           (i + offset) % SHIMMER_COLORS.length;
@@ -105,11 +105,11 @@ export const ActivityIndicator = React.memo(function ActivityIndicator({
 
   return (
     <Box marginTop={1} height={1}>
-      <Text>
+      <Text color={PALETTE.text}>
         <Text color={PULSE_COLORS[pulseIdx]}>{GLYPH_DOT}</Text>
-        <Text>{" "}</Text>
+        <Text color={PALETTE.text}>{" "}</Text>
         <ShimmerText text={assistantId === "soundwave" ? "Planning..." : assistantId === "blue_cell" ? "Investigating..." : "Working..."} tick={tick} />
-        <Text dimColor>{metaStr}</Text>
+        <Text color={PALETTE.text} dimColor>{metaStr}</Text>
       </Text>
     </Box>
   );

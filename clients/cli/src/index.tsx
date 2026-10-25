@@ -2,6 +2,7 @@
 import React from "react";
 import { render } from "ink";
 import { readRunControls } from "./utils/runControls.js";
+import { terminalInput } from "./terminal/mouse.js";
 import { App } from "./app.js";
 
 try { readRunControls(); }
@@ -17,10 +18,14 @@ if (resumeIndex >= 0) {
   if (threadId) process.env.DECEPTICON_THREAD_ID = threadId;
   else process.env.DECEPTICON_RESUME_PICKER = "true";
 }
+if (args.includes("--no-alt-screen")) process.env.DECEPTICON_TUI = "inline";
+if (args.includes("--no-mouse")) process.env.DECEPTICON_MOUSE = "0";
+const transport = process.stdin.isTTY ? terminalInput(process.stdin) : null;
 const initialMessage = process.env.DECEPTICON_INITIAL_MESSAGE || undefined;
 
 const instance = render(<App initialMessage={initialMessage} resumeThread={resumeThread} />, {
   patchConsole: true,
+  ...(transport ? { stdin: transport.input } : {}),
   exitOnCtrlC: false,
   kittyKeyboard: { mode: "auto" },
 });
@@ -30,5 +35,7 @@ try {
 } catch (err) {
   const msg = err instanceof Error ? err.message : String(err);
   process.stderr.write(`\nDecepticon CLI error: ${msg}\n`);
-  process.exit(1);
+  process.exitCode = 1;
+} finally {
+  transport?.dispose();
 }

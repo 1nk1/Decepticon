@@ -13,6 +13,7 @@ import (
 	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/config"
 	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/infracontrol"
 	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/runtime"
+	"github.com/BitterSecurity/Decepticon/clients/launcher/internal/ui"
 )
 
 // Compose wraps Docker Compose commands for Decepticon services.
@@ -184,7 +185,10 @@ func (c *Compose) composeEnv() []string {
 
 // run executes a compose command via the detected runtime.
 func (c *Compose) run(args []string, interactive bool) error {
-	return c.runWithStderr(args, interactive, os.Stderr)
+	if interactive {
+		return c.runWithStderr(args, interactive, os.Stderr)
+	}
+	return c.runWithStderr(args, false, ui.NeutralWriter{Writer: os.Stderr})
 }
 
 func (c *Compose) runWithStderr(args []string, interactive bool, stderr io.Writer) error {
@@ -196,7 +200,8 @@ func (c *Compose) runWithStderr(args []string, interactive bool, stderr io.Write
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = stderr
 	} else {
-		cmd.Stdout = os.Stdout
+		cmd.Env = append(cmd.Env, "COMPOSE_ANSI=never")
+		cmd.Stdout = ui.NeutralWriter{Writer: os.Stdout}
 		cmd.Stderr = stderr
 	}
 	if err := cmd.Run(); err != nil {

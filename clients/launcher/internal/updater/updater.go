@@ -743,14 +743,13 @@ func PromptIfUpdateAvailable(currentVersion string, ch Channel) (bool, error) {
 	ui.DimText("Update now installs the launcher, configuration, and matching Docker images, then restarts.")
 
 	var confirmed bool
-	if err := huh.NewSelect[bool]().
+	if err := ui.RunField(huh.NewSelect[bool]().
 		Title(fmt.Sprintf("Install %s now?", release.TagName)).
 		Options(
 			huh.NewOption("Update now", true),
 			huh.NewOption("Skip", false),
 		).
-		Value(&confirmed).
-		Run(); err != nil {
+		Value(&confirmed)); err != nil {
 		// Prompt failure (e.g. tty closed mid-render) — fall through to
 		// the passive notice rather than crashing the launch.
 		ui.Warning("Update prompt failed: " + err.Error())

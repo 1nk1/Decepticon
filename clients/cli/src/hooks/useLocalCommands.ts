@@ -22,8 +22,8 @@ export function useLocalCommands({ agent, blue, connection, onSessionSelected }:
   const currentAgent = useRef(agent);
   currentAgent.current = agent;
   const openSessions = useCallback(async (scope: "current" | "all" | "legacy" = "current") => {
-    if (agent.runState !== "idle" || agent.activeQuestion) {
-      agent.addSystemEvent("Finish or cancel the current run before switching sessions. /resume continues a paused run.");
+    if (agent.runState !== "idle" && agent.runState !== "paused") {
+      agent.addSystemEvent("Pause or finish the active run before switching sessions. Send a follow-up message to continue a paused conversation.");
       return;
     }
     if (agent.queuedMessages.length > 0) {
@@ -49,11 +49,11 @@ export function useLocalCommands({ agent, blue, connection, onSessionSelected }:
             ], onSelect: async (choice) => {
               if (choice !== "claim") return;
               await claimLegacyThread(id);
-              onSessionSelected(); currentAgent.current.resume(id);
+              onSessionSelected(); currentAgent.current.resume(id, true);
             } });
           return;
         }
-        onSessionSelected(); currentAgent.current.resume(id);
+        onSessionSelected(); currentAgent.current.resume(id, true);
       },
     });
   }, [agent, onSessionSelected]);
@@ -70,7 +70,7 @@ export function useLocalCommands({ agent, blue, connection, onSessionSelected }:
             `Session: ${agent.threadId || "not started"} · LangGraph: ${connection}`,
             `Blue: ${blue.status} · Collector: ${blue.collectorStatus} · AI: ${blue.aiStatus} · Unread: ${blue.unreadCount}`,
             ...(blue.error ? [`Blue connection: ${blue.error}`] : []),
-            ...(connection === "disconnected" ? ["Run decepticon doctor on the host, then /resume to reconnect."] : []),
+            ...(connection === "disconnected" ? ["Run decepticon doctor on the host, then /resume and select the saved session."] : []),
             "Leaving the chat keeps services running. Use decepticon stop on the host to stop them.",
           ].join("\n"));
           return;

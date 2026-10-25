@@ -1,6 +1,7 @@
+import { terminalText } from "../utils/terminalText.js";
 import { PALETTE } from "../utils/theme.js";
 import React, { useEffect, useRef, useState } from "react";
-import { Box, Text, useInput, useStdin } from "ink";
+import { Box, Text, useInput, useStdin, type DOMElement } from "ink";
 import { useTerminalSize } from "../hooks/useTerminalSize.js";
 import { getCommands } from "../commands/registry.js";
 import { getModelOverride } from "../commands/modelOverride.js";
@@ -11,9 +12,13 @@ import { editExternally } from "./composerEditor.js";
 import { verticalCursor, draftViewport, previousGrapheme, nextGrapheme, deleteAtCursor, isForwardDeleteSequence } from "./composerCursor.js";
 import { useComposer } from "./useComposer.js";
 import { previousWord, nextWord } from "./composerWords.js";
+import { useMouseTarget, useTerminalUI } from "../terminal/TerminalUI.js";
+import { cursorAtCell, wrappedDraftViewport, visualCursor } from "./composerPointer.js";
+import { SessionFooter } from "./SessionFooter.js";
 import { KEYBOARD_HELP } from "./keyboardHelp.js";
 
 interface PromptProps {
+  readonly hideStatus?: boolean;
   readonly runState: RunState;
   readonly onSubmit: (input: string) => void;
   readonly activeAgent?: string | null;
@@ -36,7 +41,9 @@ export const Prompt = React.memo(function Prompt(props: PromptProps) {
 
 function Composer({ runState, onSubmit, activeAgent = null, assistantId = "decepticon",
   queuedMessage = null, onEditQueue, onDraftChange, onModalChange, draftRequest, clearDraftToken,
-  engagement = "default", model, connectionStatus }: PromptProps) {
+  engagement = "default", model, connectionStatus, hideStatus = false }: PromptProps) {
+  const terminal = useTerminalUI();
+  const inputBox = useRef<DOMElement>(null);
   const { columns } = useTerminalSize();
   const { stdin } = useStdin();
   const editor = useComposer(engagement);
@@ -106,7 +113,7 @@ function Composer({ runState, onSubmit, activeAgent = null, assistantId = "decep
     const matches = search === null ? [] : [...editor.history.current].reverse().filter((item) => item.includes(search));
     if (input === "[200~") { paste.current = ""; return; }
     if (input === "[201~") {
-      if (paste.current !== null) { insert(paste.current.replace(/\r\n?/g, "\n")); paste.current = null; }
+      if (paste.current !== null) { insert(terminalText(paste.current.replace(/\r\n?/g, "\n"))); paste.current = null; }
       return;
     }
     if (paste.current !== null) { paste.current += key.return ? "\n" : key.ctrl && input === "j" ? "\n" : input; return; }
@@ -140,10 +147,11 @@ function Composer({ runState, onSubmit, activeAgent = null, assistantId = "decep
     if (key.ctrl && input === "y") { insert(killed.current); return; }
     if (key.ctrl && input === "g") {
       const wasRaw = stdin.isRaw;
+      const restoreTerminal = terminal.suspend();
       // Suspend the terminal itself while Ink retains ownership of its input subscriptions.
       try { onModalChange?.(true); stdin.setRawMode(false); replace(editExternally(value)); }
       catch (cause) { editor.setError(cause instanceof Error ? cause.message : String(cause)); }
-      finally { stdin.setRawMode(wasRaw); onModalChange?.(false); }
+      finally { stdin.setRawMode(wasRaw); restoreTerminal(); onModalChange?.(false); }
       return;
     }
     if (input === "\u001b[27;2;13~" || (input === "[27;2;13~" && rawInput.current === "\u001b[27;2;13~") || (key.ctrl && input === "j") || ((key.meta || key.shift) && key.return)) { insert("\n"); return; }
@@ -198,22 +206,36 @@ function Composer({ runState, onSubmit, activeAgent = null, assistantId = "decep
     }
     if (!key.ctrl && !key.meta && input) insert(input.replace(/\u001b\[20[01]~/g, "").replace(/\r\n?/g, "\n"));
   });
-  const mode = assistantId === "soundwave" ? "Plan" : assistantId === "blue_cell" ? "Blue" : "Red";
-  const viewport = draftViewport(value, cursor);
+  const viewport = wrappedDraftViewport(value, cursor, Math.max(1, columns - 6));
   const cursorEnd = nextGrapheme(viewport.text, viewport.cursor);
   const cursorGlyph = viewport.text.slice(viewport.cursor, cursorEnd);
   const lineCount = viewport.lines;
   const menuStart = Math.max(0, selected - 5);
+  useMouseTarget(inputBox, (event, point) => {
+    if (event.type === "press" && event.button === 0 && point.y >= 1) {
+      const current = editor.snapshot();
+      const view = wrappedDraftViewport(current.value, current.cursor, Math.max(1, columns - 6));
+      setCursor(current.cursor - view.cursor + cursorAtCell(view.text, Math.max(1, columns - 6), point.x - 4, point.y - 1));
+    }
+  });
+  const completionBox = useRef<DOMElement>(null);
+  useMouseTarget(completionBox, (event, point) => {
+    if (event.type === "wheel") { select(Math.min(choices.length - 1, Math.max(0, selected + Math.sign(event.delta)))); return; }
+    if (event.type === "press" && event.button === 0) {
+      const choice = choices[menuStart + Math.floor(point.y)];
+      if (choice) replace(choice.value + (choice.value.includes(" ") ? "" : " "));
+    }
+  }, choices.length > 0);
   return (
     <Box flexDirection="column" marginTop={1}>
-      {queuedMessage && isActive && <Text dimColor>Queued: {queuedMessage}</Text>}
-      <Box borderStyle="round" borderColor={PALETTE.border} backgroundColor={PALETTE.surface} paddingX={1}><Text color={PALETTE.focus}>{"› "}</Text><Text color={PALETTE.text}>{viewport.text.slice(0, viewport.cursor)}<Text inverse>{cursorGlyph === "\n" || !cursorGlyph ? " " : cursorGlyph}</Text>{viewport.text.slice(viewport.cursor + (cursorGlyph === "\n" ? 0 : cursorGlyph.length))}</Text></Box>
-      {lineCount > 3 && <Text dimColor>{lineCount} lines · {value.length} characters · Ctrl+G opens editor</Text>}
-      {search !== null && <Text>History search: {search} · {matches[searchIndex] ?? "No match"}</Text>}
-      {choices.slice(menuStart, menuStart + 6).map((choice, index) => <Text key={choice.value} bold={index + menuStart === selected} dimColor={index + menuStart !== selected}>{index + menuStart === selected ? "› " : "  "}{choice.value} — {choice.description}{choice.hint ? <Text dimColor> [{choice.hint}]</Text> : null}</Text>)}
-      <Text><Text bold>{mode}</Text>{" · "}{labelForAgent(activeAgent ?? assistantId)}{columns >= 70 ? ` · ${engagement}` : ""}{columns >= 100 ? ` · ${model || getModelOverride() || "default model"}` : ""}{connectionStatus ? ` · ${connectionStatus}` : ""}</Text>
-      {help && KEYBOARD_HELP.map((line) => <Text key={line} dimColor>{line}</Text>)}
-      <Text dimColor>{isActive ? "Esc / Ctrl+C pause · Ctrl+C twice cancel · /queue edit · ? shortcuts" : runState === "paused" ? "/resume continue · Ctrl+C cancel · ? shortcuts" : "Enter send · Shift+Enter newline · ↑/↓ history · ? shortcuts"}</Text>
+      {queuedMessage && isActive && <Text color={PALETTE.text} dimColor>Queued: {queuedMessage}</Text>}
+      <Box ref={inputBox} borderStyle="round" borderColor={PALETTE.border} backgroundColor={PALETTE.surface} paddingX={1}><Text color={PALETTE.focus}>{"› "}</Text><Text color={PALETTE.text}>{viewport.text.slice(0, viewport.cursor)}<Text color={PALETTE.text} inverse>{cursorGlyph === "\n" || !cursorGlyph ? " " : cursorGlyph}</Text>{viewport.text.slice(viewport.cursor + (cursorGlyph === "\n" ? 0 : cursorGlyph.length))}</Text></Box>
+      {lineCount > 3 && <Text color={PALETTE.text} dimColor>{lineCount} display rows · {value.length} characters · Ctrl+G opens editor</Text>}
+      {search !== null && <Text color={PALETTE.text}>History search: {search} · {matches[searchIndex] ?? "No match"}</Text>}
+      <Box ref={completionBox} flexDirection="column">{choices.slice(menuStart, menuStart + 6).map((choice, index) => <Text key={choice.value} wrap="truncate-end" bold={index + menuStart === selected} color={index + menuStart === selected ? PALETTE.focus : PALETTE.muted}>{index + menuStart === selected ? "› " : "  "}{choice.value} — {choice.description}{choice.hint ? ` [${choice.hint}]` : ""}</Text>)}</Box>
+      {!hideStatus && <SessionFooter runState={runState} assistantId={assistantId} activeAgent={activeAgent} engagement={engagement} model={model || getModelOverride()} connection={connectionStatus} />}
+      {help && KEYBOARD_HELP.map((line) => <Text color={PALETTE.text} key={line} dimColor>{line}</Text>)}
+
       {editor.error && <Text color={PALETTE.warning}>Composer: {editor.error}</Text>}
     </Box>
   );

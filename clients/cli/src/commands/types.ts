@@ -23,7 +23,9 @@ export interface CommandContext {
   submit: (input: string) => void;
   selectAssistant?: (assistantId: string, commit?: () => Promise<void>) => boolean | Promise<boolean>;
   mutateWorkspace?: (commit: () => Promise<void>) => Promise<boolean>;
-  /** Resume a paused run with optional feedback. */
+  restoreSession?: (threadId: string) => void;
+  terminalCommand?: (name: "tui" | "mouse", value: string) => void;
+  /** Resume a paused run with optional feedback (internal lifecycle). */
   resume: (value?: string) => void;
   /** Exit the application. */
   exit: () => void;
