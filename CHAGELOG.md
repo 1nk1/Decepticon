@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed [port recovery PR](https://github.com/BitterSecurity/Decepticon/pulls?q=is%3Apr+head%3Afix%2Foss-port-conflict-recovery-20261025): recover Docker-confirmed loopback TCP port conflicts during launcher startup by trying higher ports and atomically saving the chosen values. Rewire host probes, CLI/web connection hints and credential migration; keep internal service addresses, credentials, volumes and the existing port owner intact. Custom hardcoded bindings and exhausted ranges remain actionable errors. No manual migration is required; persisted host URLs can change after a conflict.
+- Proposed [PR #1091](https://github.com/BitterSecurity/Decepticon/pull/1091): recover Docker-confirmed loopback TCP port conflicts during launcher startup by trying higher ports and atomically saving the chosen values. Rewire host probes, CLI/web connection hints and credential migration; keep internal service addresses, credentials, volumes and the existing port owner intact. Custom hardcoded bindings and exhausted ranges remain actionable errors. No manual migration is required; persisted host URLs can change after a conflict.
 
 - Proposed [PR #1089](https://github.com/BitterSecurity/Decepticon/pull/1089),
   following #1088: audit all 295 configured/picker model routes as of 2026-10-25 KST,
