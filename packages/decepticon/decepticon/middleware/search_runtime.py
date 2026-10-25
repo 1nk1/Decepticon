@@ -68,10 +68,10 @@ _MUTATIONS = frozenset(
         "bind_workflow_task",
     }
 )
-# Reading local context can answer an operator's question without starting a
-# target assessment. Unknown/custom tools conservatively count as search work.
-_CONTEXT_READERS = frozenset(
-    {"load_opplan", "inspect_artifacts", "ls", "read_file", "glob", "grep"}
+# Reading local context or asking the operator a question does not itself
+# start an assessment. Unknown/custom tools conservatively count as search work.
+_CONVERSATION_TOOLS = frozenset(
+    {"load_opplan", "inspect_artifacts", "ls", "read_file", "glob", "grep", "ask_user_question"}
 )
 
 
@@ -82,7 +82,7 @@ def _search_work_in_turn(messages: Sequence[BaseMessage]) -> bool:
         ):
             break
         if isinstance(message, AIMessage) and any(
-            call["name"] not in _CONTEXT_READERS for call in message.tool_calls
+            call["name"] not in _CONVERSATION_TOOLS for call in message.tool_calls
         ):
             return True
     return False
@@ -276,7 +276,7 @@ class SearchRuntimeMiddleware(AgentMiddleware):
         if latest is None:
             return None
         if latest.tool_calls:
-            if any(call["name"] not in _CONTEXT_READERS for call in latest.tool_calls):
+            if any(call["name"] not in _CONVERSATION_TOOLS for call in latest.tool_calls):
                 session = SearchSession.model_validate_json(state.get("search_state", ""))
                 configurable = get_config().get("configurable", {})
                 if session.disposition is not None and not configurable.get("search_run_id"):

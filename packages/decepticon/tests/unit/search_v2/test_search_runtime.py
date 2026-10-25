@@ -1068,3 +1068,38 @@ def test_conversation_preserves_terminal_receipt_until_new_assessment_work(tmp_p
     next_search = graph.get_state(config).values
     assert SearchSession.model_validate_json(next_search["search_state"]).run_id != "finished"
     assert not next_search["search_receipt"]
+
+
+def test_operator_question_and_answer_do_not_start_assessment_work(tmp_path: Path) -> None:
+    @tool(description="Ask the operator for a choice; does not perform assessment work")
+    def ask_user_question() -> str:
+        return "No assessment requested"
+
+    graph = create_agent(
+        ToolModel(
+            responses=[
+                AIMessage(
+                    content="",
+                    tool_calls=[{"id": "question", "name": "ask_user_question", "args": {}}],
+                ),
+                AIMessage(content="Understood; no assessment has started."),
+            ]
+        ),
+        tools=[ask_user_question],
+        middleware=[
+            SearchRuntimeMiddleware(FilesystemBackend(root_dir=tmp_path, virtual_mode=True))
+        ],
+        checkpointer=InMemorySaver(),
+        interrupt_after=["tools"],
+    )
+    config: RunnableConfig = {"configurable": {"thread_id": "operator-question"}}
+    paused = graph.invoke(
+        {"messages": [HumanMessage(content="Help me choose what to do next")]}, config=config
+    )
+    assert paused["search_turn_active"] is False
+    result = graph.invoke(None, config=config)
+    assert result["messages"][-1].content == "Understood; no assessment has started."
+    assert not result["search_receipt"]
+    assert not any(
+        message.additional_kwargs.get("decepticon_internal") for message in result["messages"]
+    )

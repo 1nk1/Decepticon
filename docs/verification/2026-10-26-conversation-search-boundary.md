@@ -8,7 +8,7 @@ message, rather than the operator, initiated plan and document work. The
 synthetic QA run was interrupted and its checkpoint/workspace preserved.
 
 Interactive turn completion must not mean terminal assessment completion.
-A greeting, explanation or local context/status read can end its turn while the
+A greeting, explanation, operator question/answer or local context/status read can end its turn while the
 search remains pending. Such an answer creates no validated completion receipt.
 Unknown/custom operation tools conservatively count as assessment work. Once
 assessment work starts, the existing continuation, receipt, review and dispatch
@@ -28,7 +28,7 @@ read-only status against pending work, assessment closure rejection after actual
 tool work, pause/resume, explicit search and Autohunt, protected input schema and
 preservation/rollover of completed search receipts. The default parent assembly
 still registers and enforces the search gate when assessment work starts.
-The affected search suite passes 39 tests; full Ruff and type checking report
+The affected search suite passes 40 tests; full Ruff and type checking report
 zero errors and the existing 820-warning audit baseline. The rebuilt local
 LangGraph image's middleware SHA-256 exactly matches this source.
 
