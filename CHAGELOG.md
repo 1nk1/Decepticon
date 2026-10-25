@@ -15,6 +15,8 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [provider policy error PR](https://github.com/BitterSecurity/Decepticon/pulls?q=is%3Apr+head%3Afix%2Foss-provider-policy-errors-20261026): recognize upstream cybersecurity/content refusals inside HTTP 500 and fallback wrappers. Show a compact policy/access explanation instead of authentication-priority advice or router dumps; distinguish OAuth subscription access from API-project Daybreak approval. Existing model selection, safeguards and access settings are unchanged; no migration is required.
+
 - Release record: document actual 1.6.1 publication, immutable distributions,
   measured port recovery, neutral onboarding and same-volume WSL acceptance
   ([PR #1094](https://github.com/BitterSecurity/Decepticon/pull/1094)).
