@@ -15,6 +15,33 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #1089](https://github.com/BitterSecurity/Decepticon/pull/1089),
+  following #1088: audit all 295 configured/picker model routes as of 2026-10-25 KST,
+  with per-route sources, explicit unresolved contracts and redacted managed
+  identities. Correct 17 reviewed model/route output defaults (including AWS's
+  Sonnet 4.6 exception); preserve positive global overrides. Local/custom
+  deployments now use server output defaults unless explicitly overridden,
+  which may shorten responses. Remove three embedding-only models from the
+  CLI agent picker while retaining their embedding routes. Includes local HTTP
+  regressions and a [full audit](docs/model-contract-audit-2026-10-25.md);
+  provider inference and release qualification remain explicitly unverified.
+  Honor positive role-assignment output caps on primary/fallback clients and
+  preserve them across desktop/role model overrides; global caps take priority.
+  Existing configured role caps now take effect instead of being ignored.
+  Follow-up checks resolve 76 previously unverified output contracts/policies,
+  with explicit account/registry limitations for the remainder. Honor exact
+  Kilo/Vercel sampling exclusions even on invocation kwargs/extra request bodies,
+  preserving caller-owned dictionaries. Fix three MiMo
+  routes to use the inference API host while preserving IDs and explicit dynamic
+  base overrides. New automatic Groq defaults use current GPT-OSS models after
+  free/developer Llama retirements; explicitly selected legacy IDs remain intact.
+  Use original publisher specifications for identified models across hosts,
+  recording separate hosting constraints and access checks. All 25 former
+  identity-only entries now reference publisher specs; NVIDIA Nemotron 70B's
+  official 4K output limit corrects the default to 4000 across exact aliases.
+  Automatic Google API defaults use current GA 3.8 Flash/3.5 Flash-Lite for
+  new-project eligibility; explicit legacy and subscription IDs are preserved.
+
 - Proposed [PR #1088](https://github.com/BitterSecurity/Decepticon/pull/1088)
   (fixes #1087): resolve Claude output ceilings by model/version across provider,
   dotted, dated and Bedrock IDs. Opus/Sonnet 4.5 default to 64000; newer supported

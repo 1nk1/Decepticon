@@ -36,6 +36,12 @@ from langchain_core.messages import AIMessage, BaseMessage
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
+from decepticon.llm.model_contracts import (
+    PUBLISHER_OUTPUT_LIMITS,
+    ROUTE_OUTPUT_DEFAULTS,
+    ROUTE_SAMPLING_EXCLUSIONS,
+    RUNTIME_DEFINED_PROVIDERS,
+)
 from decepticon.llm.router import ModelRouter
 from decepticon_core.registry import RoleRegistry
 from decepticon_core.types.llm import (
@@ -55,18 +61,19 @@ from decepticon_core.utils.logging import get_logger
 log = get_logger("llm.factory")
 
 
-# Output-token cap for every model created through this factory.
-# We must set one explicitly: the LiteLLM proxy applies the Anthropic default
+# Output-token defaults for models created through this factory.
+# Claude needs an explicit cap: the LiteLLM proxy applies the Anthropic default
 # of 4096 when the client sends no ``max_tokens``, and a single large
 # ``write_file`` tool call (e.g. a full finding report or a recon target model)
 # then truncates mid-argument — the tool-call JSON never closes, so the
 # ``content`` arg is dropped and the write fails. The cap is per-model: we hand
-# each model its OWN max-output ceiling so a big deliverable completes in one
-# call. It is a ceiling, not a forced value — short replies cost nothing extra.
-# Values above 64k require the streaming API path (the SDK already streams).
+# reviewed routes their own defaults so a big deliverable can complete in one
+# call. A cap is not a forced value — short replies cost nothing extra.
+# Some providers require streaming for large caps (the SDK already streams).
 # Reviewed high-output Claude versions are explicit below: family names alone
 # are not a capability contract (Opus/Sonnet 4.5 support only 64000).
-# Unknown models retain the 64k fallback. A positive
+# Unknown cloud routes retain the 64k fallback; local/custom deployments use
+# their server default because their actual model/context is unknown. A positive
 # ``DECEPTICON_LLM_MAX_TOKENS`` explicitly overrides the model default.
 DEFAULT_LLM_MAX_TOKENS = 64000
 LLM_MAX_TOKENS_ENV = "DECEPTICON_LLM_MAX_TOKENS"
@@ -124,24 +131,39 @@ def _claude_model_base(model: str) -> str:
 
 
 def _model_max_output_tokens(model: str) -> int:
-    """Resolve the reviewed output ceiling by model/version, across namespaces.
+    """Resolve a cloud-route default, preserving provider-specific limits.
 
     Opus/Sonnet 4.5 and Haiku 4.5 use 64000. Reviewed newer Claude models and
-    GPT-6 use 128000. Unknown models keep the existing 64k fallback, which is
+    GPT-6 use 128000. Exact reviewed route defaults take precedence. Unknown
+    cloud models keep the existing 64k fallback, which is
     not a guarantee of arbitrary providers' limits; operators can override it.
     """
+    route = model.lower()
+    publisher_limit = PUBLISHER_OUTPUT_LIMITS.get(route.rsplit("/", 1)[-1])
+    if route in ROUTE_OUTPUT_DEFAULTS:
+        route_limit = ROUTE_OUTPUT_DEFAULTS[route]
+        return min(route_limit, publisher_limit) if publisher_limit is not None else route_limit
+    if publisher_limit is not None:
+        return min(DEFAULT_LLM_MAX_TOKENS, publisher_limit)
+    # AWS's Sonnet 4.6 contract is 64K; Anthropic/OpenRouter allow 128K.
+    # Normalize regional inference profiles and pinned IDs only after checking
+    # the provider, so the lower AWS limit never leaks into another gateway.
+    if route.startswith("bedrock/") and _claude_model_base(model) == "claude-sonnet-4-6":
+        return 64000
     if _claude_model_base(model) in _CLAUDE_128K_MODELS or _model_uses_responses_api(model):
         return 128000
     return DEFAULT_LLM_MAX_TOKENS
 
 
-def _resolve_max_tokens(model: str) -> int:
+def _resolve_max_tokens(model: str, role_cap: int | None = None) -> int | None:
     """Output-token cap for a factory-created model.
 
     ``DECEPTICON_LLM_MAX_TOKENS`` (explicit override) wins when set to a
-    positive int; otherwise the model's own max-output ceiling is used so a
-    large single-call deliverable (finding report, recon model) never truncates
-    at the proxy's 4096 default.
+    positive int, followed by a positive role-assignment cap, then the reviewed
+    route default or existing cloud fallback. Local/custom deployments omit the
+    cap when no explicit override exists so their server chooses a
+    value appropriate to the loaded model/context. This does not reserve room
+    for the prompt or guarantee that a large deliverable fits in one response.
     """
     raw = os.environ.get(LLM_MAX_TOKENS_ENV)
     if raw:
@@ -151,6 +173,10 @@ def _resolve_max_tokens(model: str) -> int:
             value = 0
         if value > 0:
             return value
+    if role_cap is not None and role_cap > 0:
+        return role_cap
+    if model.split("/", 1)[0].lower() in RUNTIME_DEFINED_PROVIDERS:
+        return None
     return _model_max_output_tokens(model)
 
 
@@ -991,6 +1017,22 @@ class _ProxiedChatOpenAI(ChatOpenAI):
         self, input_: LanguageModelInput, *, stop: list[str] | None = None, **kwargs: Any
     ) -> dict:
         payload = super()._get_request_payload(input_, stop=stop, **kwargs)
+        # LangChain applies disabled_params during helper/tool binding, but
+        # explicit invoke kwargs can otherwise put forbidden fields back on
+        # the wire. Enforce unconditional exclusions after serialization too.
+        for name, values in (self.disabled_params or {}).items():
+            if values is None:
+                payload.pop(name, None)
+        extra_body = payload.get("extra_body")
+        if isinstance(extra_body, dict):
+            # The OpenAI SDK merges extra_body into the final JSON object.
+            # Copy it so filtering never mutates a caller's reusable dict.
+            payload["extra_body"] = {
+                name: value
+                for name, value in extra_body.items()
+                if name not in (self.disabled_params or {})
+                or (self.disabled_params or {})[name] is not None
+            }
         if self.disable_streaming == "tool_calling" and payload.get("tools"):
             payload["stream"] = False
             payload.pop("stream_options", None)
@@ -1098,7 +1140,8 @@ def _model_drops_temperature(model: str) -> bool:
     """
     slug = _claude_model_base(model) or model.rsplit("/", 1)[-1].lower()
     return (
-        slug.startswith(
+        model.lower() in ROUTE_SAMPLING_EXCLUSIONS
+        or slug.startswith(
             (
                 "claude-opus-4",
                 "claude-opus-5",
@@ -1774,6 +1817,7 @@ class LLMFactory:
                 primary=desktop_model,
                 fallbacks=[],
                 temperature=assignment.temperature,
+                max_tokens=assignment.max_tokens,
             )
         override = resolve_role_model(role)
         if not override or override == assignment.primary:
@@ -1782,6 +1826,7 @@ class LLMFactory:
             primary=override,
             fallbacks=[assignment.primary, *(m for m in assignment.fallbacks if m != override)],
             temperature=assignment.temperature,
+            max_tokens=assignment.max_tokens,
         )
 
     @staticmethod
@@ -1861,7 +1906,9 @@ class LLMFactory:
             _redact_url_credentials(self._proxy.url),
         )
 
-        model = self._create_chat_model(assignment.primary, assignment.temperature)
+        model = self._create_chat_model(
+            assignment.primary, assignment.temperature, assignment.max_tokens
+        )
         self._cache[role] = model
         return model
 
@@ -1889,10 +1936,13 @@ class LLMFactory:
             assignment.fallbacks,
         )
         return [
-            self._create_chat_model(model, assignment.temperature) for model in assignment.fallbacks
+            self._create_chat_model(model, assignment.temperature, assignment.max_tokens)
+            for model in assignment.fallbacks
         ]
 
-    def _create_chat_model(self, model: str, temperature: float | None) -> BaseChatModel:
+    def _create_chat_model(
+        self, model: str, temperature: float | None, max_tokens: int | None = None
+    ) -> BaseChatModel:
         """Create a proxied ChatOpenAI instance routed through LiteLLM proxy.
 
         Claude Opus 4.7+ rejects ``temperature`` with a 400 invalid_request
@@ -1919,7 +1969,7 @@ class LLMFactory:
             "max_retries": self._proxy.max_retries,
             # Per-model cap so large single-call deliverables (finding reports,
             # recon target models) don't truncate at the proxy's 4096 default.
-            "max_tokens": _resolve_max_tokens(model),
+            "max_tokens": _resolve_max_tokens(model, max_tokens),
             # Stream the completion even when the agent calls ``invoke()``.
             # LangChain only emits ``on_llm_new_token`` when the underlying
             # request streams, and LangGraph's "messages" stream mode is built
@@ -1944,7 +1994,10 @@ class LLMFactory:
         if _model_uses_responses_api(model):
             kwargs["use_responses_api"] = True
         if _model_drops_temperature(model):
-            kwargs["disabled_params"] = {"temperature": None}
+            kwargs["disabled_params"] = {
+                name: None
+                for name in ROUTE_SAMPLING_EXCLUSIONS.get(model.lower(), ("temperature",))
+            }
             if model.endswith("/gemini-3.8-flash") or _model_is_claude_adaptive(model):
                 kwargs["disabled_params"].update({"top_p": None, "top_k": None})
         elif _model_is_deepseek_thinking(model):

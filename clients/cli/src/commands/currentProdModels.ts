@@ -263,16 +263,11 @@ export const CURRENT_PROD_MODELS: Record<string, string[]> = {
     "openai/gpt-5.5",
     "openai/gpt-5-nano",
     "openai/gpt-5.3-codex",
-    "openai/text-embedding-3-small",
     "openai/mimo-vl",
     "openai/mimo-rl",
     "openai/mimo-7b"
   ],
-  "Shared catalog / voyage": [
-    "voyage/voyage-3"
-  ],
   "Shared catalog / gemini": [
-    "gemini/gemini-embedding-001",
     "gemini/gemini-3.1-flash-lite",
     "gemini/gemini-4-argon"
   ],

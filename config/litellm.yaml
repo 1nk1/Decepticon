@@ -529,17 +529,17 @@ model_list:
   - model_name: openai/mimo-vl
     litellm_params:
       model: openai/mimo-vl
-      api_base: https://platform.xiaomimimo.com/v1
+      api_base: https://api.xiaomimimo.com/v1
       api_key: os.environ/XIAOMI_MIMO_API_KEY
   - model_name: openai/mimo-rl
     litellm_params:
       model: openai/mimo-rl
-      api_base: https://platform.xiaomimimo.com/v1
+      api_base: https://api.xiaomimimo.com/v1
       api_key: os.environ/XIAOMI_MIMO_API_KEY
   - model_name: openai/mimo-7b
     litellm_params:
       model: openai/mimo-7b
-      api_base: https://platform.xiaomimimo.com/v1
+      api_base: https://api.xiaomimimo.com/v1
       api_key: os.environ/XIAOMI_MIMO_API_KEY
   - model_name: nvidia_nim/meta/llama-3.3-70b-instruct
     litellm_params:

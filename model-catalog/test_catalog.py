@@ -25,6 +25,43 @@ from pydantic import ValidationError
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def test_embedding_routes_remain_available_but_not_in_agent_picker(tmp_path: Path) -> None:
+    shutil.copytree(ROOT / "model-catalog", tmp_path / "model-catalog")
+    subprocess.run(
+        [sys.executable, str(tmp_path / "model-catalog/generate.py")],
+        check=True,
+        capture_output=True,
+    )
+    picker = (tmp_path / "clients/cli/src/commands/currentProdModels.ts").read_text()
+    routes = json.loads((tmp_path / "config/litellm_prod_catalog.json").read_text())["routes"]
+    routes += yaml.safe_load((tmp_path / "config/litellm.yaml").read_text())["model_list"]
+    available = {row["model_name"] for row in routes}
+    # Responses API models are agent models too, despite mode != "chat".
+    assert "openai/gpt-6.1-sol" in picker
+    for identity in (
+        "openai/text-embedding-3-small",
+        "gemini/gemini-embedding-001",
+        "voyage/voyage-3",
+    ):
+        assert identity not in picker
+        assert identity in available
+
+
+def test_mimo_routes_use_inference_host_and_preserve_model_ids(tmp_path: Path) -> None:
+    shutil.copytree(ROOT / "model-catalog", tmp_path / "model-catalog")
+    subprocess.run(
+        [sys.executable, str(tmp_path / "model-catalog/generate.py")],
+        check=True,
+        capture_output=True,
+    )
+    rows = yaml.safe_load((tmp_path / "config/litellm.yaml").read_text())["model_list"]
+    for slug in ("mimo-vl", "mimo-rl", "mimo-7b"):
+        route = next(row for row in rows if row["model_name"] == f"openai/{slug}")
+        assert route["litellm_params"]["api_base"] == "https://api.xiaomimimo.com/v1"
+        assert route["litellm_params"]["model"] == f"openai/{slug}"
+        assert route["litellm_params"]["api_key"] == "os.environ/XIAOMI_MIMO_API_KEY"
+
+
 def test_new_model_propagates_without_editing_product_inventory(tmp_path: Path) -> None:
     # Given: the real catalog, generator and unchanged product policy.
     shutil.copytree(ROOT / "model-catalog", tmp_path / "model-catalog")

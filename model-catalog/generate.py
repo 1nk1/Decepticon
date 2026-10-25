@@ -331,11 +331,16 @@ def generate(root: Path, check: bool = False) -> None:
     if overlay.ui is not None:
         outputs[overlay.ui.path] = render_picker(catalog, overlay)
     if overlay.cli is not None:
-        groups = copy.deepcopy(overlay.cli.groups)
+        non_chat = {model.id for model in catalog.models if model.info.get("mode") == "embedding"}
+        groups = {
+            label: [name for name in names if name not in non_chat]
+            for label, names in copy.deepcopy(overlay.cli.groups).items()
+        }
         present = {name for names in groups.values() for name in names}
         for model in catalog.models:
             if (
                 model.id not in present
+                and model.id not in non_chat
                 and "*" not in model.id
                 and any(
                     model.id.split("/")[0] in output.providers

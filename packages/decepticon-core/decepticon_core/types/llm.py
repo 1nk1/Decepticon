@@ -38,7 +38,7 @@ Tier × AuthMethod matrix
   anthropic_oauth  auth/claude-opus-4-8          auth/claude-sonnet-4-6         auth/claude-haiku-4-5
   openai_api       gpt-5.5                       gpt-5.4                        gpt-5-nano
   openai_oauth     auth/gpt-6-astra               auth/gpt-6.1-sol               auth/gpt-6-luna
-  google_api       gemini-2.5-pro                gemini-2.5-flash               gemini-2.5-flash-lite
+  google_api       gemini-3.8-flash              gemini-3.8-flash               gemini-3.5-flash-lite
   minimax_api      MiniMax-M3                    MiniMax-M2.7-highspeed         — (falls through)
   openrouter_api   claude-opus-4-8               claude-sonnet-4-6              claude-haiku-4-5
   nvidia_api       llama-3.3-70b-instruct        nemotron-70b-instruct          llama-3.2-3b-instruct
@@ -194,9 +194,12 @@ METHOD_MODELS: dict[AuthMethod, dict[Tier, str]] = {
         Tier.LOW: "openai/gpt-5-nano",
     },
     AuthMethod.GOOGLE_API: {
-        Tier.HIGH: "gemini/gemini-2.5-pro",
-        Tier.MID: "gemini/gemini-2.5-flash",
-        Tier.LOW: "gemini/gemini-2.5-flash-lite",
+        # Public 2.5 API access is limited to previously active users. Current
+        # GA defaults also work for new API projects; explicit legacy choices
+        # and the separate Gemini subscription route definitions are preserved.
+        Tier.HIGH: "gemini/gemini-3.8-flash",
+        Tier.MID: "gemini/gemini-3.8-flash",
+        Tier.LOW: "gemini/gemini-3.5-flash-lite",
     },
     AuthMethod.MINIMAX_API: {
         Tier.HIGH: "minimax/MiniMax-M3",
@@ -321,13 +324,14 @@ METHOD_MODELS: dict[AuthMethod, dict[Tier, str]] = {
         Tier.MID: "azure/gpt-5.4",
         Tier.LOW: "azure/gpt-5-nano",
     },
-    # Groq — LPU inference, fast Llama. groq/<model>.
-    # llama-3.1-70b-versatile was retired in 2026; using Llama 4 Scout
-    # (Groq production model) at MID since Llama 3.3 70B sits at HIGH.
+    # Groq — LPU inference with tool-capable GPT-OSS defaults. groq/<model>.
+    # Scout retired for free/developer tiers on 2026-07-17; Llama 3.1/3.3
+    # followed on 2026-08-16. Current GPT-OSS models support agent tools.
+    # Explicit saved/role model IDs remain untouched for enterprise users.
     AuthMethod.GROQ_API: {
-        Tier.HIGH: "groq/llama-3.3-70b-versatile",
-        Tier.MID: "groq/meta-llama/llama-4-scout-17b-16e-instruct",
-        Tier.LOW: "groq/llama-3.1-8b-instant",
+        Tier.HIGH: "groq/openai/gpt-oss-120b",
+        Tier.MID: "groq/openai/gpt-oss-120b",
+        Tier.LOW: "groq/openai/gpt-oss-20b",
     },
     # Together AI — together_ai/<model>.
     AuthMethod.TOGETHER_API: {

@@ -30,7 +30,7 @@ class TestModelRouter:
         assert chain == [
             "anthropic/claude-haiku-4-5",
             "openai/gpt-5-nano",
-            "gemini/gemini-2.5-flash-lite",
+            "gemini/gemini-3.5-flash-lite",
             "deepseek/deepseek-v4-flash",
             "openrouter/anthropic/claude-haiku-4-5",
             "nvidia_nim/meta/llama-3.2-3b-instruct",
@@ -41,7 +41,7 @@ class TestModelRouter:
         assert chain == [
             "anthropic/claude-opus-4-8",
             "openai/gpt-5.5",
-            "gemini/gemini-2.5-pro",
+            "gemini/gemini-3.8-flash",
             "minimax/MiniMax-M3",
             "deepseek/deepseek-v4-pro",
             "xai/grok-4.3",

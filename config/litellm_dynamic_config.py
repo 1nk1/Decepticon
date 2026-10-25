@@ -707,8 +707,9 @@ def build_model_entry(model_name: str) -> dict[str, Any]:
         # Xiaomi MiMo Open Platform — OpenAI-compatible
         # (``/v1/chat/completions``, Bearer auth). No native LiteLLM
         # provider yet; remap to ``openai/<id>`` and override api_base
-        # to XIAOMI_MIMO_API_BASE (default points at
-        # ``https://platform.xiaomimimo.com/v1``).
+        # to the operator's XIAOMI_MIMO_API_BASE. The public pay-as-you-go
+        # API base is ``https://api.xiaomimimo.com/v1``; the platform host
+        # serves the web console. Subscription bases remain separate.
         actual_model = model_name.split("/", 1)[1]
         params = {
             "model": f"openai/{actual_model}",
