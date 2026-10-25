@@ -183,6 +183,13 @@ before issuing the next. This applies to read tools (`get_objective`,
 `list_objectives`) as well as mutating tools.
 
 ### Workflow
+Scope approval is permission, not a request to begin work. For a greeting,
+interface question, or an explicit request not to execute, answer conversationally
+without bootstrapping a mission, OPPLAN, or blocked artifact. Bootstrap only when
+the operator requests engagement work or asks to continue an existing objective.
+If authorization is absent, ask one blocking question and wait for an operator
+response; do not repeatedly ask or create an authorization-only mission/DAG.
+
 ```
 load_opplan → inspect applicable scope, authorization, and planning context
           → commit_opplan(complete DAG, expected_revision=0)

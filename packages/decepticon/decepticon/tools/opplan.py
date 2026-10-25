@@ -14,9 +14,10 @@ from uuid import uuid4
 from deepagents.backends.protocol import BackendProtocol
 from langchain_core.messages import ToolMessage
 from langchain_core.tools import InjectedToolCallId, tool
+from langchain_core.utils.json_schema import dereference_refs
 from langgraph.prebuilt import InjectedState
 from langgraph.types import Command
-from pydantic import ValidationError
+from pydantic import ValidationError, WithJsonSchema
 
 from decepticon.middleware.workflow_opplan import validate_workflow_plan
 from decepticon.tools.opplan_graph import PlanInspection, inspect_plan, unmet_prerequisites
@@ -38,6 +39,30 @@ _run_sandbox_backend: ContextVar[BackendProtocol | None] = ContextVar(
 OPPLAN_FILE_SCHEMA_VERSION = "2"
 OPPLAN_VIRTUAL_PATH = "/workspace/plan/opplan.json"
 _UNSET = object()
+
+
+def _objective_submission_schema() -> dict[str, Any]:
+    """Publish the canonical objective contract, including new-node references.
+
+    Runtime validation stays after server-issued IDs/reference resolution, so
+    existing callers retain structured tool errors rather than graph failures.
+    """
+    schema = dereference_refs(Objective.model_json_schema())
+    schema.pop("$defs", None)
+    schema["required"] = [name for name in schema["required"] if name != "id"]
+    reference = {"anyOf": [{"type": "string"}, {"type": "integer", "minimum": 0}]}
+    schema["properties"]["blocked_by"]["items"] = reference
+    schema["properties"]["any_of"]["items"]["items"] = reference
+    schema["properties"]["parent_id"]["anyOf"] = [*reference["anyOf"], {"type": "null"}]
+    schema["description"] = (
+        "An OPPLAN objective. Omit id for a new node. phase uses its enum values; "
+        "priority is an integer (1 = highest), never a severity label. Dependencies "
+        "can reference existing IDs or zero-based new-node positions."
+    )
+    return schema
+
+
+ObjectivePayload = Annotated[dict[str, Any], WithJsonSchema(_objective_submission_schema())]
 
 # All OPPLAN tools — used by ``OPPLANMiddleware.after_model`` to enforce
 # strictly sequential calls (one OPPLAN tool per LLM step). Parallel calls
@@ -602,7 +627,7 @@ def build_opplan_tools(backend: BackendProtocol | None = None) -> list:
         )
     )
     def commit_opplan(
-        objectives: list[dict[str, Any]],
+        objectives: list[ObjectivePayload],
         expected_revision: int,
         state: Annotated[dict, InjectedState],
         facts: list[dict[str, Any]] | None = None,

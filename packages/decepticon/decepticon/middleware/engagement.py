@@ -212,8 +212,8 @@ def _hydrate_engagement_state(state: Any) -> dict[str, Any] | None:
 
     Runs in ``before_agent`` so the values are present on state before any
     downstream middleware (OPPLAN, filesystem) reads them. Idempotent: if the
-    state already carries either field, it is left untouched and the config
-    value is ignored.
+    state already carries either binding field, it is left untouched. Current
+    explicit authorization from the bound trusted caller is refreshed per run.
 
     Also propagates the engagement label into the per-context
     ``_active_engagement`` so KG writes through ``KGStore``
@@ -248,10 +248,12 @@ def _hydrate_engagement_state(state: Any) -> dict[str, Any] | None:
             value = configurable.get(field)
             if isinstance(value, str) and value:
                 updates[field] = value
-    if get("authorization_confirmed") is None:
-        confirmed = configurable.get("authorization_confirmed")
-        if isinstance(confirmed, bool):
-            updates["authorization_confirmed"] = confirmed
+    # Approval is current trusted launch context, not an immutable historical
+    # fact. A resumed checkpoint can predate approval (or its withdrawal).
+    # Binding is validated above; absent/non-boolean config never grants access.
+    confirmed = configurable.get("authorization_confirmed")
+    if isinstance(confirmed, bool) and get("authorization_confirmed") is not confirmed:
+        updates["authorization_confirmed"] = confirmed
 
     # KGMiddleware and the run launcher carry the authoritative composite
     # tenant+engagement graph partition in ``kg_engagement``. Keep the human /
@@ -317,6 +319,18 @@ def _build_autohunt_injection(
 ) -> str:
     """Render the trusted, single-target bootstrap context for Autohunt."""
     authorization = "confirmed" if authorization_confirmed else "NOT confirmed"
+    if target_type == "direct_scope":
+        return (
+            "\n\n[Direct engagement scope — current trusted launcher/client context]\n"
+            f"Declared primary target: {target_value}\n"
+            f"Authorization: {authorization}\n"
+            "The declared target is a display anchor, not an expansion of scope. "
+            "Use plan/roe.json for the complete operator-provisioned machine scope, "
+            "exclusions and authorized windows. Current trusted approval supersedes "
+            "historical assistant statements about approval; when confirmed, do not "
+            "ask the same authorization question again. Scope and tool gates still apply. "
+            "If NOT confirmed, ask one blocking question and wait; do not invent approval."
+        )
     return (
         "\n\n[Autohunt bootstrap context — set by the launcher/client]\n"
         f"Declared target: {target_value}\n"

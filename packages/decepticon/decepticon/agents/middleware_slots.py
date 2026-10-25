@@ -386,12 +386,22 @@ class _SafeSummarizationProxy(AgentMiddleware):
             logger.debug("compaction event emission failed (non-fatal)", exc_info=True)
 
     def wrap_model_call(self, request: Any, handler: Callable[[Any], Any]) -> Any:
-        self._emit_compact_event(request, "compact.start", "summarization attempt")
+        self._emit_compact_event(request, "compact.start", "checking compaction threshold")
+        generation_started = False
+
+        def checked_handler(prepared: Any) -> Any:
+            nonlocal generation_started
+            generation_started = True
+            self._emit_compact_event(request, "compact.end", "context check complete")
+            return handler(prepared)
+
         try:
-            response = self._scoped_inner(request).wrap_model_call(request, handler)
-            self._emit_compact_event(request, "compact.end", "summarization completed")
-            return response
+            return self._scoped_inner(request).wrap_model_call(request, checked_handler)
         except Exception:
+            if generation_started:
+                # The main model failed, not the summarizer. Do not submit it
+                # again or misreport a policy/auth/provider failure as compaction.
+                raise
             logger.warning(
                 "Summarization middleware failed; skipping summarization "
                 "this turn and forwarding the original request.",
@@ -405,12 +415,20 @@ class _SafeSummarizationProxy(AgentMiddleware):
             return handler(request)
 
     async def awrap_model_call(self, request: Any, handler: Callable[[Any], Awaitable[Any]]) -> Any:
-        self._emit_compact_event(request, "compact.start", "summarization attempt")
+        self._emit_compact_event(request, "compact.start", "checking compaction threshold")
+        generation_started = False
+
+        async def checked_handler(prepared: Any) -> Any:
+            nonlocal generation_started
+            generation_started = True
+            self._emit_compact_event(request, "compact.end", "context check complete")
+            return await handler(prepared)
+
         try:
-            response = await self._scoped_inner(request).awrap_model_call(request, handler)
-            self._emit_compact_event(request, "compact.end", "summarization completed")
-            return response
+            return await self._scoped_inner(request).awrap_model_call(request, checked_handler)
         except Exception:
+            if generation_started:
+                raise
             logger.warning(
                 "Summarization middleware failed; skipping summarization "
                 "this turn and forwarding the original request.",

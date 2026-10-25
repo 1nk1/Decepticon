@@ -833,3 +833,42 @@ async def test_bound_runtime_rejects_dispatch_after_engagement_rebind(
         else:
             getattr(middleware, f"wrap_{kind}_call")(request, handler)
     assert not called
+
+
+@pytest.mark.parametrize("previous,current", [(False, True), (True, False)])
+def test_resumed_approval_follows_current_trusted_launch_context(monkeypatch, previous, current):
+    monkeypatch.setattr(
+        "decepticon.middleware.engagement._configurable_from_runnable_config",
+        lambda: {"authorization_confirmed": current},
+    )
+    assert _hydrate_engagement_state({"authorization_confirmed": previous}) == {
+        "authorization_confirmed": current
+    }
+
+
+@pytest.mark.parametrize("value", [None, "true", 1])
+def test_checkpoint_approval_is_not_inferred_from_invalid_or_missing_config(monkeypatch, value):
+    monkeypatch.setattr(
+        "decepticon.middleware.engagement._configurable_from_runnable_config",
+        lambda: {"authorization_confirmed": value},
+    )
+    assert _hydrate_engagement_state({"authorization_confirmed": False}) is None
+
+
+def test_real_checkpoint_resume_refreshes_trusted_approval_and_allows_revocation():
+    from langgraph.checkpoint.memory import InMemorySaver
+
+    graph = StateGraph(EngagementContextState)
+    graph.add_node("hydrate", lambda state: _hydrate_engagement_state(state) or {})
+    graph.add_edge(START, "hydrate")
+    graph.add_edge("hydrate", END)
+    app = graph.compile(checkpointer=InMemorySaver())
+    config = {"configurable": {"thread_id": "approval-resume", "authorization_confirmed": False}}
+    first = app.invoke({"messages": [], "authorization_confirmed": False}, config)
+    assert first["authorization_confirmed"] is False
+    config["configurable"]["authorization_confirmed"] = True
+    approved = app.invoke({}, config)
+    assert approved["authorization_confirmed"] is True
+    config["configurable"]["authorization_confirmed"] = False
+    revoked = app.invoke({}, config)
+    assert revoked["authorization_confirmed"] is False
