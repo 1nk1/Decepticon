@@ -26,7 +26,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { Box, Text } from "ink";
 import type { AgentEvent, ScreenMode, SubAgentSession } from "../../types.js";
-import { GLYPH_DOT, GLYPH_HOOK, GLYPH_SEP, AGENT_COLORS } from "../../utils/theme.js";
+import { PALETTE, GLYPH_DOT, GLYPH_HOOK, GLYPH_SEP, AGENT_COLORS } from "../../utils/theme.js";
 import { compactToolLine, formatDuration } from "../../utils/format.js";
 import { SubAgentProvider } from "../shell/SubAgentContext.js";
 import { EventItem } from "../EventItem.js";
@@ -68,7 +68,7 @@ function SessionHeader({
   color: string;
   maxPromptLines: number;
 }) {
-  const dotColor = isRunning ? "gray" : session.status === "error" ? "red" : "green";
+  const dotColor = isRunning ? PALETTE.muted : session.status === "error" ? PALETTE.error : PALETTE.success;
   const headerDesc = session.description.split("\n")[0] ?? session.description;
   const prompt = truncText(session.description, maxPromptLines);
 
@@ -76,7 +76,7 @@ function SessionHeader({
     <>
       {/* Header: ● AgentType(short description) */}
       <Text>
-        <Text color={dotColor}>{`${GLYPH_DOT} `}</Text>
+        <Text color={dotColor}>{`${session.status === "error" ? "✗" : GLYPH_DOT} `}</Text>
         <Text bold color={color}>{capitalize(session.agent)}</Text>
         <Text dimColor italic>{`(${headerDesc})`}</Text>
       </Text>
@@ -135,7 +135,7 @@ export const AgentSessionGroup = React.memo(function AgentSessionGroup({
 }: Props) {
   const isTranscript = screen === "transcript";
   const isRunning = session.status === "running";
-  const color = AGENT_COLORS[session.agent] ?? "white";
+  const color = AGENT_COLORS[session.agent] ?? PALETTE.text;
 
   // Filter events belonging to this session
   const sessionEvents = useMemo(() => {

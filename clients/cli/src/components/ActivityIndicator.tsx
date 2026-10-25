@@ -3,7 +3,7 @@ import { Box, Text } from "ink";
 import { useSpinnerFrame } from "../hooks/useSpinnerFrame.js";
 import type { StreamStats } from "../hooks/useAgent.js";
 import type { RunState } from "../hooks/useAgent.js";
-import { GLYPH_DOT, GLYPH_SEP } from "../utils/theme.js";
+import { PALETTE, GLYPH_DOT, GLYPH_SEP } from "../utils/theme.js";
 
 interface ActivityIndicatorProps {
   runState: RunState;
@@ -24,19 +24,8 @@ function formatTokens(n: number): string {
   return String(n);
 }
 
-// Shimmer gradient palette — Decepticon red theme
-const SHIMMER_COLORS = [
-  "#b91c1c", // red-700
-  "#dc2626", // red-600
-  "#ef4444", // red-500
-  "#f87171", // red-400
-  "#fca5a5", // red-300
-  "#fecaca", // red-200
-  "#fca5a5", // red-300
-  "#f87171", // red-400
-  "#ef4444", // red-500
-  "#dc2626", // red-600
-];
+// Graphite-to-silver shimmer, shared with focused controls.
+const SHIMMER_COLORS = [PALETTE.muted, PALETTE.info, PALETTE.success, PALETTE.text, PALETTE.warning, PALETTE.focus, PALETTE.warning, PALETTE.text, PALETTE.success, PALETTE.info];
 
 /** Render text with a shifting gradient shimmer effect. */
 function ShimmerText({ text, tick }: { text: string; tick: number }) {
@@ -59,20 +48,9 @@ function ShimmerText({ text, tick }: { text: string; tick: number }) {
 }
 
 // Pulse palette for the icon — smooth bright/dim cycle synced with shimmer
-const PULSE_COLORS = [
-  "#fecaca", // bright peak
-  "#fca5a5",
-  "#f87171",
-  "#ef4444",
-  "#dc2626",
-  "#b91c1c", // dim trough
-  "#dc2626",
-  "#ef4444",
-  "#f87171",
-  "#fca5a5",
-];
+const PULSE_COLORS = [...SHIMMER_COLORS].reverse();
 
-/** Activity indicator with pulsing dot, red shimmer, and animated token counter.
+/** Activity indicator with pulsing dot, silver shimmer, and animated token counter.
  *
  * Never returns null — maintains stable layout height like Claude Code's SpinnerGlyph.
  * When idle, renders an empty line to preserve layout; when streaming, shows the full
@@ -92,7 +70,7 @@ export const ActivityIndicator = React.memo(function ActivityIndicator({
     displayTokensRef.current = 0;
     return (
       <Box marginTop={1} height={1}>
-        <Text color="yellow">{GLYPH_DOT} Paused — /resume to continue, or type a new message</Text>
+        <Text color={PALETTE.warning}>{GLYPH_DOT} Paused — /resume to continue, or type a new message</Text>
       </Box>
     );
   }

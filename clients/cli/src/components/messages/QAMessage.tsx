@@ -1,3 +1,4 @@
+import { PALETTE } from "../../utils/theme.js";
 import React from "react";
 import { Box, Text } from "ink";
 
@@ -12,7 +13,7 @@ export const QAQuestionMessage = React.memo(function QAQuestionMessage({
 }: QuestionProps) {
   return (
     <Box flexDirection="row" marginTop={1}>
-      {header ? <Text color="cyan" bold>{`[${header}] `}</Text> : null}
+      {header ? <Text color={PALETTE.info} bold>{`[${header}] `}</Text> : null}
       <Text wrap="wrap">{question}</Text>
     </Box>
   );
@@ -27,7 +28,7 @@ export const QAAnswerMessage = React.memo(function QAAnswerMessage({
 }: AnswerProps) {
   return (
     <Box marginTop={1}>
-      <Text color="green" wrap="wrap">{`› ${answer}`}</Text>
+      <Text color={PALETTE.success} wrap="wrap">{`› ${answer}`}</Text>
     </Box>
   );
 });

@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
-import { TODO_ICON } from "../utils/theme.js";
+import { PALETTE, TODO_ICON } from "../utils/theme.js";
 
 interface TodoItem {
   content: string;
@@ -46,7 +46,7 @@ export const TodoList = React.memo(function TodoList({ todos }: TodoListProps) {
           <Text key={i} wrap="wrap">
             {"  "}
             <Text color={color}>{icon}</Text>
-            <Text color={todo.status === "completed" ? "gray" : "white"}>
+            <Text color={todo.status === "completed" ? PALETTE.muted : PALETTE.text}>
               {` ${todo.content}`}
             </Text>
           </Text>

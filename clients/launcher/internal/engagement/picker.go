@@ -333,12 +333,16 @@ func (m pickerModel) renderConfirmOverlay() string {
 func newPickerModel(home string, entries []EngagementEntry) pickerModel {
 	items := buildItems(entries)
 	delegate := list.NewDefaultDelegate()
+	delegate.Styles.SelectedTitle = delegate.Styles.SelectedTitle.Foreground(lipgloss.Color(ui.ColorFocus)).BorderForeground(lipgloss.Color(ui.ColorFocus)).Background(lipgloss.Color(ui.ColorRaised))
+	delegate.Styles.SelectedDesc = delegate.Styles.SelectedDesc.Foreground(lipgloss.Color(ui.ColorText)).BorderForeground(lipgloss.Color(ui.ColorFocus)).Background(lipgloss.Color(ui.ColorRaised))
+	delegate.Styles.NormalTitle = delegate.Styles.NormalTitle.Foreground(lipgloss.Color(ui.ColorText))
+	delegate.Styles.NormalDesc = delegate.Styles.NormalDesc.Foreground(lipgloss.Color(ui.ColorMuted))
 	l := list.New(items, delegate, 0, 0)
 	l.Title = fmt.Sprintf("Decepticon · engagements (%d)", len(entries))
 	l.SetShowHelp(true)
 	l.SetShowStatusBar(false)
 	l.SetFilteringEnabled(false)
-	l.Styles.Title = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#ef4444"))
+	l.Styles.Title = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color(ui.ColorText))
 
 	keys := newPickerKeys()
 	l.AdditionalShortHelpKeys = func() []key.Binding { return []key.Binding{keys.Delete} }
@@ -429,7 +433,7 @@ var (
 	confirmStyle = lipgloss.NewStyle().
 			Padding(0, 1).
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("#ef4444"))
+			BorderForeground(lipgloss.Color(ui.ColorText))
 	confirmTextStyle = lipgloss.NewStyle().Bold(true)
 	confirmHintStyle = lipgloss.NewStyle().Faint(true)
 )
@@ -599,7 +603,7 @@ func promptNewEngagement(home string) (string, scopeLists, error) {
 				Validate(func(s string) error { return validateSlug(home, s) }),
 			huh.NewInput().Title("Target scope").
 				Description("Targets you are authorized to test — URLs, hostnames, CIDRs, or *.domain globs; commas or spaces separate entries. Creating the engagement with a scope is the authorization.").
-				Placeholder("elice.io, 10.0.0.0/24, *.example.com").
+				Placeholder("example.com, 10.0.0.0/24, *.decepticon.red").
 				Value(&targets).
 				Validate(func(s string) error {
 					in, _, err := dedupeScopeTargets(splitScopeTargets([]string{s}))
@@ -648,10 +652,11 @@ func promptNewEngagement(home string) (string, scopeLists, error) {
 	// blocks creation; a timeout or degradation folds back to the typed
 	// targets (the operator always owns what goes in scope).
 	if zone := discoveryZone(in); zone != "" {
+		ui.Info(fmt.Sprintf("Checking passive scope suggestions (up to %s)...", scopeDiscoveryBudget))
 		discovery := DiscoverScope(zone, scopeDiscoveryBudget)
 		switch {
 		case len(discovery.Recommended) > 0 && len(discovery.Notes) > 0:
-			ui.Info(fmt.Sprintf("Passive discovery partial: %s.", strings.Join(discovery.Notes, "; ")))
+			ui.Info(fmt.Sprintf("Some passive sources did not respond: %s. Review the available suggestions or enter scope manually.", strings.Join(discovery.Notes, "; ")))
 		case len(discovery.Recommended) == 0:
 			ui.Info(fmt.Sprintf("Passive discovery found nothing: %s. Continuing with your typed targets.", strings.Join(discovery.Notes, "; ")))
 		default:
@@ -701,14 +706,18 @@ func promptNewEngagement(home string) (string, scopeLists, error) {
 
 // renderScopePreview renders the normalized scope the engagement will enforce.
 func renderScopePreview(slug string, lists scopeLists) string {
+	// Huh notes interpret *, _ and backticks as formatting. Escape scope
+	// patterns so the operator reviews the exact authorized targets.
+	escape := strings.NewReplacer("\\", "\\\\", "*", "\\*", "_", "\\_", "`", "\\`")
+	join := func(targets []string) string { return escape.Replace(strings.Join(targets, ", ")) }
 	var b strings.Builder
 	fmt.Fprintf(&b, "Creating engagement %q — this scope is the authorization.\n\n", slug)
-	fmt.Fprintf(&b, "In scope (%d): %s\n", len(lists.InScope), strings.Join(lists.InScope, ", "))
+	fmt.Fprintf(&b, "In scope (%d): %s\n", len(lists.InScope), join(lists.InScope))
 	if len(lists.OutOfScope) > 0 {
-		fmt.Fprintf(&b, "Out of scope: %s\n", strings.Join(lists.OutOfScope, ", "))
+		fmt.Fprintf(&b, "Out of scope: %s\n", join(lists.OutOfScope))
 	}
 	if len(lists.Dropped) > 0 {
-		fmt.Fprintf(&b, "Dropped (%d): %s\n", len(lists.Dropped), strings.Join(lists.Dropped, ", "))
+		fmt.Fprintf(&b, "Dropped (%d): %s\n", len(lists.Dropped), join(lists.Dropped))
 		fmt.Fprintf(&b, "  (no DNS/IP target can match a dropped entry)\n")
 	}
 	b.WriteString("\nRed enforces this scope on every tool call.")

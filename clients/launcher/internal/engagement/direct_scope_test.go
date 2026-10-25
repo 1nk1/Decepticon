@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"charm.land/huh/v2"
 )
 
 func TestCreateDirectEngagement_MachineScopeFromCreationData(t *testing.T) {
@@ -178,16 +180,22 @@ func mustLists(t *testing.T, targets, outOfScope []string) scopeLists {
 
 func TestRenderScopePreview_ShowsGeneratedScope(t *testing.T) {
 	lists, err := buildScopeLists(
-		[]string{"https://elice.io/login, *.corp.example.com"},
+		[]string{"https://example.com/login, *.corp.example.com"},
 		[]string{"secret.corp.example.com"},
 	)
 	if err != nil {
 		t.Fatal(err)
 	}
 	preview := renderScopePreview("acme-2026", lists)
+	rendered := huh.NewNote().Description(preview).WithWidth(120).View()
+	for _, target := range lists.InScope {
+		if !strings.Contains(rendered, target) {
+			t.Fatalf("scope target changed in the actual review note: %s", rendered)
+		}
+	}
 	for _, want := range []string{
 		`Creating engagement "acme-2026"`,
-		"In scope (3): elice.io, *.corp.example.com, corp.example.com",
+		"In scope (3): example.com, \\*.corp.example.com, corp.example.com",
 		"Out of scope: secret.corp.example.com",
 		"Red enforces this scope on every tool call.",
 	} {
@@ -201,12 +209,18 @@ func TestRenderScopePreview_ShowsGeneratedScope(t *testing.T) {
 }
 
 func TestRenderScopePreview_ReportsDroppedEntries(t *testing.T) {
-	lists, err := buildScopeLists([]string{"*.", "elice.io"}, nil)
+	lists, err := buildScopeLists([]string{"*.", "example.com"}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	preview := renderScopePreview("acme-2026", lists)
-	if !strings.Contains(preview, "Dropped (1): *.") {
+	rendered := huh.NewNote().Description(preview).WithWidth(120).View()
+	for _, target := range lists.InScope {
+		if !strings.Contains(rendered, target) {
+			t.Fatalf("scope target changed in the actual review note: %s", rendered)
+		}
+	}
+	if !strings.Contains(preview, "Dropped (1): \\*.") {
 		t.Fatalf("preview missing the dropped entry:\n%s", preview)
 	}
 }

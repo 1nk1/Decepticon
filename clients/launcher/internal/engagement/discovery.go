@@ -15,6 +15,7 @@ package engagement
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -96,16 +97,53 @@ func discoverScope(ctx context.Context, zone string, timeout time.Duration, cfg 
 		defer cancel()
 	}
 
-	ctHosts, ctErr := fetchCTSubdomains(ctx, cfg, zone)
-	if ctErr != nil {
-		discovery.Notes = append(discovery.Notes, fmt.Sprintf("CT logs unavailable: %v", ctErr))
+	// Give each source the full shared budget. A slow CT request must not
+	// consume the time available to passive DNS. Buffered channels let a
+	// cancelled caller return even if a transport takes time to unwind.
+	type result struct {
+		hosts []string
+		err   error
 	}
-	dnsHosts, dnsErr := fetchPassiveDNS(ctx, cfg, zone)
-	if dnsErr != nil {
-		discovery.Notes = append(discovery.Notes, fmt.Sprintf("passive DNS unavailable: %v", dnsErr))
+	ct, dns := make(chan result, 1), make(chan result, 1)
+	go func(reply chan<- result) {
+		hosts, err := fetchCTSubdomains(ctx, cfg, zone)
+		reply <- result{hosts, err}
+	}(ct)
+	go func(reply chan<- result) { hosts, err := fetchPassiveDNS(ctx, cfg, zone); reply <- result{hosts, err} }(dns)
+	var ctResult, dnsResult result
+	for ct != nil || dns != nil {
+		select {
+		case ctResult = <-ct:
+			ct = nil
+		case dnsResult = <-dns:
+			dns = nil
+		case <-ctx.Done():
+			// Prefer results already delivered at the deadline over timeout notes.
+			if ct != nil {
+				select {
+				case ctResult = <-ct:
+				default:
+					ctResult.err = ctx.Err()
+				}
+				ct = nil
+			}
+			if dns != nil {
+				select {
+				case dnsResult = <-dns:
+				default:
+					dnsResult.err = ctx.Err()
+				}
+				dns = nil
+			}
+		}
 	}
-
-	discovery.Recommended = recommendFromHosts(zone, append(append([]string{}, ctHosts...), dnsHosts...))
+	if ctResult.err != nil {
+		discovery.Notes = append(discovery.Notes, discoveryNote("CT logs", ctResult.err))
+	}
+	if dnsResult.err != nil {
+		discovery.Notes = append(discovery.Notes, discoveryNote("passive DNS", dnsResult.err))
+	}
+	discovery.Recommended = recommendFromHosts(zone, append(append([]string{}, ctResult.hosts...), dnsResult.hosts...))
 	return discovery
 }
 
@@ -250,4 +288,14 @@ func truncateNote(text string, max int) string {
 		return text
 	}
 	return text[:max-1] + "…"
+}
+
+// Keep transport URLs and Go internals out of the creation flow. Source names
+// and a useful reason explain partial results without implying setup failed.
+func discoveryNote(source string, err error) string {
+	var networkErr net.Error
+	if errors.Is(err, context.DeadlineExceeded) || (errors.As(err, &networkErr) && networkErr.Timeout()) {
+		return source + " unavailable (timed out)"
+	}
+	return source + " unavailable"
 }

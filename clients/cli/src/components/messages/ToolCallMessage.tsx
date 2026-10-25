@@ -6,7 +6,7 @@ import { TodoList, parseTodos } from "../TodoList.js";
 import { DiffResult } from "./DiffResult.js";
 import { useScreen } from "../shell/ScreenContext.js";
 import { CtrlOToExpand } from "../shell/CtrlOToExpand.js";
-import { GLYPH_DOT, GLYPH_HOOK } from "../../utils/theme.js";
+import { PALETTE, GLYPH_DOT, GLYPH_HOOK } from "../../utils/theme.js";
 
 const MAX_LINES_PROMPT = 5;
 const MAX_LINES_TRANSCRIPT = 50;
@@ -52,7 +52,7 @@ function ToolCallHeader({
   status?: "success" | "error";
 }) {
   const label = TOOL_DISPLAY[toolName];
-  const dotColor = status === "error" ? "red" : "green";
+  const dotColor = status === "error" ? PALETTE.error : PALETTE.success;
 
   if (!label) {
     const argsStr = Object.entries(args)
@@ -64,9 +64,9 @@ function ToolCallHeader({
       .join(", ");
     return (
       <Text>
-        <Text color={dotColor}>{`${GLYPH_DOT} `}</Text>
-        <Text color="white" bold>{toolName}</Text>
-        <Text color="gray" italic>{` (${argsStr})`}</Text>
+        <Text color={dotColor}>{`${status === "error" ? "✗" : GLYPH_DOT} `}</Text>
+        <Text color={PALETTE.text} bold>{toolName}</Text>
+        <Text color={PALETTE.muted} italic>{` (${argsStr})`}</Text>
       </Text>
     );
   }
@@ -123,10 +123,10 @@ function ToolCallHeader({
 
   return (
     <Text>
-      <Text color={dotColor}>{`${GLYPH_DOT} `}</Text>
-      <Text color="white" bold>{label}</Text>
-      {detail ? <Text color="gray" italic>{` (${detail})`}</Text> : null}
-      {detailDim ? <Text color="gray" italic>{detailDim}</Text> : null}
+      <Text color={dotColor}>{`${status === "error" ? "✗" : GLYPH_DOT} `}</Text>
+      <Text color={PALETTE.text} bold>{label}</Text>
+      {detail ? <Text color={PALETTE.muted} italic>{` (${detail})`}</Text> : null}
+      {detailDim ? <Text color={PALETTE.muted} italic>{detailDim}</Text> : null}
     </Text>
   );
 }
@@ -172,9 +172,9 @@ export const ToolCallMessage = React.memo(function ToolCallMessage({
     return (
       <Box flexDirection="column" marginTop={1}>
         <Text>
-          <Text color="green">{`${GLYPH_DOT} `}</Text>
-          <Text color="white" bold>{"Skill"}</Text>
-          <Text color="gray" italic>{` (${skillName})`}</Text>
+          <Text color={PALETTE.success}>{`${GLYPH_DOT} `}</Text>
+          <Text color={PALETTE.text} bold>{"Skill"}</Text>
+          <Text color={PALETTE.muted} italic>{` (${skillName})`}</Text>
         </Text>
       </Box>
     );
@@ -201,13 +201,13 @@ export const ToolCallMessage = React.memo(function ToolCallMessage({
         : from;
     })();
     const label = event.toolName === "find_skill" ? "Find skill" : "Traverse skills";
-    const dotColor = event.status === "error" ? "red" : "green";
+    const dotColor = event.status === "error" ? PALETTE.error : PALETTE.success;
     return (
       <Box flexDirection="column" marginTop={1}>
         <Text>
-          <Text color={dotColor}>{`${GLYPH_DOT} `}</Text>
-          <Text color="white" bold>{label}</Text>
-          {hint ? <Text color="gray" italic>{` (${hint})`}</Text> : null}
+          <Text color={dotColor}>{`${event.status === "error" ? "✗" : GLYPH_DOT} `}</Text>
+          <Text color={PALETTE.text} bold>{label}</Text>
+          {hint ? <Text color={PALETTE.muted} italic>{` (${hint})`}</Text> : null}
         </Text>
       </Box>
     );

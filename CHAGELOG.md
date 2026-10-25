@@ -15,6 +15,8 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [neutral onboarding PR](https://github.com/BitterSecurity/Decepticon/pulls?q=is%3Apr+head%3Afix%2Foss-onboarding-neutral-ui-20261025): use example.com/decepticon.red engagement examples, query passive sources concurrently under one deadline and keep partial results with concise timeout guidance; preserve literal wildcard targets in the scope review. Unify the Ink CLI/TUI and Go launcher's branding, controls, activity, agents and Markdown around graphite/silver surfaces, neutral focus edges and explicit status glyphs. Existing commands, scope approval and persisted data remain compatible; external discovery availability is still best-effort.
+
 - Proposed [PR #1092](https://github.com/BitterSecurity/Decepticon/pull/1092): preserve the web terminal's internal port 3003 when host publications are remapped, and pass the selected web host port to its origin checks. Browser runtime endpoints continue using host ports. This compatible follow-up to #1091 requires no data migration.
 
 - Proposed [PR #1091](https://github.com/BitterSecurity/Decepticon/pull/1091): recover Docker-confirmed loopback TCP port conflicts during launcher startup by trying higher ports and atomically saving the chosen values. Rewire host probes, CLI/web connection hints and credential migration; keep internal service addresses, credentials, volumes and the existing port owner intact. Custom hardcoded bindings and exhausted ranges remain actionable errors. No manual migration is required; persisted host URLs can change after a conflict.

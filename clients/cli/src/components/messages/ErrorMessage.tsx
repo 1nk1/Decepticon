@@ -1,3 +1,4 @@
+import { PALETTE } from "../../utils/theme.js";
 /**
  * ErrorMessage — structured error display with truncation.
  *
@@ -71,9 +72,9 @@ export const ErrorMessage = React.memo(function ErrorMessage({
     return (
       <Box flexDirection="column" marginTop={1}>
         <Text>
-          <Text color="red" bold>{"error> "}</Text>
-          <Text bold color="yellow">{`[${structured.tool}] `}</Text>
-          <Text color="red" wrap="wrap">{structured.cause}</Text>
+          <Text color={PALETTE.error} bold>{"error> "}</Text>
+          <Text bold color={PALETTE.warning}>{`[${structured.tool}] `}</Text>
+          <Text color={PALETTE.error} wrap="wrap">{structured.cause}</Text>
         </Text>
         {structured.recovery && (
           <Text dimColor wrap="wrap">{`  Recovery: ${structured.recovery}`}</Text>
@@ -86,8 +87,8 @@ export const ErrorMessage = React.memo(function ErrorMessage({
   return (
     <Box flexDirection="column" marginTop={1}>
       <Text>
-        <Text color="red" bold>{"error> "}</Text>
-        <Text color="red" wrap="wrap">{display}</Text>
+        <Text color={PALETTE.error} bold>{"error> "}</Text>
+        <Text color={PALETTE.error} wrap="wrap">{display}</Text>
       </Text>
       {onDismiss && <Text dimColor>{isTruncated ? "ctrl+o to expand · esc to dismiss" : "esc to dismiss"}</Text>}
       {isTruncated && <CtrlOToExpand />}

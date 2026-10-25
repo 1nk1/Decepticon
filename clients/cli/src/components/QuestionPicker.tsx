@@ -1,3 +1,4 @@
+import { PALETTE } from "../utils/theme.js";
 import React, { useState, useCallback, useEffect } from "react";
 import { Box, Text, useInput } from "ink";
 import { TextInput } from "@inkjs/ui";
@@ -158,7 +159,7 @@ export const QuestionPicker = React.memo(function QuestionPicker({
     <Box flexDirection="column" marginTop={1}>
       <Text dimColor>{"─".repeat(columns)}</Text>
       <Box flexDirection="row">
-        <Text color="cyan" bold>{`[${header}] `}</Text>
+        <Text color={PALETTE.info} bold>{`[${header}] `}</Text>
         <Text>{text}</Text>
       </Box>
 
@@ -171,7 +172,7 @@ export const QuestionPicker = React.memo(function QuestionPicker({
             : "";
           return (
             <Box key={`${opt.label}-${i}`} flexDirection="row">
-              <Text color={focused ? "cyan" : undefined}>
+              <Text color={focused ? PALETTE.info : undefined}>
                 {focused ? "▸ " : "  "}
                 {checkbox}
                 {`${i + 1}. ${opt.label}`}
@@ -185,7 +186,7 @@ export const QuestionPicker = React.memo(function QuestionPicker({
 
         {allowOther && (
           <Box flexDirection="row">
-            <Text color={cursor === otherIndex && !otherMode ? "cyan" : undefined}>
+            <Text color={cursor === otherIndex && !otherMode ? PALETTE.info : undefined}>
               {cursor === otherIndex && !otherMode ? "▸ " : "  "}
               {`${options.length + 1}. ${OTHER_LABEL}`}
             </Text>
@@ -197,7 +198,7 @@ export const QuestionPicker = React.memo(function QuestionPicker({
         <Box flexDirection="column" marginTop={1} marginLeft={2}>
           <Text dimColor>{"  enter: submit  esc: back"}</Text>
           <Box flexDirection="row">
-            <Text color="white">{"› "}</Text>
+            <Text color={PALETTE.text}>{"› "}</Text>
             <TextInput
               key={otherKey}
               placeholder="Type your answer"
