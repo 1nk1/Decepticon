@@ -26,6 +26,7 @@ from decepticon_core.types.llm import (
     AuthMethod,
     Credentials,
     LLMModelMapping,
+    ModelAssignment,
     ModelProfile,
     ProxyConfig,
 )
@@ -616,6 +617,54 @@ class TestLLMFactory:
 
     def test_factory_initializes(self):
         assert self.factory.proxy_url == "http://localhost:4000"
+
+    @pytest.mark.parametrize(
+        ("role_cap", "global_cap", "expected"),
+        [
+            (4096, None, [4096, 4096, 4096]),
+            (4096, "1024", [1024, 1024, 1024]),
+            (0, None, [32768, 16384, None]),
+            (-1, "bad", [32768, 16384, None]),
+        ],
+    )
+    def test_role_cap_reaches_primary_and_all_fallback_payloads(
+        self, monkeypatch, role_cap, global_cap, expected
+    ) -> None:
+        monkeypatch.delenv("DECEPTICON_DESKTOP_MODEL", raising=False)
+        monkeypatch.delenv("DECEPTICON_MODEL_RECON", raising=False)
+        monkeypatch.delenv(LLM_MAX_TOKENS_ENV, raising=False)
+        if global_cap is not None:
+            monkeypatch.setenv(LLM_MAX_TOKENS_ENV, global_cap)
+        mapping = LLMModelMapping(
+            assignments={
+                "recon": ModelAssignment(
+                    primary="cerebras/gpt-oss-120b",
+                    fallbacks=["dashscope/qwen-plus", "custom/small-model"],
+                    max_tokens=role_cap,
+                )
+            }
+        )
+        factory = LLMFactory(self.proxy, mapping)
+        clients = [factory.get_model("recon"), *factory.get_fallback_models("recon")]
+        for client, cap in zip(clients, expected, strict=True):
+            assert isinstance(client, ChatOpenAI)
+            payload = client._get_request_payload("check role cap")
+            assert payload.get("max_completion_tokens", payload.get("max_tokens")) == cap
+
+    @pytest.mark.parametrize("name", ["DECEPTICON_DESKTOP_MODEL", "DECEPTICON_MODEL_RECON"])
+    def test_model_override_preserves_role_cap(self, monkeypatch, name) -> None:
+        monkeypatch.delenv(LLM_MAX_TOKENS_ENV, raising=False)
+        monkeypatch.delenv("DECEPTICON_DESKTOP_MODEL", raising=False)
+        monkeypatch.delenv("DECEPTICON_MODEL_RECON", raising=False)
+        monkeypatch.setenv(name, "custom/small-model")
+        mapping = LLMModelMapping(
+            assignments={"recon": ModelAssignment(primary="openai/gpt-5-nano", max_tokens=2048)}
+        )
+        client = LLMFactory(self.proxy, mapping).get_model("recon")
+        assert isinstance(client, ChatOpenAI)
+        payload = client._get_request_payload("check role cap")
+        assert payload["model"] == "custom/small-model"
+        assert payload.get("max_completion_tokens", payload.get("max_tokens")) == 2048
 
     def test_get_model_returns_chat_model(self):
         model = self.factory.get_model("recon")

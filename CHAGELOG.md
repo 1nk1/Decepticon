@@ -25,6 +25,9 @@ Keep proposed and unmerged changes out of released sections.
   CLI agent picker while retaining their embedding routes. Includes local HTTP
   regressions and a [full audit](docs/model-contract-audit-2026-10-25.md);
   provider inference and release qualification remain explicitly unverified.
+  Honor positive role-assignment output caps on primary/fallback clients and
+  preserve them across desktop/role model overrides; global caps take priority.
+  Existing configured role caps now take effect instead of being ignored.
 
 - Proposed [PR #1088](https://github.com/BitterSecurity/Decepticon/pull/1088)
   (fixes #1087): resolve Claude output ceilings by model/version across provider,

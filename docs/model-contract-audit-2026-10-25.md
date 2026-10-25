@@ -54,6 +54,14 @@ not claims about maximum output across every provider, region or account tier.
 Positive `DECEPTICON_LLM_MAX_TOKENS` retains precedence, including above-limit
 values explicitly requested by an operator. No route is silently renamed.
 
+The audit also confirmed that `ModelAssignment.max_tokens` was silently ignored
+by primary/fallback client creation and discarded when composing model overrides.
+The factory now preserves and applies it. Precedence is positive global cap →
+positive assignment cap → route default/server default. Existing nonpositive
+assignment values retain default behavior. Six regressions reproduce the
+problem (three failed / three passed before correction), including actual
+serialized primary/fallback requests and desktop/role model overrides.
+
 | Exact route | Before #1088 → follow-up | Primary reference |
 | --- | --- | --- |
 | `bedrock/anthropic.claude-sonnet-4-6` (including regional/pinned IDs) | 128000 → 64000 | [AWS model card](https://docs.aws.amazon.com/en_en/bedrock/latest/userguide/model-card-anthropic-claude-sonnet-4-6.html) |
@@ -77,7 +85,7 @@ Cohere deprecated the two unversioned Command R aliases on 2025-09-15. Correctin
 their caps does not restore availability; existing IDs are preserved for users.
 
 Local `ollama_chat/`, `lm_studio/`, `llamacpp/` and `custom/` clients omit the
-output cap unless a positive global override is supplied. A deployment name
+output cap unless a positive global or role-assignment override is supplied. A deployment name
 does not establish model/context limits. Server defaults may shorten responses;
 operators should set an appropriate explicit cap for long reports. Remaining
 cloud routes retain existing defaults while their exact contracts are unresolved.
@@ -137,7 +145,7 @@ The affected test commands are
 repository's required CI/Security workflows, while retaining #1088 as its
 prerequisite ancestry. The two PRs should be integrated in that order.
 
-Local results: **829 LLM tests passed** with two workers; **8 catalog tests
+Local results: **835 LLM tests passed** with two workers; **8 catalog tests
 passed**; generation drift check clean (204 records / four outputs); repository
 Ruff check and format check passed; basedpyright reported zero errors. The CSV's
 unique identities, redaction, status counts and SHA-256 were checked against the

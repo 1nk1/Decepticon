@@ -146,12 +146,13 @@ def _model_max_output_tokens(model: str) -> int:
     return DEFAULT_LLM_MAX_TOKENS
 
 
-def _resolve_max_tokens(model: str) -> int | None:
+def _resolve_max_tokens(model: str, role_cap: int | None = None) -> int | None:
     """Output-token cap for a factory-created model.
 
     ``DECEPTICON_LLM_MAX_TOKENS`` (explicit override) wins when set to a
-    positive int; otherwise use the reviewed route default or existing cloud
-    fallback. Local/custom deployments omit the cap so their server chooses a
+    positive int, followed by a positive role-assignment cap, then the reviewed
+    route default or existing cloud fallback. Local/custom deployments omit the
+    cap when no explicit override exists so their server chooses a
     value appropriate to the loaded model/context. This does not reserve room
     for the prompt or guarantee that a large deliverable fits in one response.
     """
@@ -163,6 +164,8 @@ def _resolve_max_tokens(model: str) -> int | None:
             value = 0
         if value > 0:
             return value
+    if role_cap is not None and role_cap > 0:
+        return role_cap
     if model.split("/", 1)[0].lower() in RUNTIME_DEFINED_PROVIDERS:
         return None
     return _model_max_output_tokens(model)
@@ -1788,6 +1791,7 @@ class LLMFactory:
                 primary=desktop_model,
                 fallbacks=[],
                 temperature=assignment.temperature,
+                max_tokens=assignment.max_tokens,
             )
         override = resolve_role_model(role)
         if not override or override == assignment.primary:
@@ -1796,6 +1800,7 @@ class LLMFactory:
             primary=override,
             fallbacks=[assignment.primary, *(m for m in assignment.fallbacks if m != override)],
             temperature=assignment.temperature,
+            max_tokens=assignment.max_tokens,
         )
 
     @staticmethod
@@ -1875,7 +1880,9 @@ class LLMFactory:
             _redact_url_credentials(self._proxy.url),
         )
 
-        model = self._create_chat_model(assignment.primary, assignment.temperature)
+        model = self._create_chat_model(
+            assignment.primary, assignment.temperature, assignment.max_tokens
+        )
         self._cache[role] = model
         return model
 
@@ -1903,10 +1910,13 @@ class LLMFactory:
             assignment.fallbacks,
         )
         return [
-            self._create_chat_model(model, assignment.temperature) for model in assignment.fallbacks
+            self._create_chat_model(model, assignment.temperature, assignment.max_tokens)
+            for model in assignment.fallbacks
         ]
 
-    def _create_chat_model(self, model: str, temperature: float | None) -> BaseChatModel:
+    def _create_chat_model(
+        self, model: str, temperature: float | None, max_tokens: int | None = None
+    ) -> BaseChatModel:
         """Create a proxied ChatOpenAI instance routed through LiteLLM proxy.
 
         Claude Opus 4.7+ rejects ``temperature`` with a 400 invalid_request
@@ -1933,7 +1943,7 @@ class LLMFactory:
             "max_retries": self._proxy.max_retries,
             # Per-model cap so large single-call deliverables (finding reports,
             # recon target models) don't truncate at the proxy's 4096 default.
-            "max_tokens": _resolve_max_tokens(model),
+            "max_tokens": _resolve_max_tokens(model, max_tokens),
             # Stream the completion even when the agent calls ``invoke()``.
             # LangChain only emits ``on_llm_new_token`` when the underlying
             # request streams, and LangGraph's "messages" stream mode is built
