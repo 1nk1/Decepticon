@@ -15,13 +15,25 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed [PR #1093](https://github.com/BitterSecurity/Decepticon/pull/1093): use example.com/decepticon.red engagement examples, query passive sources concurrently under one deadline and keep partial results with concise timeout guidance; preserve literal wildcard targets in the scope review. Unify the Ink CLI/TUI and Go launcher's branding, controls, activity, agents and Markdown around graphite/silver surfaces, neutral focus edges and explicit status glyphs. Existing commands, scope approval and persisted data remain compatible; external discovery availability is still best-effort.
+- Release record: document actual 1.6.1 publication, immutable distributions,
+  measured port recovery, neutral onboarding and same-volume WSL acceptance
+  ([PR #1094](https://github.com/BitterSecurity/Decepticon/pull/1094)).
+  This post-tag documentation does not move the release tag or change runtime versions.
 
-- Proposed [PR #1092](https://github.com/BitterSecurity/Decepticon/pull/1092): preserve the web terminal's internal port 3003 when host publications are remapped, and pass the selected web host port to its origin checks. Browser runtime endpoints continue using host ports. This compatible follow-up to #1091 requires no data migration.
+## [1.6.1] — 2026-10-25
 
-- Proposed [PR #1091](https://github.com/BitterSecurity/Decepticon/pull/1091): recover Docker-confirmed loopback TCP port conflicts during launcher startup by trying higher ports and atomically saving the chosen values. Rewire host probes, CLI/web connection hints and credential migration; keep internal service addresses, credentials, volumes and the existing port owner intact. Custom hardcoded bindings and exhausted ranges remain actionable errors. No manual migration is required; persisted host URLs can change after a conflict.
+- Published from `8c6c0fdccf59f53ad621493c2fb6481be297ef72` after source and
+  downloaded-candidate qualification. See the [qualification record](docs/releases/1.6.1-qualification.md).
+  Upgrade with `decepticon update --channel latest`; no database reset is needed.
+  Port-conflict recovery can change host URLs and saves the selected values.
 
-- Proposed [PR #1089](https://github.com/BitterSecurity/Decepticon/pull/1089),
+- Released [PR #1093](https://github.com/BitterSecurity/Decepticon/pull/1093): use example.com/decepticon.red engagement examples, query passive sources concurrently under one deadline and keep partial results with concise timeout guidance; preserve literal wildcard targets in the scope review. Unify the Ink CLI/TUI and Go launcher's branding, controls, activity, agents and Markdown around graphite/silver surfaces, neutral focus edges and explicit status glyphs. Existing commands, scope approval and persisted data remain compatible; external discovery availability is still best-effort.
+
+- Released [PR #1092](https://github.com/BitterSecurity/Decepticon/pull/1092): preserve the web terminal's internal port 3003 when host publications are remapped, and pass the selected web host port to its origin checks. Browser runtime endpoints continue using host ports. This compatible follow-up to #1091 requires no data migration.
+
+- Released [PR #1091](https://github.com/BitterSecurity/Decepticon/pull/1091): recover Docker-confirmed loopback TCP port conflicts during launcher startup by trying higher ports and atomically saving the chosen values. Rewire host probes, CLI/web connection hints and credential migration; keep internal service addresses, credentials, volumes and the existing port owner intact. Custom hardcoded bindings and exhausted ranges remain actionable errors. No manual migration is required; persisted host URLs can change after a conflict.
+
+- Released [PR #1089](https://github.com/BitterSecurity/Decepticon/pull/1089),
   following #1088: audit all 295 configured/picker model routes as of 2026-10-25 KST,
   with per-route sources, explicit unresolved contracts and redacted managed
   identities. Correct 17 reviewed model/route output defaults (including AWS's
@@ -30,7 +42,7 @@ Keep proposed and unmerged changes out of released sections.
   which may shorten responses. Remove three embedding-only models from the
   CLI agent picker while retaining their embedding routes. Includes local HTTP
   regressions and a [full audit](docs/model-contract-audit-2026-10-25.md);
-  provider inference and release qualification remain explicitly unverified.
+  provider-wide inference remains explicitly unverified; release qualification is recorded separately.
   Honor positive role-assignment output caps on primary/fallback clients and
   preserve them across desktop/role model overrides; global caps take priority.
   Existing configured role caps now take effect instead of being ignored.
@@ -48,15 +60,15 @@ Keep proposed and unmerged changes out of released sections.
   Automatic Google API defaults use current GA 3.8 Flash/3.5 Flash-Lite for
   new-project eligibility; explicit legacy and subscription IDs are preserved.
 
-- Proposed [PR #1088](https://github.com/BitterSecurity/Decepticon/pull/1088)
+- Released [PR #1088](https://github.com/BitterSecurity/Decepticon/pull/1088)
   (fixes #1087): resolve Claude output ceilings by model/version across provider,
   dotted, dated and Bedrock IDs. Opus/Sonnet 4.5 default to 64000; newer supported
   models keep 128000 and Haiku 5.5 gains its supported 128000 default. Align
   Haiku/dotted 5.5 thinking replay and sampling exclusions with existing catalog
   policy. Preserve positive global overrides, route identities and saved state;
   unknown models retain the 64000 fallback. Includes a [related-path audit](docs/model-output-limit-audit.md) and
-  actual local HTTP request regressions. Pending source change, not a 1.6.0
-  artifact replacement; no version bump or provider inference is performed.
+  actual local HTTP request regressions. Released in 1.6.1 without replacing 1.6.0 artifacts; no data migration is required.
+  Provider-wide inference is not claimed.
 
 
 - Release record: document the actual 1.6.0 publication, immutable artifacts,
@@ -1865,7 +1877,8 @@ The following legacy import paths keep working but emit a
   atomic release.
 - Downstream plugin package lockstep migration.
 
-[Unreleased]: https://github.com/BitterSecurity/Decepticon/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/BitterSecurity/Decepticon/compare/v1.6.1...HEAD
+[1.6.1]: https://github.com/BitterSecurity/Decepticon/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/BitterSecurity/Decepticon/compare/v1.5.4...v1.6.0
 [1.5.4]: https://github.com/BitterSecurity/Decepticon/compare/v1.5.2...v1.5.4
 [1.5.2]: https://github.com/BitterSecurity/Decepticon/compare/v1.5.0...v1.5.2
