@@ -1019,22 +1019,8 @@ class TestResolveCredentials:
         """When every detected method is a placeholder/missing, the resolver
         falls back to the all-API-methods inventory so module-level agent
         constructors stay importable in CI / dev shells without keys."""
+        _scrub_other_credentials(monkeypatch)
         monkeypatch.setenv("ANTHROPIC_API_KEY", "your-anthropic-key-here")
-        for k in (
-            "OPENAI_API_KEY",
-            "GEMINI_API_KEY",
-            "MINIMAX_API_KEY",
-            "DEEPSEEK_API_KEY",
-            "XAI_API_KEY",
-            "MISTRAL_API_KEY",
-            "OPENROUTER_API_KEY",
-            "NVIDIA_API_KEY",
-            "OLLAMA_API_BASE",
-            "OLLAMA_MODEL",
-        ):
-            monkeypatch.delenv(k, raising=False)
-        monkeypatch.delenv("DECEPTICON_AUTH_PRIORITY", raising=False)
-        monkeypatch.delenv("DECEPTICON_AUTH_CLAUDE_CODE", raising=False)
         creds = _resolve_credentials()
         assert creds.methods == [
             AuthMethod.ANTHROPIC_API,
@@ -1130,22 +1116,7 @@ class TestResolveCredentials:
         so module imports work without keys present. Only **explicit**
         priority with no matches gets escalated to ERROR.
         """
-        for k in (
-            "ANTHROPIC_API_KEY",
-            "OPENAI_API_KEY",
-            "GEMINI_API_KEY",
-            "MINIMAX_API_KEY",
-            "DEEPSEEK_API_KEY",
-            "XAI_API_KEY",
-            "MISTRAL_API_KEY",
-            "OPENROUTER_API_KEY",
-            "NVIDIA_API_KEY",
-            "OLLAMA_API_BASE",
-            "OLLAMA_MODEL",
-        ):
-            monkeypatch.delenv(k, raising=False)
-        monkeypatch.delenv("DECEPTICON_AUTH_PRIORITY", raising=False)
-        monkeypatch.delenv("DECEPTICON_AUTH_CLAUDE_CODE", raising=False)
+        _scrub_other_credentials(monkeypatch)
 
         # Match the explicit-priority test's pattern so caplog sees the
         # records — the decepticon parent logger defaults to
