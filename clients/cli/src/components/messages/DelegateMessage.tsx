@@ -8,7 +8,7 @@
 
 import React from "react";
 import { Box, Text } from "ink";
-import { GLYPH_DOT, GLYPH_HOOK } from "../../utils/theme.js";
+import { PALETTE, GLYPH_DOT, GLYPH_HOOK } from "../../utils/theme.js";
 import { useScreen } from "../shell/ScreenContext.js";
 
 interface Props {
@@ -25,9 +25,9 @@ export const DelegateMessage = React.memo(function DelegateMessage({
   return (
     <Box flexDirection="column" marginTop={1}>
       <Text>
-        <Text color="cyan">{`${GLYPH_DOT} `}</Text>
-        <Text color="white" bold>{"Delegate"}</Text>
-        <Text color="gray" italic>{` (${agent})`}</Text>
+        <Text color={PALETTE.info}>{`${GLYPH_DOT} `}</Text>
+        <Text color={PALETTE.text} bold>{"Delegate"}</Text>
+        <Text color={PALETTE.muted} italic>{` (${agent})`}</Text>
       </Text>
       {screen === "transcript" && content && (
         <Text dimColor wrap="wrap">{`  ${GLYPH_HOOK}  ${content}`}</Text>

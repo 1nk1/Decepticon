@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
-import { GLYPH_DOT } from "../../utils/theme.js";
+import { PALETTE, GLYPH_DOT } from "../../utils/theme.js";
 import type { PendingTool } from "../../hooks/useAgent.js";
 
 interface Props {
@@ -30,7 +30,7 @@ export const PendingToolMessage = React.memo(function PendingToolMessage({
   return (
     <Box marginTop={1}>
       <Text>
-        <Text color="yellow">{`${GLYPH_DOT} `}</Text>
+        <Text color={PALETTE.warning}>{`${GLYPH_DOT} `}</Text>
         <Text bold>{tool.name}</Text>
         {args ? <Text dimColor>({args})</Text> : null}
         <Text dimColor> …</Text>

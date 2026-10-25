@@ -13,7 +13,7 @@
 import React from "react";
 import { Box, Text } from "ink";
 import type { OpplanState } from "../hooks/useOpplan.js";
-import { STATUS_ICON, GLYPH_DOT, GLYPH_HOOK, GLYPH_ELLIPSIS } from "../utils/theme.js";
+import { PALETTE, STATUS_ICON, GLYPH_DOT, GLYPH_HOOK, GLYPH_ELLIPSIS } from "../utils/theme.js";
 
 const MAX_VISIBLE = 8;
 
@@ -33,7 +33,7 @@ export const OpplanStatus = React.memo(function OpplanStatus({
   const pendingCount = objectives.length - completedCount - inProgressCount - blockedCount;
 
   const allDone = completedCount === objectives.length;
-  const dotColor = allDone ? "green" : "cyan";
+  const dotColor = allDone ? PALETTE.success : PALETTE.info;
 
   // Build summary parts
   const parts: string[] = [];

@@ -27,6 +27,23 @@ export const TREE = {
 /** Horizontal ellipsis (…). */
 export const GLYPH_ELLIPSIS = "\u2026";
 
+/** Neutral surface/ink ramp shared with the Go launcher. Depth comes from
+ * recessed input surfaces, raised controls and bright focus edges. Status
+ * always has an icon or label; color is never its only identifier. */
+export const PALETTE = {
+  ground: "#101010",
+  surface: "#1c1c1c",
+  raised: "#2a2a2a",
+  border: "#666666",
+  muted: "#a0a0a0",
+  text: "#d4d4d4",
+  focus: "#eeeeee",
+  success: "#c4c4c4",
+  warning: "#dedede",
+  error: "#f4f4f4",
+  info: "#b8b8b8",
+} as const;
+
 // ── Status icons ────────────────────────────────────────────────────
 
 export interface StatusStyle {
@@ -36,26 +53,26 @@ export interface StatusStyle {
 
 /** Objective / task status → icon + color. */
 export const STATUS_ICON: Record<string, StatusStyle> = {
-  completed: { icon: "\u2713", color: "green" },
-  "in-progress": { icon: "\u25FC", color: "yellow" },
-  blocked: { icon: "\u2717", color: "red" },
-  pending: { icon: "\u25FB", color: "gray" },
+  completed: { icon: "\u2713", color: PALETTE.success },
+  "in-progress": { icon: "\u25FC", color: PALETTE.warning },
+  blocked: { icon: "\u2717", color: PALETTE.error },
+  pending: { icon: "\u25FB", color: PALETTE.muted },
 };
 
 /** Todo status → icon + color (uses underscored keys). */
 export const TODO_ICON: Record<string, StatusStyle> = {
-  completed: { icon: "\u2713", color: "green" },
-  in_progress: { icon: "\u2610", color: "white" },
-  pending: { icon: "\u2610", color: "gray" },
+  completed: { icon: "\u2713", color: PALETTE.success },
+  in_progress: { icon: "\u2610", color: PALETTE.text },
+  pending: { icon: "\u2610", color: PALETTE.muted },
 };
 
 // ── Agent colors ────────────────────────────────────────────────────
 
 /** Kill-chain agent name → display color. */
 export const AGENT_COLORS: Record<string, string> = {
-  decepticon: "blue",
-  recon: "cyan",
-  exploit: "red",
-  postexploit: "magenta",
-  soundwave: "yellow",
+  decepticon: PALETTE.text,
+  recon: PALETTE.info,
+  exploit: PALETTE.error,
+  postexploit: PALETTE.muted,
+  soundwave: PALETTE.warning,
 };

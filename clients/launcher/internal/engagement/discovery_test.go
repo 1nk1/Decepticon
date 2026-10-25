@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -178,5 +179,36 @@ func TestDiscoveryZonePicksFirstPlainHostname(t *testing.T) {
 		if got := discoveryZone(tc.targets); got != tc.zone {
 			t.Errorf("discoveryZone(%v) = %q, want %q", tc.targets, got, tc.zone)
 		}
+	}
+}
+
+func TestDiscoveryStartsDNSBeforeCTFinishes(t *testing.T) {
+	dnsStarted := make(chan struct{})
+	withTestSources(t,
+		func(w http.ResponseWriter, r *http.Request) {
+			select {
+			case <-dnsStarted:
+				w.WriteHeader(http.StatusServiceUnavailable)
+			case <-r.Context().Done():
+			}
+		},
+		func(w http.ResponseWriter, _ *http.Request) {
+			close(dnsStarted)
+			_, _ = w.Write([]byte("api.decepticon.red,203.0.113.10\n"))
+		},
+	)
+	discovery := DiscoverScope("decepticon.red", time.Second)
+	if !containsString(discovery.Recommended, "api.decepticon.red") {
+		t.Fatalf("slow CT starved DNS: %+v", discovery)
+	}
+	if len(discovery.Notes) != 1 || discovery.Notes[0] != "CT logs unavailable" {
+		t.Fatalf("unexpected degraded status: %+v", discovery)
+	}
+}
+
+func TestDiscoveryTimeoutNoteOmitsTransportDetails(t *testing.T) {
+	note := discoveryNote("CT logs", &url.Error{Op: "Get", URL: "https://crt.sh/?q=private.example.com", Err: context.DeadlineExceeded})
+	if note != "CT logs unavailable (timed out)" {
+		t.Fatalf("unexpected note: %s", note)
 	}
 }

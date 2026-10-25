@@ -1,3 +1,4 @@
+import { PALETTE } from "../utils/theme.js";
 import React from "react";
 import { Box, Text } from "ink";
 import { useScreen } from "./shell/ScreenContext.js";
@@ -68,15 +69,15 @@ export const BashResult = React.memo(function BashResult({
   return (
     <Box flexDirection="column">
       <Text>
-        <Text color="green" bold>{"┌──("}</Text>
-        <Text color="red" bold>{"root㉿sandbox"}</Text>
-        <Text color="green" bold>{")-["}</Text>
-        <Text color="blue" bold>{cwd}</Text>
-        <Text color="green" bold>{"]"}</Text>
+        <Text color={PALETTE.success} bold>{"┌──("}</Text>
+        <Text color={PALETTE.error} bold>{"root㉿sandbox"}</Text>
+        <Text color={PALETTE.success} bold>{")-["}</Text>
+        <Text color={PALETTE.text} bold>{cwd}</Text>
+        <Text color={PALETTE.success} bold>{"]"}</Text>
       </Text>
 
       <Text>
-        <Text color="green" bold>{"└─# "}</Text>
+        <Text color={PALETTE.success} bold>{"└─# "}</Text>
         <Text bold>{command}</Text>
       </Text>
 
@@ -85,7 +86,7 @@ export const BashResult = React.memo(function BashResult({
         .map((line, i) => (
           <Text
             key={i}
-            color={isError ? "red" : isInfo ? "cyan" : undefined}
+            color={isError ? PALETTE.error : isInfo ? PALETTE.info : undefined}
             dimColor={!isError && !isInfo}
           >
             {line}

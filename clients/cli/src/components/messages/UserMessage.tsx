@@ -1,3 +1,4 @@
+import { PALETTE } from "../../utils/theme.js";
 import React from "react";
 import { Box, Text } from "ink";
 import { CtrlOToExpand } from "../shell/CtrlOToExpand.js";
@@ -21,7 +22,7 @@ export const UserMessage = React.memo(function UserMessage({ content }: Props) {
 
   return (
     <Box flexDirection="column" marginTop={1} marginBottom={1}>
-      <Text backgroundColor="#333333" color="white" bold>
+      <Text backgroundColor={PALETTE.raised} color={PALETTE.text} bold>
         {` \u276F ${display} `}
       </Text>
       {isTruncated && <CtrlOToExpand />}

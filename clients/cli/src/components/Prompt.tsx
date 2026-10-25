@@ -1,3 +1,4 @@
+import { PALETTE } from "../utils/theme.js";
 import React, { useEffect, useRef, useState } from "react";
 import { Box, Text, useInput, useStdin } from "ink";
 import { useTerminalSize } from "../hooks/useTerminalSize.js";
@@ -206,16 +207,14 @@ function Composer({ runState, onSubmit, activeAgent = null, assistantId = "decep
   return (
     <Box flexDirection="column" marginTop={1}>
       {queuedMessage && isActive && <Text dimColor>Queued: {queuedMessage}</Text>}
-      <Text dimColor>{"─".repeat(columns)}</Text>
-      <Box><Text>{"› "}</Text><Text>{viewport.text.slice(0, viewport.cursor)}<Text inverse>{cursorGlyph === "\n" || !cursorGlyph ? " " : cursorGlyph}</Text>{viewport.text.slice(viewport.cursor + (cursorGlyph === "\n" ? 0 : cursorGlyph.length))}</Text></Box>
+      <Box borderStyle="round" borderColor={PALETTE.border} backgroundColor={PALETTE.surface} paddingX={1}><Text color={PALETTE.focus}>{"› "}</Text><Text color={PALETTE.text}>{viewport.text.slice(0, viewport.cursor)}<Text inverse>{cursorGlyph === "\n" || !cursorGlyph ? " " : cursorGlyph}</Text>{viewport.text.slice(viewport.cursor + (cursorGlyph === "\n" ? 0 : cursorGlyph.length))}</Text></Box>
       {lineCount > 3 && <Text dimColor>{lineCount} lines · {value.length} characters · Ctrl+G opens editor</Text>}
-      <Text dimColor>{"─".repeat(columns)}</Text>
       {search !== null && <Text>History search: {search} · {matches[searchIndex] ?? "No match"}</Text>}
       {choices.slice(menuStart, menuStart + 6).map((choice, index) => <Text key={choice.value} bold={index + menuStart === selected} dimColor={index + menuStart !== selected}>{index + menuStart === selected ? "› " : "  "}{choice.value} — {choice.description}{choice.hint ? <Text dimColor> [{choice.hint}]</Text> : null}</Text>)}
       <Text><Text bold>{mode}</Text>{" · "}{labelForAgent(activeAgent ?? assistantId)}{columns >= 70 ? ` · ${engagement}` : ""}{columns >= 100 ? ` · ${model || getModelOverride() || "default model"}` : ""}{connectionStatus ? ` · ${connectionStatus}` : ""}</Text>
       {help && KEYBOARD_HELP.map((line) => <Text key={line} dimColor>{line}</Text>)}
       <Text dimColor>{isActive ? "Esc / Ctrl+C pause · Ctrl+C twice cancel · /queue edit · ? shortcuts" : runState === "paused" ? "/resume continue · Ctrl+C cancel · ? shortcuts" : "Enter send · Shift+Enter newline · ↑/↓ history · ? shortcuts"}</Text>
-      {editor.error && <Text color="yellow">Composer: {editor.error}</Text>}
+      {editor.error && <Text color={PALETTE.warning}>Composer: {editor.error}</Text>}
     </Box>
   );
 }

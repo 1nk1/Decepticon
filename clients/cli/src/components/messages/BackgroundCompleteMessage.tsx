@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
-import { GLYPH_DOT } from "../../utils/theme.js";
+import { PALETTE, GLYPH_DOT } from "../../utils/theme.js";
 
 interface Props {
   command?: string;
@@ -40,7 +40,7 @@ export const BackgroundCompleteMessage = React.memo(
 
     return (
       <Box marginTop={1} flexDirection="column">
-        <Text color={failed ? "red" : "green"}>
+        <Text color={failed ? PALETTE.error : PALETTE.success}>
           {GLYPH_DOT} <Text bold>Background command</Text>
           {command ? ` "${command}"` : ""} completed{exitStr}
           <Text dimColor>{suffix}</Text>
