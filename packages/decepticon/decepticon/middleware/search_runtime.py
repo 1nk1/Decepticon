@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Sequence
 from datetime import UTC, datetime
 from threading import Lock
 from typing import Annotated, NotRequired
@@ -68,6 +68,26 @@ _MUTATIONS = frozenset(
         "bind_workflow_task",
     }
 )
+# Reading local context or asking the operator a question does not itself
+# start an assessment. Unknown/custom tools conservatively count as search work.
+_CONVERSATION_TOOLS = frozenset(
+    {"load_opplan", "inspect_artifacts", "ls", "read_file", "glob", "grep", "ask_user_question"}
+)
+
+
+def _search_work_in_turn(messages: Sequence[BaseMessage]) -> bool:
+    for message in reversed(messages):
+        if isinstance(message, HumanMessage) and not message.additional_kwargs.get(
+            "decepticon_internal"
+        ):
+            break
+        if isinstance(message, AIMessage) and any(
+            call["name"] not in _CONVERSATION_TOOLS for call in message.tool_calls
+        ):
+            return True
+    return False
+
+
 _DOCUMENT_WRITERS = frozenset(
     {
         "verifier",
@@ -89,6 +109,12 @@ def merge_recovery_events(
 
 
 _POLICY = """<artifact-search-v2>
+Greetings, explanations and read-only status questions are conversational turns,
+not instructions to start or finish an assessment. Answer them without mission
+bootstrap or target-facing work. A conversational answer leaves the search pending;
+it never establishes goal completion. Once assessment tools run in this turn, the
+validated receipt and continuation rules below apply. Explicit runtime search
+requests retain those rules from the start.
 The runtime owns document UUIDs, filenames, numbers and committed revisions.
 Use create_artifact/edit_artifact for working drafts, commit_artifact at a plan,
 experiment, verification or publication milestone; inspect_artifacts to reuse work.
@@ -116,6 +142,7 @@ never closes the run. All target activity remains bounded by the approved RoE.
 class SearchRuntimeState(AgentState):
     artifact_registry: NotRequired[Annotated[str, OmitFromInput]]
     search_state: NotRequired[Annotated[str, OmitFromInput]]
+    search_turn_active: NotRequired[Annotated[bool, OmitFromInput]]
     search_receipt: NotRequired[Annotated[str, OmitFromInput]]
     search_last_review: NotRequired[Annotated[str, OmitFromInput]]
     search_task_events: Annotated[NotRequired[dict[str, str]], OmitFromInput, merge_search_events]
@@ -172,20 +199,37 @@ class SearchRuntimeMiddleware(AgentMiddleware):
                 )
             if workflow.document.metadata.search_goal != "verified-high":
                 return {}
+        messages = state.get("messages", [])
+        new_operator_turn = bool(
+            messages
+            and isinstance(messages[-1], HumanMessage)
+            and not messages[-1].additional_kwargs.get("decepticon_internal")
+        )
+        autohunt = bool(configurable.get("target_value")) and configurable.get(
+            "target_type"
+        ) not in {None, "", "direct_scope"}
+        explicit_search = policy_version == 2 or bool(configurable.get("search_run_id")) or autohunt
+        turn_active = explicit_search or (
+            not new_operator_turn
+            and bool(state.get("search_turn_active") or _search_work_in_turn(messages))
+        )
+        turn_update: dict[str, object] = {"search_turn_active": turn_active}
         previous_state = state.get("search_state")
         previous = SearchSession.model_validate_json(previous_state) if previous_state else None
         run_id = configurable.get("search_run_id") or (
-            previous.run_id if previous and previous.disposition is None else str(uuid4())
+            previous.run_id
+            if previous and (not explicit_search or previous.disposition is None)
+            else str(uuid4())
         )
         if previous and previous.run_id == run_id:
-            return {}
+            return turn_update
         session = SearchSession(
             thread_id=str(configurable.get("thread_id", "")),
             run_id=str(run_id),
             started_at=datetime.now(UTC).isoformat(),
             max_dispatches=configurable.get("search_max_dispatches"),
         )
-        return {"search_state": session.model_dump_json(), "search_receipt": ""}
+        return {**turn_update, "search_state": session.model_dump_json(), "search_receipt": ""}
 
     def _enabled(self, state: AgentState) -> bool:
         return bool(state.get("search_state")) and get_config().get("configurable", {}).get(
@@ -229,7 +273,27 @@ class SearchRuntimeMiddleware(AgentMiddleware):
             (message for message in reversed(state["messages"]) if isinstance(message, AIMessage)),
             None,
         )
-        if latest is None or latest.tool_calls:
+        if latest is None:
+            return None
+        if latest.tool_calls:
+            if any(call["name"] not in _CONVERSATION_TOOLS for call in latest.tool_calls):
+                session = SearchSession.model_validate_json(state.get("search_state", ""))
+                configurable = get_config().get("configurable", {})
+                if session.disposition is not None and not configurable.get("search_run_id"):
+                    session = SearchSession(
+                        thread_id=str(configurable.get("thread_id", "")),
+                        run_id=str(uuid4()),
+                        started_at=datetime.now(UTC).isoformat(),
+                        max_dispatches=configurable.get("search_max_dispatches"),
+                    )
+                    return {
+                        "search_turn_active": True,
+                        "search_state": session.model_dump_json(),
+                        "search_receipt": "",
+                    }
+                return {"search_turn_active": True}
+            return None
+        if not state.get("search_turn_active"):
             return None
         session = SearchSession.model_validate_json(state.get("search_state", ""))
         if session.disposition is not None and state.get("search_receipt"):
@@ -369,6 +433,7 @@ class SearchRuntimeMiddleware(AgentMiddleware):
                 )
                 if specialist_role in _DOCUMENT_WRITERS:
                     update["artifact_registry"] = restored.model_dump_json()
+                update.pop("search_turn_active", None)
                 update.pop("search_state", None)
                 update.pop("search_receipt", None)
                 update.pop("search_last_review", None)
@@ -435,6 +500,7 @@ class SearchRuntimeMiddleware(AgentMiddleware):
         update["search_task_events"] = {
             session.run_id + ":" + call_id: str(args.get("task_id", ""))
         }
+        update.pop("search_turn_active", None)
         update.pop("search_state", None)
         update.pop("search_receipt", None)
         update.pop("search_last_review", None)
