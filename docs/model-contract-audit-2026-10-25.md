@@ -11,7 +11,7 @@ are announcements, not proof that a model has already retired.
 ## Coverage and evidence
 
 Inventory: 204 public catalog records, 93 static routes, 138 optional routes,
-112 distinct role/fallback identities, 16 subscription routes and 104 literal
+111 distinct role/fallback identities, 16 subscription routes and 104 literal
 CLI picker identities. Their union is **295 unique routes**, across 58 namespaces.
 The initial 293-route inventory omitted two concrete CLI-only identities; this
 follow-up includes both. This includes more than the public
@@ -34,7 +34,7 @@ streaming quality or successful paid inference. No provider inference was run.
 
 | Review outcome | Routes |
 | --- | ---: |
-| Documented/registry output defaults corrected | 16 |
+| Documented/registry output defaults corrected | 17 |
 | Other documented output bounds checked | 59 |
 | Exact gateway registry output bound checked | 56 |
 | Documented output policy checked (no separate text-output limit) | 1 |
@@ -44,21 +44,36 @@ streaming quality or successful paid inference. No provider inference was run.
 | Subscription/coding-plan contract requires authenticated verification | 31 |
 | Account/deployment/region contract requires verification | 9 |
 | Anonymous model endpoint requires authentication (401/403) | 39 |
-| Exact registry ID confirmed, separate output bound not provided | 25 |
+| Publisher output specification referenced across hosting aliases | 16 |
+| Publisher shared-context specification referenced across hosting aliases | 8 |
 | Exact configured ID absent from anonymous registry | 9 |
 | Registry response unusable | 3 |
 | Documented tier restriction; enterprise exception | 1 |
 | MiMo endpoint fixed; exact model acceptance/output still unverified | 3 |
 | Managed routes, identities redacted; local transport checked | 33 |
 
-Of the original 196 unverified entries, **76 now have an authoritative output
-bound/policy checked**, including three additional cap corrections. The remaining
-120 have concrete account, deployment, registry or model-identity limitations
-recorded individually. They are not 120 confirmed bugs or certification of the
+The model specification and the hosting/API contract are separate axes.
+For an exactly identified model, start with its original publisher's official
+specification and reuse it across hosts. A missing hosting-registry field does
+not make that model specification unavailable. Explicit smaller hosting request
+limits are recorded separately and remain valid constraints on that route.
+
+Of the original 196 entries, 76 received additional output-bound/policy checks.
+The following publisher-first pass resolves all 25 former identity-only cases:
+16 refer to publisher output specs, eight refer to the publisher's shared-context
+specification, and one revealed NVIDIA's 4K output limit and is corrected.
+The remaining **95** concern hosting access, deployment, registry responses or
+model identity, rather than 95 unknown model specifications. They are not 95 confirmed bugs or certification of the
 retained defaults. Anonymous reads used no credentials: authentication errors do
 not establish model availability, and public registry presence does not grant
 account access. Provider-specific live tests are still needed before claiming
 all routes work end to end; this is not release qualification for all providers.
+
+The CSV now records `canonical_model`, `publisher_max_output_reference`,
+`publisher_context_reference`, `publisher_source`, `publisher_reference_kind`,
+`hosting_max_output_reference` and `hosting_verification` separately. Publisher
+API reference limits are labelled as such; example generation budgets are not
+misrepresented as model maxima. Shared context is not a separate output budget.
 
 ## Corrected defaults
 
@@ -91,6 +106,7 @@ serialized primary/fallback requests and desktop/role model overrides.
 | `zenmux/anthropic/claude-sonnet-4.6` | 128000 → 64000 | [ZenMux registry](https://zenmux.ai/api/v1/models) |
 | `venice/claude-sonnet-4-6` | 128000 → 64000 | [Venice registry](https://api.venice.ai/api/v1/models) |
 | `venice/deepseek-v4-flash` | 64000 → 32768 | [Venice registry](https://api.venice.ai/api/v1/models) |
+| `nvidia_nim/nvidia/llama-3.1-nemotron-70b-instruct` | 64000 → 4000 (conservative 4K default) | [Original NVIDIA card](https://huggingface.co/nvidia/Llama-3.1-Nemotron-70B-Instruct/raw/a83af1f4968437064635f6726fb745e5b615e863/README.md) |
 
 AWS's Sonnet limit must not be inherited by Anthropic/OpenRouter Sonnet 4.6
 routes, which retain 128000. Cerebras documents 32768 for free and 40960 for paid
@@ -137,6 +153,9 @@ metadata remain available. The generator regression checks both behaviors.
   2.5 pages restrict API access to previously active users. Output specs and
   account eligibility are recorded separately; public API specs grant no
   subscription entitlement.
+  Automatic public-API defaults now use GA Gemini 3.8 Flash for HIGH/MID and
+  3.5 Flash-Lite for LOW so new API projects avoid the 2.5 eligibility gate.
+  Explicit 2.5 selections and Gemini subscription route definitions are retained.
 - Bare AWS Bedrock model IDs are insufficient for on-demand runtime access on
   the reviewed Claude cards: operators must choose eligible geo/global profiles
   and regions. Output-bound checks do not verify those account/profile grants,
@@ -193,7 +212,7 @@ The affected test commands are
 repository's required CI/Security workflows, while retaining #1088 as its
 prerequisite ancestry. The two PRs should be integrated in that order.
 
-Local results: **841 LLM tests passed** with two workers; **9 catalog tests
+Local results: **846 LLM tests passed** with two workers; **9 catalog tests
 passed**; generation drift check clean (204 records / four outputs); repository
 Ruff check and format check passed; basedpyright reported zero errors. The CSV's
 unique identities, redaction, status counts and SHA-256 were checked against the

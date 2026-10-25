@@ -224,6 +224,20 @@ class TestMaxTokensResolution:
     def test_haiku_gets_64k(self) -> None:
         assert _model_max_output_tokens("anthropic/claude-haiku-4-5") == 64000
 
+    @pytest.mark.parametrize(
+        "model_id",
+        [
+            "nvidia_nim/nvidia/llama-3.1-nemotron-70b-instruct",
+            "hf/nvidia/Llama-3.1-Nemotron-70B-Instruct-HF",
+            "gateway/nvidia/Llama-3.1-Nemotron-70B-Instruct",
+        ],
+    )
+    def test_publisher_limit_follows_exact_model_across_hosts(self, model_id, monkeypatch):
+        monkeypatch.delenv(LLM_MAX_TOKENS_ENV, raising=False)
+        assert _resolve_max_tokens(model_id) == 4000
+        monkeypatch.setenv(LLM_MAX_TOKENS_ENV, "8192")
+        assert _resolve_max_tokens(model_id) == 8192
+
     def test_unknown_model_falls_back_to_safe_default(self) -> None:
         assert _model_max_output_tokens("openai/gpt-5-nano") == 64000
 
@@ -324,6 +338,7 @@ class TestLLMFactory:
             ("zenmux/anthropic/claude-sonnet-4.6", 64000),
             ("venice/claude-sonnet-4-6", 64000),
             ("venice/deepseek-v4-flash", 32768),
+            ("nvidia_nim/nvidia/llama-3.1-nemotron-70b-instruct", 4000),
         ],
     )
     def test_legacy_model_request_passes_strict_proxy_limit(
@@ -621,6 +636,24 @@ class TestLLMFactory:
     def test_factory_initializes(self):
         assert self.factory.proxy_url == "http://localhost:4000"
 
+    def test_google_new_project_defaults_preserve_legacy_and_subscription_ids(self) -> None:
+        mapping = LLMModelMapping.from_credentials_and_profile(
+            Credentials(methods=[AuthMethod.GOOGLE_API]), ModelProfile.ECO
+        )
+        factory = LLMFactory(self.proxy, mapping, apply_role_overrides=False)
+        recon = factory.get_model("recon")
+        orchestrator = factory.get_model("decepticon")
+        assert isinstance(recon, ChatOpenAI)
+        assert isinstance(orchestrator, ChatOpenAI)
+        assert recon.model_name == "gemini/gemini-3.5-flash-lite"
+        assert orchestrator.model_name == "gemini/gemini-3.8-flash"
+        explicit = LLMModelMapping(
+            assignments={"recon": ModelAssignment(primary="gemini/gemini-2.5-pro")}
+        )
+        legacy = LLMFactory(self.proxy, explicit, apply_role_overrides=False).get_model("recon")
+        assert isinstance(legacy, ChatOpenAI)
+        assert legacy.model_name == "gemini/gemini-2.5-pro"
+
     def test_groq_automatic_chain_uses_current_models_but_keeps_explicit_legacy(self) -> None:
         mapping = LLMModelMapping.from_credentials_and_profile(
             Credentials(methods=[AuthMethod.GROQ_API]), ModelProfile.ECO
@@ -733,7 +766,7 @@ class TestLLMFactory:
         names = [m.model_name for m in models]
         assert names == [
             "openai/gpt-5-nano",
-            "gemini/gemini-2.5-flash-lite",
+            "gemini/gemini-3.5-flash-lite",
             "deepseek/deepseek-v4-flash",
             "openrouter/anthropic/claude-haiku-4-5",
             "nvidia_nim/meta/llama-3.2-3b-instruct",
@@ -744,7 +777,7 @@ class TestLLMFactory:
         names = [m.model_name for m in models]
         assert names == [
             "openai/gpt-5.5",
-            "gemini/gemini-2.5-pro",
+            "gemini/gemini-3.8-flash",
             "minimax/MiniMax-M3",
             "deepseek/deepseek-v4-pro",
             "xai/grok-4.3",

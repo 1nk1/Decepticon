@@ -194,9 +194,12 @@ METHOD_MODELS: dict[AuthMethod, dict[Tier, str]] = {
         Tier.LOW: "openai/gpt-5-nano",
     },
     AuthMethod.GOOGLE_API: {
-        Tier.HIGH: "gemini/gemini-2.5-pro",
-        Tier.MID: "gemini/gemini-2.5-flash",
-        Tier.LOW: "gemini/gemini-2.5-flash-lite",
+        # Public 2.5 API access is limited to previously active users. Current
+        # GA defaults also work for new API projects; explicit legacy choices
+        # and the separate Gemini subscription route definitions are preserved.
+        Tier.HIGH: "gemini/gemini-3.8-flash",
+        Tier.MID: "gemini/gemini-3.8-flash",
+        Tier.LOW: "gemini/gemini-3.5-flash-lite",
     },
     AuthMethod.MINIMAX_API: {
         Tier.HIGH: "minimax/MiniMax-M3",

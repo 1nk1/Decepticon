@@ -84,9 +84,9 @@ class TestMethodModels:
 
     def test_google_full_tier_coverage(self):
         m = METHOD_MODELS[AuthMethod.GOOGLE_API]
-        assert m[Tier.HIGH] == "gemini/gemini-2.5-pro"
-        assert m[Tier.MID] == "gemini/gemini-2.5-flash"
-        assert m[Tier.LOW] == "gemini/gemini-2.5-flash-lite"
+        assert m[Tier.HIGH] == "gemini/gemini-3.8-flash"
+        assert m[Tier.MID] == "gemini/gemini-3.8-flash"
+        assert m[Tier.LOW] == "gemini/gemini-3.5-flash-lite"
 
     def test_minimax_no_low_tier(self):
         m = METHOD_MODELS[AuthMethod.MINIMAX_API]
@@ -233,7 +233,7 @@ class TestResolveChain:
         assert chain == [
             "openai/gpt-5.5",
             "anthropic/claude-opus-4-8",
-            "gemini/gemini-2.5-pro",
+            "gemini/gemini-3.8-flash",
         ]
 
 
@@ -509,7 +509,7 @@ class TestLLMModelMapping:
         assert a.fallbacks == [
             "anthropic/claude-opus-4-8",
             "openai/gpt-5.5",
-            "gemini/gemini-2.5-pro",
+            "gemini/gemini-3.8-flash",
             "minimax/MiniMax-M3",
         ]
 
@@ -528,7 +528,7 @@ class TestLLMModelMapping:
         assert recon.primary == "anthropic/claude-haiku-4-5"
         assert recon.fallbacks == [
             "openai/gpt-5-nano",
-            "gemini/gemini-2.5-flash-lite",
+            "gemini/gemini-3.5-flash-lite",
         ]
 
     def test_from_credentials_low_tier_minimax_skipped(self):
@@ -563,7 +563,7 @@ class TestLLMModelMapping:
         assert a.primary == "anthropic/claude-opus-4-8"
         assert a.fallbacks == [
             "openai/gpt-5.5",
-            "gemini/gemini-2.5-pro",
+            "gemini/gemini-3.8-flash",
             "minimax/MiniMax-M3",
             "deepseek/deepseek-v4-pro",
             "xai/grok-4.3",

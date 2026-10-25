@@ -6,7 +6,7 @@
     "public": 204,
     "static": 93,
     "optional": 138,
-    "role_mapping": 112,
+    "role_mapping": 111,
     "subscription": 16,
     "cli_literal": 104
   },
@@ -18,11 +18,12 @@
     "documented_bound_checked": 59,
     "subscription_contract_required": 31,
     "deployment_contract_required": 9,
-    "fixed_documented_default": 16,
+    "fixed_documented_default": 17,
     "authenticated_contract_required": 39,
     "registry_bound_checked": 56,
     "runtime_default_omitted": 5,
-    "registry_identity_only": 25,
+    "publisher_context_referenced": 8,
+    "publisher_spec_referenced": 16,
     "embedding_excluded_from_agent_picker": 3,
     "registry_response_unusable": 3,
     "tier_restricted_model": 1,
@@ -52,7 +53,7 @@
       "commit_date_utc": "2026-10-25T01:20:36Z"
     }
   ],
-  "matrix_sha256": "c2b75fc267ef571aff5332154cefa61d7f0a0284ec94685c33ebab3e762be213",
+  "matrix_sha256": "85dc929bcb88da77d73fe451f80cef372e74056a28f7f269bd2bd5ea1ca3b232",
   "followup": {
     "previously_unverified": 196,
     "outcomes": {
@@ -457,6 +458,79 @@
         "status": 200,
         "content_type": "text/plain",
         "usable_model_registry_established": false
+      }
+    ]
+  },
+  "publisher_first_review": {
+    "policy": "Original publisher specification follows an exactly identified model across hosts. Explicit host request constraints are separate; access/authentication is another verification axis.",
+    "previous_identity_only_routes": 25,
+    "publisher_numeric_references": 164,
+    "publisher_context_references": 17,
+    "identity_only_resolutions": {
+      "publisher_context_referenced": 8,
+      "publisher_spec_referenced": 16,
+      "fixed_documented_default": 1
+    },
+    "cards": [
+      {
+        "repo": "nvidia/Llama-3.1-Nemotron-70B-Instruct-HF",
+        "sha": "031d4042f36adc1a52cca51b331d25cbe3cf1022",
+        "lastModified": "2025-04-13T04:12:19.000Z",
+        "url": "https://huggingface.co/nvidia/Llama-3.1-Nemotron-70B-Instruct-HF/raw/031d4042f36adc1a52cca51b331d25cbe3cf1022/README.md"
+      },
+      {
+        "repo": "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-BF16",
+        "sha": "2dc98e2afe4face0e4ce40972a915c45368bd34a",
+        "lastModified": "2026-08-25T15:48:50.000Z",
+        "url": "https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-BF16/raw/2dc98e2afe4face0e4ce40972a915c45368bd34a/README.md"
+      },
+      {
+        "repo": "nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16",
+        "sha": "77df655d5e9f8362164ed14dd8b48f8bce657498",
+        "lastModified": "2026-08-24T23:47:18.000Z",
+        "url": "https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Ultra-550B-A55B-BF16/raw/77df655d5e9f8362164ed14dd8b48f8bce657498/README.md"
+      },
+      {
+        "repo": "nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16",
+        "sha": "a9904d24bcc1d289a1950fa9d2b978c47cf903b9",
+        "lastModified": "2026-08-24T23:46:27.000Z",
+        "url": "https://huggingface.co/nvidia/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-BF16/raw/a9904d24bcc1d289a1950fa9d2b978c47cf903b9/README.md"
+      },
+      {
+        "repo": "moonshotai/Kimi-K3",
+        "sha": "f831ab66814297da540d832a5235f8e904f29d06",
+        "lastModified": "2026-09-02T02:22:41.000Z",
+        "url": "https://huggingface.co/moonshotai/Kimi-K3/raw/f831ab66814297da540d832a5235f8e904f29d06/README.md"
+      },
+      {
+        "repo": "MiniMaxAI/MiniMax-M3",
+        "sha": "f0e1c1e04d40177e4673a22097036854f536e9c0",
+        "lastModified": "2026-07-23T04:25:20.000Z",
+        "url": "https://huggingface.co/MiniMaxAI/MiniMax-M3/raw/f0e1c1e04d40177e4673a22097036854f536e9c0/README.md"
+      },
+      {
+        "repo": "deepseek-ai/DeepSeek-V4.1-Flash",
+        "sha": "314113f8a7dadb388215396ba5fbee2c610a04d6",
+        "lastModified": "2026-10-16T09:27:28.000Z",
+        "url": "https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash/raw/314113f8a7dadb388215396ba5fbee2c610a04d6/README.md"
+      },
+      {
+        "repo": "deepseek-ai/DeepSeek-V4-Flash",
+        "sha": "60d8d70770c6776ff598c94bb586a859a38244f1",
+        "lastModified": "2026-06-22T12:12:13.000Z",
+        "url": "https://huggingface.co/deepseek-ai/DeepSeek-V4-Flash/raw/60d8d70770c6776ff598c94bb586a859a38244f1/README.md"
+      },
+      {
+        "repo": "deepseek-ai/DeepSeek-V3.1",
+        "sha": "c0781d039fb7a1ba2abc4add0bdc293e92d2b8db",
+        "lastModified": "2025-09-05T11:30:15.000Z",
+        "url": "https://huggingface.co/deepseek-ai/DeepSeek-V3.1/raw/c0781d039fb7a1ba2abc4add0bdc293e92d2b8db/README.md"
+      },
+      {
+        "repo": "nvidia/Llama-3.1-Nemotron-70B-Instruct",
+        "sha": "a83af1f4968437064635f6726fb745e5b615e863",
+        "lastModified": "2025-04-13T04:10:55.000Z",
+        "url": "https://huggingface.co/nvidia/Llama-3.1-Nemotron-70B-Instruct/raw/a83af1f4968437064635f6726fb745e5b615e863/README.md"
       }
     ]
   }

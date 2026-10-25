@@ -1,9 +1,18 @@
-"""Route-specific defaults reviewed on 2026-10-25 (not universal model limits).
+"""Publisher specifications and route limits reviewed on 2026-10-25.
 
-Keep provider identity: gateways, regions and account tiers may have different
-contracts for the same model. Sources and unresolved routes are recorded in
-docs/model-contract-audit-2026-10-25.md. Explicit operator overrides still win.
+Use the original publisher for an identified model's specification. A hosting
+API can additionally impose a smaller request limit; that does not change the
+model specification. Sources are in docs/model-contract-audit-2026-10-25.md.
+Explicit operator overrides still win.
 """
+
+# Exact published model identities, independent of the serving namespace.
+# NVIDIA's original and HF-format cards both declare a 4K output limit:
+# https://huggingface.co/nvidia/Llama-3.1-Nemotron-70B-Instruct/raw/a83af1f4968437064635f6726fb745e5b615e863/README.md
+PUBLISHER_OUTPUT_LIMITS: dict[str, int] = {
+    "llama-3.1-nemotron-70b-instruct": 4000,
+    "llama-3.1-nemotron-70b-instruct-hf": 4000,
+}
 
 # Cerebras defaults fit both free (32768) and paid (40960) tiers.
 ROUTE_OUTPUT_DEFAULTS: dict[str, int] = {

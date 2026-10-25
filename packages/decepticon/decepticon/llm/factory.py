@@ -37,6 +37,7 @@ from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
 from decepticon.llm.model_contracts import (
+    PUBLISHER_OUTPUT_LIMITS,
     ROUTE_OUTPUT_DEFAULTS,
     ROUTE_SAMPLING_EXCLUSIONS,
     RUNTIME_DEFINED_PROVIDERS,
@@ -140,6 +141,9 @@ def _model_max_output_tokens(model: str) -> int:
     route = model.lower()
     if route in ROUTE_OUTPUT_DEFAULTS:
         return ROUTE_OUTPUT_DEFAULTS[route]
+    publisher_limit = PUBLISHER_OUTPUT_LIMITS.get(route.rsplit("/", 1)[-1])
+    if publisher_limit is not None:
+        return min(DEFAULT_LLM_MAX_TOKENS, publisher_limit)
     # AWS's Sonnet 4.6 contract is 64K; Anthropic/OpenRouter allow 128K.
     # Normalize regional inference profiles and pinned IDs only after checking
     # the provider, so the lower AWS limit never leaks into another gateway.
