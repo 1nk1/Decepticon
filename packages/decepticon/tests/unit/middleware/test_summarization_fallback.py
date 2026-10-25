@@ -65,12 +65,14 @@ class _FakeInner:
         self.sync_calls += 1
         if self._fail:
             raise RuntimeError("summarization LLM exploded")
+        handler(request)
         return ("inner-sync", request)
 
     async def awrap_model_call(self, request: Any, handler: Any) -> Any:
         self.async_calls += 1
         if self._fail:
             raise RuntimeError("summarization LLM exploded (async)")
+        await handler(request)
         return ("inner-async", request)
 
 
@@ -184,3 +186,47 @@ def test_proxy_forwards_inner_state_schema_and_name() -> None:
     # state extensions and observability survive the wrap.
     assert proxy.state_schema is inner.state_schema
     assert proxy.name == inner.name
+
+
+def test_main_model_error_is_not_retried_or_reported_as_summary_failure(monkeypatch):
+    proxy = _SafeSummarizationProxy(_FakeInner(fail=False))
+    events = []
+    monkeypatch.setattr(
+        proxy, "_emit_compact_event", lambda _req, name, _detail: events.append(name)
+    )
+    calls = 0
+    error = RuntimeError("upstream cyber_policy")
+
+    def failed_model(request):
+        nonlocal calls
+        calls += 1
+        assert events[-1] == "compact.end"  # check ends before token streaming starts
+        raise error
+
+    with pytest.raises(RuntimeError) as raised:
+        proxy.wrap_model_call("REQ", failed_model)
+    assert raised.value is error
+    assert calls == 1
+    assert events == ["compact.start", "compact.end"]
+
+
+@pytest.mark.asyncio
+async def test_async_main_model_error_is_not_retried_or_mislabelled(monkeypatch):
+    proxy = _SafeSummarizationProxy(_FakeInner(fail=False))
+    events = []
+    monkeypatch.setattr(
+        proxy, "_emit_compact_event", lambda _req, name, _detail: events.append(name)
+    )
+    calls = 0
+    error = RuntimeError("provider credentials rejected")
+
+    async def failed_model(request):
+        nonlocal calls
+        calls += 1
+        raise error
+
+    with pytest.raises(RuntimeError) as raised:
+        await proxy.awrap_model_call("REQ", failed_model)
+    assert raised.value is error
+    assert calls == 1
+    assert events == ["compact.start", "compact.end"]
