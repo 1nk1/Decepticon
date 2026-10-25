@@ -321,6 +321,9 @@ class TestLLMFactory:
             ("cohere_chat/command-a-03-2025", 8000),
             ("cohere_chat/command-r", 4000),
             ("cohere_chat/command-r-plus", 4000),
+            ("zenmux/anthropic/claude-sonnet-4.6", 64000),
+            ("venice/claude-sonnet-4-6", 64000),
+            ("venice/deepseek-v4-flash", 32768),
         ],
     )
     def test_legacy_model_request_passes_strict_proxy_limit(
@@ -617,6 +620,36 @@ class TestLLMFactory:
 
     def test_factory_initializes(self):
         assert self.factory.proxy_url == "http://localhost:4000"
+
+    def test_groq_automatic_chain_uses_current_models_but_keeps_explicit_legacy(self) -> None:
+        mapping = LLMModelMapping.from_credentials_and_profile(
+            Credentials(methods=[AuthMethod.GROQ_API]), ModelProfile.ECO
+        )
+        factory = LLMFactory(self.proxy, mapping, apply_role_overrides=False)
+        recon = factory.get_model("recon")
+        orchestrator = factory.get_model("decepticon")
+        assert isinstance(recon, ChatOpenAI)
+        assert isinstance(orchestrator, ChatOpenAI)
+        assert recon.model_name == "groq/openai/gpt-oss-20b"
+        assert orchestrator.model_name == "groq/openai/gpt-oss-120b"
+        explicit = LLMModelMapping(
+            assignments={"recon": ModelAssignment(primary="groq/llama-3.3-70b-versatile")}
+        )
+        legacy = LLMFactory(self.proxy, explicit, apply_role_overrides=False).get_model("recon")
+        assert isinstance(legacy, ChatOpenAI)
+        assert legacy.model_name == "groq/llama-3.3-70b-versatile"
+
+    @pytest.mark.parametrize("route", ["kilo/openai/gpt-5.4", "vercel/moonshotai/kimi-k3"])
+    def test_gateway_sampling_contract_is_applied_to_payload(self, route) -> None:
+        client = self.factory._create_chat_model(route, 0.2)
+        assert isinstance(client, ChatOpenAI)
+        payload = client._get_request_payload("check", top_p=0.9, top_k=5)
+        assert payload["model"] == route
+        assert not {"temperature", "top_p", "top_k"} & payload.keys()
+        # Other gateways/direct routes declare different sampling contracts.
+        other = self.factory._create_chat_model("vercel/openai/gpt-5.4", 0.2)
+        assert isinstance(other, ChatOpenAI)
+        assert other._get_request_payload("check")["temperature"] == 0.2
 
     @pytest.mark.parametrize(
         ("role_cap", "global_cap", "expected"),

@@ -321,13 +321,14 @@ METHOD_MODELS: dict[AuthMethod, dict[Tier, str]] = {
         Tier.MID: "azure/gpt-5.4",
         Tier.LOW: "azure/gpt-5-nano",
     },
-    # Groq — LPU inference, fast Llama. groq/<model>.
-    # llama-3.1-70b-versatile was retired in 2026; using Llama 4 Scout
-    # (Groq production model) at MID since Llama 3.3 70B sits at HIGH.
+    # Groq — LPU inference with tool-capable GPT-OSS defaults. groq/<model>.
+    # Scout retired for free/developer tiers on 2026-07-17; Llama 3.1/3.3
+    # followed on 2026-08-16. Current GPT-OSS models support agent tools.
+    # Explicit saved/role model IDs remain untouched for enterprise users.
     AuthMethod.GROQ_API: {
-        Tier.HIGH: "groq/llama-3.3-70b-versatile",
-        Tier.MID: "groq/meta-llama/llama-4-scout-17b-16e-instruct",
-        Tier.LOW: "groq/llama-3.1-8b-instant",
+        Tier.HIGH: "groq/openai/gpt-oss-120b",
+        Tier.MID: "groq/openai/gpt-oss-120b",
+        Tier.LOW: "groq/openai/gpt-oss-20b",
     },
     # Together AI — together_ai/<model>.
     AuthMethod.TOGETHER_API: {

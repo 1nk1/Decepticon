@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import runpy
 from pathlib import Path
 
@@ -34,6 +35,11 @@ def main() -> None:
         for row in json.loads((root / "config/litellm_prod_catalog.json").read_text())["routes"]
     )
     identities.update(model for tiers in METHOD_MODELS.values() for model in tiers.values())
+    picker = (root / "clients/cli/src/commands/model.ts").read_text()
+    picker = picker[picker.index("const SUPPORTED_MODELS") : picker.index("function flatten")]
+    identities.update(
+        value for value in re.findall(r'"([^"\n]+/[^"\n]+)"', picker) if "<" not in value
+    )
     dynamic = runpy.run_path(str(root / "config/litellm_dynamic_config.py"))
     identities.update(
         row["model_name"] for routes in dynamic["_SUBSCRIPTION_ROUTES"].values() for row in routes

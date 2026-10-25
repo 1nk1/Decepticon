@@ -36,7 +36,11 @@ from langchain_core.messages import AIMessage, BaseMessage
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
-from decepticon.llm.model_contracts import ROUTE_OUTPUT_DEFAULTS, RUNTIME_DEFINED_PROVIDERS
+from decepticon.llm.model_contracts import (
+    ROUTE_OUTPUT_DEFAULTS,
+    ROUTE_SAMPLING_EXCLUSIONS,
+    RUNTIME_DEFINED_PROVIDERS,
+)
 from decepticon.llm.router import ModelRouter
 from decepticon_core.registry import RoleRegistry
 from decepticon_core.types.llm import (
@@ -1008,6 +1012,12 @@ class _ProxiedChatOpenAI(ChatOpenAI):
         self, input_: LanguageModelInput, *, stop: list[str] | None = None, **kwargs: Any
     ) -> dict:
         payload = super()._get_request_payload(input_, stop=stop, **kwargs)
+        # LangChain applies disabled_params during helper/tool binding, but
+        # explicit invoke kwargs can otherwise put forbidden fields back on
+        # the wire. Enforce unconditional exclusions after serialization too.
+        for name, values in (self.disabled_params or {}).items():
+            if values is None:
+                payload.pop(name, None)
         if self.disable_streaming == "tool_calling" and payload.get("tools"):
             payload["stream"] = False
             payload.pop("stream_options", None)
@@ -1115,7 +1125,8 @@ def _model_drops_temperature(model: str) -> bool:
     """
     slug = _claude_model_base(model) or model.rsplit("/", 1)[-1].lower()
     return (
-        slug.startswith(
+        model.lower() in ROUTE_SAMPLING_EXCLUSIONS
+        or slug.startswith(
             (
                 "claude-opus-4",
                 "claude-opus-5",
@@ -1968,7 +1979,10 @@ class LLMFactory:
         if _model_uses_responses_api(model):
             kwargs["use_responses_api"] = True
         if _model_drops_temperature(model):
-            kwargs["disabled_params"] = {"temperature": None}
+            kwargs["disabled_params"] = {
+                name: None
+                for name in ROUTE_SAMPLING_EXCLUSIONS.get(model.lower(), ("temperature",))
+            }
             if model.endswith("/gemini-3.8-flash") or _model_is_claude_adaptive(model):
                 kwargs["disabled_params"].update({"top_p": None, "top_k": None})
         elif _model_is_deepseek_thinking(model):

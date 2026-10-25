@@ -23,8 +23,19 @@ ROUTE_OUTPUT_DEFAULTS: dict[str, int] = {
     # valid output cap does not restore their provider-side availability.
     "cohere_chat/command-r": 4000,
     "cohere_chat/command-r-plus": 4000,
+    # Exact gateway registry bounds; do not inherit direct-provider maxima.
+    "zenmux/anthropic/claude-sonnet-4.6": 64000,
+    "venice/claude-sonnet-4-6": 64000,
+    "venice/deepseek-v4-flash": 32768,
 }
 
 # Deployment names do not identify the model or its configured context window.
 # Let these servers select their default unless the operator supplies a cap.
 RUNTIME_DEFINED_PROVIDERS = frozenset({"ollama_chat", "lm_studio", "llamacpp", "custom"})
+
+# These exact gateways omit sampling controls from supported_parameters. Other
+# gateways exposing the same upstream model can have a different contract.
+ROUTE_SAMPLING_EXCLUSIONS: dict[str, tuple[str, ...]] = {
+    "kilo/openai/gpt-5.4": ("temperature", "top_p", "top_k"),
+    "vercel/moonshotai/kimi-k3": ("temperature", "top_p", "top_k"),
+}

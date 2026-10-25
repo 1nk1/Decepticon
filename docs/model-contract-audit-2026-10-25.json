@@ -6,21 +6,30 @@
     "public": 204,
     "static": 93,
     "optional": 138,
-    "role_mapping": 113,
-    "subscription": 16
+    "role_mapping": 112,
+    "subscription": 16,
+    "cli_literal": 104
   },
-  "unique_routes": 293,
-  "published_rows": 260,
+  "unique_routes": 295,
+  "published_rows": 262,
   "managed_routes_redacted": 33,
-  "local_payload_serialization_passed": 289,
+  "local_payload_serialization_passed": 291,
   "statuses": {
-    "provider_verification_required": 196,
-    "fixed_documented_default": 13,
-    "documented_bound_checked": 15,
-    "runtime_default_omitted": 4,
+    "documented_bound_checked": 59,
+    "subscription_contract_required": 31,
+    "deployment_contract_required": 9,
+    "fixed_documented_default": 16,
+    "authenticated_contract_required": 39,
+    "registry_bound_checked": 56,
+    "runtime_default_omitted": 5,
+    "registry_identity_only": 25,
     "embedding_excluded_from_agent_picker": 3,
-    "runtime_defined": 1,
-    "registry_bound_checked": 28
+    "registry_response_unusable": 3,
+    "tier_restricted_model": 1,
+    "absent_from_public_registry": 9,
+    "runtime_defined": 2,
+    "endpoint_fixed_model_unverified": 3,
+    "documented_output_policy_checked": 1
   },
   "paid_inference_performed": false,
   "sources": [
@@ -43,5 +52,412 @@
       "commit_date_utc": "2026-10-25T01:20:36Z"
     }
   ],
-  "matrix_sha256": "a76e30bfac0d734da6ba80562f850d56217ef80d2fecdf620d71710eeb73bc16"
+  "matrix_sha256": "c2b75fc267ef571aff5332154cefa61d7f0a0284ec94685c33ebab3e762be213",
+  "followup": {
+    "previously_unverified": 196,
+    "outcomes": {
+      "documented_bound_checked": 44,
+      "subscription_contract_required": 31,
+      "deployment_contract_required": 9,
+      "authenticated_contract_required": 39,
+      "registry_bound_checked": 28,
+      "registry_identity_only": 25,
+      "registry_response_unusable": 3,
+      "tier_restricted_model": 1,
+      "absent_from_public_registry": 8,
+      "runtime_defined": 1,
+      "endpoint_fixed_model_unverified": 3,
+      "fixed_documented_default": 3,
+      "documented_output_policy_checked": 1
+    },
+    "anonymous_registry_snapshots": [
+      {
+        "name": "vercel",
+        "url": "https://ai-gateway.vercel.sh/v1/models",
+        "records": 480,
+        "sha256": "28e21d04fae90b7fdd5fe38d53a2e9c8a15e0b395f4f461e9d8c84b7e5590f82",
+        "authentication_supplied": false
+      },
+      {
+        "name": "kilo",
+        "url": "https://api.kilo.ai/api/gateway/models",
+        "records": 401,
+        "sha256": "83fb04597f4d2f09008dbe9469ff450fe580db3c69dfdb649dd4a631ca4df347",
+        "authentication_supplied": false
+      },
+      {
+        "name": "nano",
+        "url": "https://nano-gpt.com/api/v1/models",
+        "records": 679,
+        "sha256": "44c5f3c2aa951bdab00268ad3190f2b9933773c11bcc5d80d1272787e39f35a2",
+        "authentication_supplied": false
+      },
+      {
+        "name": "zenmux",
+        "url": "https://zenmux.ai/api/v1/models",
+        "records": 207,
+        "sha256": "f761e9fee3bd645f56e1dd4817485124ed9f2f644d7a80ef80903bc1be95909c",
+        "authentication_supplied": false
+      },
+      {
+        "name": "opencode",
+        "url": "https://opencode.ai/zen/v1/models",
+        "records": 85,
+        "sha256": "f7fcfd75cfa102543f91214fce6bfbd701f875c3ef3a65c2e0d8ac6fa1d19cfe",
+        "authentication_supplied": false
+      },
+      {
+        "name": "venice",
+        "url": "https://api.venice.ai/api/v1/models",
+        "records": 140,
+        "sha256": "aef830252f6335d0e8646cf2dc8e81e7f4273a11c33fa8128e130c016a329e33",
+        "authentication_supplied": false
+      },
+      {
+        "name": "chutes",
+        "url": "https://llm.chutes.ai/v1/models",
+        "records": 14,
+        "sha256": "f2ca983b5ab8a792184e3767a41d47a599267764523dd55ecfd2dc6d5781e5f3",
+        "authentication_supplied": false
+      },
+      {
+        "name": "synthetic",
+        "url": "https://api.synthetic.new/openai/v1/models",
+        "records": 14,
+        "sha256": "3fff1780c6a9027a8d2c7bcb4613c2bd0ac180b03338506ac6926d0f0d5e7d17",
+        "authentication_supplied": false
+      },
+      {
+        "name": "hf",
+        "url": "https://router.huggingface.co/v1/models",
+        "records": 135,
+        "sha256": "786f4a2ead0e53dcbd3c8dea2c2f06f5ae2daabecbd7c6a649184758c1d52a58",
+        "authentication_supplied": false
+      },
+      {
+        "name": "nvidia",
+        "url": "https://integrate.api.nvidia.com/v1/models",
+        "records": 85,
+        "sha256": "7275a98a8eaa6b0eb2424cee3c38be4cc91c32488dfc584fb0492e4329eed737",
+        "authentication_supplied": false
+      },
+      {
+        "name": "ollama",
+        "url": "https://ollama.com/v1/models",
+        "records": 23,
+        "sha256": "42c64b9cc016d5469ac1285c45f038c6d60b026b7bfec04be520d2701fce7264",
+        "authentication_supplied": false
+      },
+      {
+        "name": "novita",
+        "url": "https://api.novita.ai/v3/openai/models",
+        "records": 97,
+        "sha256": "aa8ae6b2a63d6828581e5af31cc8b247eed265b4babb605fdefe94e4873a7de3",
+        "authentication_supplied": false
+      },
+      {
+        "name": "requesty",
+        "url": "https://router.requesty.ai/v1/models",
+        "records": 799,
+        "sha256": "1445ea54b1e9a80de8138d36b48f4eb8f5057edc176d3fa5446c63533c2afe00",
+        "authentication_supplied": false
+      },
+      {
+        "name": "deepinfra",
+        "url": "https://api.deepinfra.com/models/list",
+        "records": 397,
+        "sha256": "b5202a49c4178822eb0e14922196ca5b9b4c1a9de53273cd0bec338eb1ac7e97",
+        "authentication_supplied": false
+      },
+      {
+        "name": "sambanova",
+        "url": "https://api.sambanova.ai/v1/models",
+        "records": 6,
+        "sha256": "71c2d6c13630191d5d75a2d69abe6fa7ab3be97432339b6581e6f990e393fd00",
+        "authentication_supplied": false
+      }
+    ],
+    "anonymous_probes": [
+      {
+        "name": "chutes",
+        "url": "https://llm.chutes.ai/v1/models",
+        "records": 14,
+        "sha256": "f2ca983b5ab8a792184e3767a41d47a599267764523dd55ecfd2dc6d5781e5f3",
+        "sample_keys": [
+          "id",
+          "root",
+          "price",
+          "object",
+          "parent",
+          "created",
+          "pricing",
+          "chute_id",
+          "owned_by",
+          "quantization",
+          "max_model_len",
+          "context_length",
+          "input_modalities",
+          "max_output_length",
+          "output_modalities",
+          "supported_features",
+          "confidential_compute",
+          "supported_sampling_parameters"
+        ]
+      },
+      {
+        "name": "deepinfra",
+        "url": "https://api.deepinfra.com/models",
+        "error": "HTTP Error 404: Not Found"
+      },
+      {
+        "name": "fireworks",
+        "url": "https://api.fireworks.ai/inference/v1/models",
+        "error": "HTTP Error 401: Unauthorized"
+      },
+      {
+        "name": "hf",
+        "url": "https://router.huggingface.co/v1/models",
+        "records": 135,
+        "sha256": "786f4a2ead0e53dcbd3c8dea2c2f06f5ae2daabecbd7c6a649184758c1d52a58",
+        "sample_keys": [
+          "id",
+          "object",
+          "created",
+          "owned_by",
+          "architecture",
+          "providers"
+        ]
+      },
+      {
+        "name": "kimi",
+        "url": "https://api.kimi.com/coding/v1/models",
+        "error": "HTTP Error 401: Unauthorized"
+      },
+      {
+        "name": "mistral",
+        "url": "https://api.mistral.ai/v1/models",
+        "error": "HTTP Error 401: Unauthorized"
+      },
+      {
+        "name": "nvidia",
+        "url": "https://integrate.api.nvidia.com/v1/models",
+        "records": 85,
+        "sha256": "7275a98a8eaa6b0eb2424cee3c38be4cc91c32488dfc584fb0492e4329eed737",
+        "sample_keys": [
+          "id",
+          "object",
+          "created",
+          "owned_by"
+        ]
+      },
+      {
+        "name": "ollama",
+        "url": "https://ollama.com/v1/models",
+        "records": 23,
+        "sha256": "42c64b9cc016d5469ac1285c45f038c6d60b026b7bfec04be520d2701fce7264",
+        "sample_keys": [
+          "id",
+          "object",
+          "created",
+          "owned_by"
+        ]
+      },
+      {
+        "name": "novita",
+        "url": "https://api.novita.ai/v3/openai/models",
+        "records": 97,
+        "sha256": "aa8ae6b2a63d6828581e5af31cc8b247eed265b4babb605fdefe94e4873a7de3",
+        "sample_keys": [
+          "created",
+          "id",
+          "object",
+          "owned_by",
+          "permission",
+          "root",
+          "parent",
+          "input_token_price_per_m",
+          "output_token_price_per_m",
+          "pricing",
+          "is_tiered_billing",
+          "title",
+          "description",
+          "tags",
+          "context_size",
+          "status",
+          "display_name",
+          "model_type"
+        ]
+      },
+      {
+        "name": "siliconflow",
+        "url": "https://api.siliconflow.cn/v1/models",
+        "error": "HTTP Error 401: Unauthorized"
+      },
+      {
+        "name": "synthetic",
+        "url": "https://api.synthetic.new/openai/v1/models",
+        "records": 14,
+        "sha256": "3fff1780c6a9027a8d2c7bcb4613c2bd0ac180b03338506ac6926d0f0d5e7d17",
+        "sample_keys": [
+          "provider",
+          "display_name",
+          "categories",
+          "always_on",
+          "id",
+          "hugging_face_id",
+          "name",
+          "reasoning_parameters",
+          "description",
+          "input_modalities",
+          "output_modalities",
+          "context_length",
+          "max_output_length",
+          "pricing",
+          "created",
+          "quantization",
+          "supported_sampling_parameters",
+          "supported_features"
+        ]
+      },
+      {
+        "name": "together",
+        "url": "https://api.together.xyz/v1/models",
+        "error": "HTTP Error 401: Unauthorized"
+      },
+      {
+        "name": "upstage",
+        "url": "https://api.upstage.ai/v1/solar/models",
+        "error": "HTTP Error 401: Unauthorized"
+      },
+      {
+        "name": "xai",
+        "url": "https://api.x.ai/v1/models",
+        "error": "HTTP Error 401: Unauthorized"
+      },
+      {
+        "name": "zai",
+        "url": "https://api.z.ai/api/paas/v4/models",
+        "error": "HTTP Error 401: Unauthorized"
+      },
+      {
+        "name": "cerebras",
+        "url": "https://api.cerebras.ai/v1/models",
+        "error": "HTTP Error 403: Forbidden"
+      },
+      {
+        "name": "cheaper",
+        "url": "https://api.cheaperinference.com/v1/models",
+        "error": "HTTP Error 401: Unauthorized"
+      },
+      {
+        "name": "requesty",
+        "url": "https://router.requesty.ai/v1/models",
+        "records": 799,
+        "sha256": "1445ea54b1e9a80de8138d36b48f4eb8f5057edc176d3fa5446c63533c2afe00",
+        "sample_keys": [
+          "api",
+          "id",
+          "object",
+          "created",
+          "updated",
+          "owned_by",
+          "input_price",
+          "caching_price",
+          "cached_price",
+          "output_price",
+          "pricing",
+          "max_output_tokens",
+          "context_window",
+          "supports_caching",
+          "supports_vision",
+          "supports_computer_use",
+          "supports_reasoning",
+          "supports_image_generation"
+        ]
+      },
+      {
+        "name": "nebius",
+        "url": "https://api.tokenfactory.nebius.com/v1/models",
+        "error": "HTTP Error 401: Unauthorized"
+      },
+      {
+        "name": "github",
+        "url": "https://models.github.ai/catalog/models",
+        "error": "Expecting value: line 1 column 1 (char 0)"
+      },
+      {
+        "name": "moonshot",
+        "url": "https://api.moonshot.ai/v1/models",
+        "error": "HTTP Error 401: Unauthorized"
+      },
+      {
+        "name": "deepseek",
+        "url": "https://api.deepseek.com/models",
+        "error": "HTTP Error 401: Unauthorized"
+      },
+      {
+        "name": "mimo",
+        "url": "https://platform.xiaomimimo.com/v1/models",
+        "error": "Expecting value: line 1 column 1 (char 0)"
+      },
+      {
+        "name": "deepinfra",
+        "url": "https://api.deepinfra.com/models/list",
+        "records": 397,
+        "sample_keys": [
+          "model_name",
+          "type",
+          "reported_type",
+          "description",
+          "cover_img_url",
+          "tags",
+          "pricing",
+          "max_tokens",
+          "replaced_by",
+          "deprecated",
+          "quantization",
+          "mmlu",
+          "expected",
+          "create_ts",
+          "private",
+          "is_partner"
+        ]
+      }
+    ],
+    "paid_inference_performed": false,
+    "previous_inventory_routes": 293,
+    "cli_only_routes_added": 2,
+    "mimo_endpoint_probes": [
+      {
+        "url": "https://platform.xiaomimimo.com/v1/models",
+        "status": 200,
+        "content_type": "text/html"
+      },
+      {
+        "url": "https://api.xiaomimimo.com/v1/models",
+        "status": 401,
+        "content_type": "application/json"
+      }
+    ],
+    "mimo_primary_source": {
+      "url": "https://github.com/XiaomiMiMo/awesome-mimo-agent/blob/9b84a73ac88ca2bbe5fc560d073a7767abb87dc8/docs/codex.md",
+      "commit_date_utc": "2026-06-29T06:36:49Z",
+      "sha256": "b58c520bf8ac1aa613524dfe238433ac591a38f5430a77bd9cd94a97497d392e"
+    },
+    "github_catalog_probe": [
+      {
+        "authentication_supplied": false,
+        "status": 200,
+        "content_type": "text/plain",
+        "usable_model_registry_established": false
+      },
+      {
+        "authentication_supplied": true,
+        "credential_source": "existing GitHub CLI credential; not recorded",
+        "status": 200,
+        "content_type": "text/plain",
+        "usable_model_registry_established": false
+      }
+    ]
+  }
 }

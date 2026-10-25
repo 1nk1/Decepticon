@@ -11,19 +11,21 @@ are announcements, not proof that a model has already retired.
 ## Coverage and evidence
 
 Inventory: 204 public catalog records, 93 static routes, 138 optional routes,
-113 distinct role/fallback identities and 16 subscription routes. Their union is
-**293 unique routes**, across 58 namespaces. This includes more than the public
+112 distinct role/fallback identities, 16 subscription routes and 104 literal
+CLI picker identities. Their union is **295 unique routes**, across 58 namespaces.
+The initial 293-route inventory omitted two concrete CLI-only identities; this
+follow-up includes both. This includes more than the public
 catalog; OpenAI/Azure/Vertex, Gemini, DeepSeek, Kimi/Moonshot, GLM, MiniMax, Groq,
 Cerebras, Mistral, Cohere, ERNIE, NVIDIA, gateways and local/custom routes are covered.
 
-The [260-row CSV](model-contract-audit-2026-10-25.csv) records each non-managed
+The [262-row CSV](model-contract-audit-2026-10-25.csv) records each non-managed
 route's origin, actual upstream ID, endpoint, output defaults, reviewed bounds,
 source, integration metadata, API transport, client adapter and remaining caveats.
 The [manifest](model-contract-audit-2026-10-25.json) records counts and SHA-256s.
 The 33 pre-existing managed routes were included in local serialization checks;
 their identities/endpoints are not exported into this public report.
 
-All **289 concrete chat routes** constructed a real factory client and serialized
+All **291 concrete chat routes** constructed a real factory client and serialized
 a JSON tool conversation (human → assistant tool call → tool result → human),
 with a tool schema. Three embedding records and one wildcard were classified
 separately. This verifies local request construction, not provider acceptance,
@@ -32,20 +34,31 @@ streaming quality or successful paid inference. No provider inference was run.
 
 | Review outcome | Routes |
 | --- | ---: |
-| Documented route defaults corrected | 13 |
-| Other documented output bounds checked | 15 |
-| Exact OpenRouter upstream ID/output bound/tool parameter checked | 28 |
-| Local/custom default cap omitted | 4 |
+| Documented/registry output defaults corrected | 16 |
+| Other documented output bounds checked | 59 |
+| Exact gateway registry output bound checked | 56 |
+| Documented output policy checked (no separate text-output limit) | 1 |
+| Local/custom default cap omitted | 5 |
 | Embeddings excluded from agent picker | 3 |
-| Runtime wildcard, resolved model unknown | 1 |
-| Exact provider contract still requires verification | 196 |
+| Runtime wildcard/environment-selected cloud model | 2 |
+| Subscription/coding-plan contract requires authenticated verification | 31 |
+| Account/deployment/region contract requires verification | 9 |
+| Anonymous model endpoint requires authentication (401/403) | 39 |
+| Exact registry ID confirmed, separate output bound not provided | 25 |
+| Exact configured ID absent from anonymous registry | 9 |
+| Registry response unusable | 3 |
+| Documented tier restriction; enterprise exception | 1 |
+| MiMo endpoint fixed; exact model acceptance/output still unverified | 3 |
 | Managed routes, identities redacted; local transport checked | 33 |
 
-The 196 entries are explicit unresolved contract checks, not 196 confirmed bugs
-or a certification of the existing defaults. Their integration metadata is
-included where available, with an immutable source. API keys, account/region
-selection and provider-specific live tests are still needed before claiming all
-routes work end to end. This audit does not qualify a release on that basis.
+Of the original 196 unverified entries, **76 now have an authoritative output
+bound/policy checked**, including three additional cap corrections. The remaining
+120 have concrete account, deployment, registry or model-identity limitations
+recorded individually. They are not 120 confirmed bugs or certification of the
+retained defaults. Anonymous reads used no credentials: authentication errors do
+not establish model availability, and public registry presence does not grant
+account access. Provider-specific live tests are still needed before claiming
+all routes work end to end; this is not release qualification for all providers.
 
 ## Corrected defaults
 
@@ -75,6 +88,9 @@ serialized primary/fallback requests and desktop/role model overrides.
 | `qianfan/ernie-speed-pro-128k` | 64000 → 4096 | [Baidu model-list response](https://cloud.baidu.com/doc/qianfan-api/s/Dmba8k71y) |
 | `cohere_chat/command-a-03-2025` | 64000 → 8000 | [Command A](https://docs.cohere.com/docs/command-a) |
 | `cohere_chat/command-r`, `cohere_chat/command-r-plus` | 64000 → 4000 each | [Cohere models and alias lifecycle](https://docs.cohere.com/docs/models) |
+| `zenmux/anthropic/claude-sonnet-4.6` | 128000 → 64000 | [ZenMux registry](https://zenmux.ai/api/v1/models) |
+| `venice/claude-sonnet-4-6` | 128000 → 64000 | [Venice registry](https://api.venice.ai/api/v1/models) |
+| `venice/deepseek-v4-flash` | 64000 → 32768 | [Venice registry](https://api.venice.ai/api/v1/models) |
 
 AWS's Sonnet limit must not be inherited by Anthropic/OpenRouter Sonnet 4.6
 routes, which retain 128000. Cerebras documents 32768 for free and 40960 for paid
@@ -93,6 +109,36 @@ cloud routes retain existing defaults while their exact contracts are unresolved
 The generator now keeps `text-embedding-3-small`, `gemini-embedding-001` and
 `voyage-3` out of the CLI agent model list. Their embedding routes/catalog
 metadata remain available. The generator regression checks both behaviors.
+
+## Additional endpoint, sampling and lifecycle corrections
+
+- MiMo's three public routes pointed to the web console host. Anonymous
+  `GET /v1/models` there returned **200 text/html**; the corrected API host
+  returned **401 application/json**. Use `https://api.xiaomimimo.com/v1`, as
+  documented in [Xiaomi's own guide pinned before the cutoff](https://github.com/XiaomiMiMo/awesome-mimo-agent/blob/9b84a73ac88ca2bbe5fc560d073a7767abb87dc8/docs/codex.md)
+  (2026-06-29). Keep existing model IDs; their acceptance remains unverified.
+  Preserve dynamic API-base environment overrides and separate token-plan bases.
+- The [Kilo registry](https://api.kilo.ai/api/gateway/models) for
+  `kilo/openai/gpt-5.4` and [Vercel registry](https://ai-gateway.vercel.sh/v1/models)
+  for `vercel/moonshotai/kimi-k3` do not advertise temperature/top_p/top_k.
+  Omit these fields on those exact routes. Explicit invocation kwargs bypassed
+  LangChain's binding-time `disabled_params` filtering (two regressions failed);
+  enforce unconditional exclusions after payload serialization too.
+- [Groq's notice](https://console.groq.com/docs/deprecations) shuts Scout down
+  for free/developer tiers on 2026-07-17 and Llama 3.1/3.3 on 2026-08-16;
+  committed-spend enterprise customers are exempt. Automatic Groq defaults now
+  use `openai/gpt-oss-120b` for HIGH/MID and `openai/gpt-oss-20b` for LOW, listed
+  as current tool-capable production models. Tests also verify preservation of
+  an explicitly selected enterprise legacy model.
+- Google's [dated release notes](https://ai.google.dev/gemini-api/docs/changelog)
+  redirect Gemini 3.5 Flash to 3.6 and 3.7 Flash to 3.8 from 2026-10-08. Gemini
+  2.5 pages restrict API access to previously active users. Output specs and
+  account eligibility are recorded separately; public API specs grant no
+  subscription entitlement.
+- Bare AWS Bedrock model IDs are insufficient for on-demand runtime access on
+  the reviewed Claude cards: operators must choose eligible geo/global profiles
+  and regions. Output-bound checks do not verify those account/profile grants,
+  and this change does not silently select cross-region routing.
 
 ## Findings that must not become speculative fixes
 
@@ -128,7 +174,7 @@ metadata remain available. The generator regression checks both behaviors.
 The affected LLM suite and actual local HTTP cap tests exercise the corrections,
 provider separation, explicit override precedence and local cap omission. Catalog
 tests run the generator CLI in temporary trees and verify chat-picker filtering
-without dropping embedding routes. The 289-route serialized payload check uses
+without dropping embedding routes. The 291-route serialized payload check uses
 no credentials and makes no provider network requests. Existing signed/redacted
 Claude thinking/tool tests continue to run; they are not generalized into a
 claim about every model's reasoning replay protocol.
@@ -145,7 +191,7 @@ The affected test commands are
 repository's required CI/Security workflows, while retaining #1088 as its
 prerequisite ancestry. The two PRs should be integrated in that order.
 
-Local results: **835 LLM tests passed** with two workers; **8 catalog tests
+Local results: **841 LLM tests passed** with two workers; **9 catalog tests
 passed**; generation drift check clean (204 records / four outputs); repository
 Ruff check and format check passed; basedpyright reported zero errors. The CSV's
 unique identities, redaction, status counts and SHA-256 were checked against the
