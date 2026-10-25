@@ -15,6 +15,17 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed [PR #1088](https://github.com/BitterSecurity/Decepticon/pull/1088)
+  (fixes #1087): resolve Claude output ceilings by model/version across provider,
+  dotted, dated and Bedrock IDs. Opus/Sonnet 4.5 default to 64000; newer supported
+  models keep 128000 and Haiku 5.5 gains its supported 128000 default. Align
+  Haiku/dotted 5.5 thinking replay and sampling exclusions with existing catalog
+  policy. Preserve positive global overrides, route identities and saved state;
+  unknown models retain the 64000 fallback. Includes a [related-path audit](docs/model-output-limit-audit.md) and
+  actual local HTTP request regressions. Pending source change, not a 1.6.0
+  artifact replacement; no version bump or provider inference is performed.
+
+
 - Release record: document the actual 1.6.0 publication, immutable artifacts,
   WSL/desktop upgrade acceptance and known verification limits
   ([#1086](https://github.com/BitterSecurity/Decepticon/pull/1086)).

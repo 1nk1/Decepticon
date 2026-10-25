@@ -64,10 +64,10 @@ log = get_logger("llm.factory")
 # each model its OWN max-output ceiling so a big deliverable completes in one
 # call. It is a ceiling, not a forced value — short replies cost nothing extra.
 # Values above 64k require the streaming API path (the SDK already streams).
-# Authoritative caps (see ``_model_max_output_tokens``): Claude Fable 5,
-# Opus 4/5, Sonnet 4/5, and GPT-6 = 128000; Claude Haiku 4.5 = 64000. Unknown models fall back
-# to the safe 64k default. Override with ``DECEPTICON_LLM_MAX_TOKENS`` (an
-# explicit value wins over the per-model resolution).
+# Reviewed high-output Claude versions are explicit below: family names alone
+# are not a capability contract (Opus/Sonnet 4.5 support only 64000).
+# Unknown models retain the 64k fallback. A positive
+# ``DECEPTICON_LLM_MAX_TOKENS`` explicitly overrides the model default.
 DEFAULT_LLM_MAX_TOKENS = 64000
 LLM_MAX_TOKENS_ENV = "DECEPTICON_LLM_MAX_TOKENS"
 
@@ -87,26 +87,51 @@ LLM_DISABLE_STREAMING_ENV = "DECEPTICON_LLM_DISABLE_STREAMING"
 _PROTECTED_EXTRA_HEADERS = frozenset({"authorization", "host", "content-length"})
 
 
-def _model_max_output_tokens(model: str) -> int:
-    """Return ``model``'s own max-output-token ceiling.
+# Keep the reviewed model/version list separate from provider routing. These
+# identities cover current public and subscription routes; adding a new route
+# never gives an unknown family member an unverified larger output ceiling.
+_CLAUDE_128K_MODELS = frozenset(
+    {
+        "claude-fable-5",
+        "claude-fable-5-1",
+        "claude-opus-4-6",
+        "claude-opus-4-7",
+        "claude-opus-4-8",
+        "claude-opus-5",
+        "claude-opus-5-5",
+        "claude-sonnet-4-6",
+        "claude-sonnet-5",
+        "claude-sonnet-5-5",
+        "claude-haiku-5-5",
+    }
+)
 
-    Match on the model slug suffix (last path segment) so every namespace we
-    route through resolves the same — ``anthropic/claude-opus-4-8``,
-    ``auth/claude-opus-4-8``, ``openrouter/anthropic/claude-sonnet-4-6``.
-    Fable 5, Opus 4/5, Sonnet 4/5, and GPT-6 support 128000 output tokens; Haiku 4.5
-    supports 64000. Unknown / non-Claude models fall back to the safe 64k
-    default rather than an over-large value the upstream might reject.
+
+def _claude_model_base(model: str) -> str:
+    """Normalize a Claude version without changing the actual routed model ID.
+
+    Accept provider namespaces, dotted versions, dated API/Vertex snapshots and
+    Bedrock model IDs. Full matching prevents e.g. 4.50 from becoming 4.5.
     """
     slug = model.rsplit("/", 1)[-1].lower()
-    if (
-        "opus" in slug
-        or "sonnet" in slug
-        or slug.startswith("claude-fable-5")
-        or _model_uses_responses_api(model)
-    ):
+    slug = re.sub(r"^(?:(?:us|eu|apac|global)\.)?anthropic\.", "", slug)
+    match = re.fullmatch(
+        r"(claude-(?:opus|sonnet|haiku|fable)-\d+(?:[-.]\d{1,2})?)"
+        r"(?:[-@]\d{8})?(?:-v\d+(?::\d+)?)?",
+        slug,
+    )
+    return match[1].replace(".", "-") if match else ""
+
+
+def _model_max_output_tokens(model: str) -> int:
+    """Resolve the reviewed output ceiling by model/version, across namespaces.
+
+    Opus/Sonnet 4.5 and Haiku 4.5 use 64000. Reviewed newer Claude models and
+    GPT-6 use 128000. Unknown models keep the existing 64k fallback, which is
+    not a guarantee of arbitrary providers' limits; operators can override it.
+    """
+    if _claude_model_base(model) in _CLAUDE_128K_MODELS or _model_uses_responses_api(model):
         return 128000
-    if "haiku" in slug:
-        return 64000
     return DEFAULT_LLM_MAX_TOKENS
 
 
@@ -1060,7 +1085,7 @@ def _log_served_model(requested: str, result: object) -> None:
 def _model_drops_temperature(model: str) -> bool:
     """Return True if the LiteLLM model id rejects the ``temperature`` param.
 
-    Current Claude Fable/Opus/Sonnet 5.5, Gemini 3.8 Flash, and GPT-6 models
+    Current Claude Fable/Opus/Sonnet/Haiku 5.5, Gemini 3.8 Flash, and GPT-6 models
     reject sampling parameters. Match model families across every namespace:
 
       anthropic/claude-opus-4-7
@@ -1071,9 +1096,17 @@ def _model_drops_temperature(model: str) -> bool:
     keeps this honest for openrouter-mirrored variants and any future
     Opus 4.x build added to METHOD_MODELS.
     """
-    slug = model.rsplit("/", 1)[-1].lower()
+    slug = _claude_model_base(model) or model.rsplit("/", 1)[-1].lower()
     return (
-        slug.startswith(("claude-opus-4", "claude-opus-5", "claude-sonnet-5", "claude-fable-5"))
+        slug.startswith(
+            (
+                "claude-opus-4",
+                "claude-opus-5",
+                "claude-sonnet-5",
+                "claude-fable-5",
+                "claude-haiku-5-5",
+            )
+        )
         or _model_is_kimi_coding(model)
         or model.endswith("/gemini-3.8-flash")
         or model.startswith("openai/gpt-5.6-")
@@ -1087,8 +1120,10 @@ def _model_uses_responses_api(model: str) -> bool:
 
 
 def _model_is_claude_adaptive(model: str) -> bool:
-    slug = model.rsplit("/", 1)[-1].lower()
-    return slug.startswith(("claude-fable-5", "claude-opus-5", "claude-sonnet-5-5"))
+    slug = _claude_model_base(model)
+    return slug.startswith(
+        ("claude-fable-5", "claude-opus-5", "claude-sonnet-5-5", "claude-haiku-5-5")
+    )
 
 
 def _model_is_kimi_coding(model: str) -> bool:

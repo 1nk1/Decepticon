@@ -8,6 +8,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
 from langchain_core.messages import HumanMessage, ToolMessage
+from langchain_openai import ChatOpenAI
 
 from decepticon.llm.factory import (
     LLM_MAX_TOKENS_ENV,
@@ -178,6 +179,48 @@ class TestMaxTokensResolution:
         assert _model_max_output_tokens("auth/claude-opus-4-8") == 128000
         assert _model_max_output_tokens("openrouter/anthropic/claude-sonnet-4-6") == 128000
 
+    @pytest.mark.parametrize("family", ["opus", "sonnet"])
+    @pytest.mark.parametrize(
+        "route",
+        [
+            "anthropic/claude-{family}-4-5",
+            "auth/claude-{family}-4-5",
+            "openrouter/anthropic/claude-{family}-4.5",
+            "anthropic/claude-{family}-4-5-20251101",
+            "vertex_ai/claude-{family}-4-5@20251101",
+            "bedrock/us.anthropic.claude-{family}-4-5-20251101-v1:0",
+        ],
+    )
+    def test_legacy_45_ceiling_across_routes(self, family, route) -> None:
+        assert _model_max_output_tokens(route.format(family=family)) == 64000
+
+    @pytest.mark.parametrize(
+        "model_id",
+        [
+            "anthropic/claude-opus-4-6",
+            "openrouter/anthropic/claude-opus-4.7",
+            "anthropic/claude-opus-4-8",
+            "bedrock/anthropic.claude-sonnet-4-6",
+            "anthropic/claude-opus-5",
+            "anthropic/claude-opus-5-5",
+            "anthropic/claude-sonnet-5",
+            "vercel/anthropic/claude-sonnet-5.5",
+            "anthropic/claude-fable-5",
+            "anthropic/claude-fable-5-1",
+            "anthropic/claude-haiku-5-5",
+            "auth/claude-haiku-5.5",
+            "openai/gpt-6.1-sol",
+        ],
+    )
+    def test_supported_high_output_models_keep_128k(self, model_id) -> None:
+        assert _model_max_output_tokens(model_id) == 128000
+
+    @pytest.mark.parametrize(
+        "model_id", ["custom/my-opus", "custom/claude-opus-99", "custom/claude-opus-4-50"]
+    )
+    def test_unrecognized_names_do_not_inherit_family_ceiling(self, model_id) -> None:
+        assert _model_max_output_tokens(model_id) == 64000
+
     def test_haiku_gets_64k(self) -> None:
         assert _model_max_output_tokens("anthropic/claude-haiku-4-5") == 64000
 
@@ -205,6 +248,98 @@ class TestLLMFactory:
         creds = Credentials.all_api_methods()
         self.mapping = LLMModelMapping.from_credentials_and_profile(creds, ModelProfile.ECO)
         self.factory = LLMFactory(self.proxy, self.mapping)
+
+    @pytest.mark.parametrize(
+        ("model_id", "expected"),
+        [
+            ("anthropic/claude-opus-4-5", 64000),
+            ("auth/claude-opus-4-5", 64000),
+            ("openrouter/anthropic/claude-sonnet-4.5", 64000),
+            ("anthropic/claude-opus-4-6", 128000),
+            ("anthropic/claude-haiku-5-5", 128000),
+        ],
+    )
+    @pytest.mark.parametrize("override", [None, "8192", "192000", "bad", "0", "-1"])
+    def test_created_client_and_payload_respect_model_limit(
+        self, monkeypatch, model_id, expected, override
+    ) -> None:
+        if override is None:
+            monkeypatch.delenv(LLM_MAX_TOKENS_ENV, raising=False)
+        else:
+            monkeypatch.setenv(LLM_MAX_TOKENS_ENV, override)
+        if override in {"8192", "192000"}:
+            expected = int(override)
+        model = self.factory._create_chat_model(model_id, 0.2)
+        assert isinstance(model, ChatOpenAI)
+        payload = model._get_request_payload("check output settings")
+        assert model.max_tokens == expected
+        assert payload.get("max_completion_tokens", payload.get("max_tokens")) == expected
+        assert payload["model"] == model_id
+
+    @pytest.mark.parametrize(
+        ("model_id", "limit"),
+        [("anthropic/claude-opus-4-5", 64000), ("anthropic/claude-sonnet-4-5", 64000)],
+    )
+    def test_legacy_model_request_passes_strict_proxy_limit(
+        self, monkeypatch, model_id, limit
+    ) -> None:
+        """Exercise the actual HTTP body; no provider credentials/inference."""
+        requests: list[dict] = []
+
+        class ProxyHandler(BaseHTTPRequestHandler):
+            def do_POST(self) -> None:
+                payload = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                requests.append(payload)
+                cap = payload.get("max_completion_tokens", payload.get("max_tokens"))
+                valid = isinstance(cap, int) and 0 < cap <= limit
+                body = (
+                    {
+                        "id": "cap-check",
+                        "object": "chat.completion",
+                        "created": 1,
+                        "model": model_id,
+                        "choices": [
+                            {
+                                "index": 0,
+                                "message": {"role": "assistant", "content": "cap-ok"},
+                                "finish_reason": "stop",
+                            }
+                        ],
+                    }
+                    if valid
+                    else {
+                        "error": {
+                            "message": "output cap exceeds model limit",
+                            "type": "invalid_request_error",
+                        }
+                    }
+                )
+                response = json.dumps(body).encode()
+                self.send_response(200 if valid else 400)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(response)))
+                self.end_headers()
+                self.wfile.write(response)
+
+            def log_message(self, format: str, *args: object) -> None:
+                pass
+
+        monkeypatch.delenv(LLM_MAX_TOKENS_ENV, raising=False)
+        monkeypatch.setenv("DECEPTICON_LLM_DISABLE_STREAMING", "true")
+        server = ThreadingHTTPServer(("127.0.0.1", 0), ProxyHandler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            proxy = ProxyConfig(
+                url=f"http://127.0.0.1:{server.server_port}/v1", api_key="test-key", max_retries=0
+            )
+            model = LLMFactory(proxy, self.mapping)._create_chat_model(model_id, 0.2)
+            assert model.invoke([HumanMessage(content="check output settings")]).content == "cap-ok"
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
+        assert len(requests) == 1
 
     def test_ollama_keeps_text_streaming_but_buffers_tool_calls(self, monkeypatch) -> None:
         monkeypatch.delenv("DECEPTICON_LLM_DISABLE_STREAMING", raising=False)
@@ -259,6 +394,9 @@ class TestLLMFactory:
             "anthropic/claude-fable-5-1",
             "anthropic/claude-opus-5-5",
             "anthropic/claude-sonnet-5-5",
+            "anthropic/claude-haiku-5-5",
+            "openrouter/anthropic/claude-haiku-5.5",
+            "vercel/anthropic/claude-sonnet-5.5",
         ],
     )
     def test_claude_tool_turn_preserves_thinking_blocks(self, monkeypatch, model_id) -> None:
