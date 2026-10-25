@@ -6,8 +6,10 @@ from typing import NotRequired
 import pytest
 from deepagents.backends import FilesystemBackend
 from langchain.agents import create_agent
+from langchain.agents.middleware.types import InputAgentState
 from langchain.tools import ToolRuntime, tool
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
 from pydantic import JsonValue
@@ -890,3 +892,179 @@ def test_document_import_error_preserves_one_result_per_tool_call() -> None:
     assert own[0].status == "error"
     assert "Verifier returned evidence" in own[0].text
     assert "publish_artifacts" in own[0].text
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+def test_conversation_does_not_bootstrap_or_finalize_search(
+    tmp_path: Path, asynchronous: bool
+) -> None:
+    import asyncio
+
+    graph = create_agent(
+        ToolModel(responses=[AIMessage(content="Hi! How can I help?")]),
+        middleware=[
+            SearchRuntimeMiddleware(FilesystemBackend(root_dir=tmp_path, virtual_mode=True))
+        ],
+        checkpointer=InMemorySaver(),
+    )
+    config: RunnableConfig = {"configurable": {"thread_id": "conversation"}}
+    assert "search_turn_active" not in graph.get_input_schema().model_fields
+    payload: InputAgentState = {"messages": [HumanMessage(content="hi")]}
+    result = (
+        asyncio.run(graph.ainvoke(payload, config=config))
+        if asynchronous
+        else graph.invoke(payload, config=config)
+    )
+    assert len(result["messages"]) == 2
+    assert result["messages"][-1].content == "Hi! How can I help?"
+    assert result["search_turn_active"] is False
+    session = SearchSession.model_validate_json(result["search_state"])
+    assert session.final_attempts == 0 and session.disposition is None
+    assert not result["search_receipt"]
+    assert not list(tmp_path.rglob("opplan.json"))
+
+
+def test_read_only_status_turn_preserves_an_unfinished_search(tmp_path: Path) -> None:
+    @tool(description="Read the existing plan without changing it")
+    def load_opplan() -> str:
+        return "OBJ-01 remains pending"
+
+    graph = create_agent(
+        ToolModel(
+            responses=[
+                AIMessage(
+                    content="", tool_calls=[{"id": "read-plan", "name": "load_opplan", "args": {}}]
+                ),
+                AIMessage(content="OBJ-01 is pending; the assessment is not complete."),
+            ]
+        ),
+        tools=[load_opplan],
+        middleware=[
+            SearchRuntimeMiddleware(FilesystemBackend(root_dir=tmp_path, virtual_mode=True))
+        ],
+        checkpointer=InMemorySaver(),
+    )
+    config: RunnableConfig = {"configurable": {"thread_id": "status-turn"}}
+    session = SearchSession(
+        thread_id="status-turn",
+        run_id="pending",
+        started_at="2026-10-25T00:00:00Z",
+        final_attempts=3,
+    )
+    graph.update_state(
+        config,
+        {"search_state": session.model_dump_json(), "search_turn_active": True},
+        as_node="tools",
+    )
+    result = graph.invoke(
+        {"messages": [HumanMessage(content="What is the current status?")]}, config=config
+    )
+    assert result["messages"][-1].content == "OBJ-01 is pending; the assessment is not complete."
+    assert result["search_state"] == session.model_dump_json()
+    assert result["search_turn_active"] is False
+    assert not result.get("search_receipt")
+    assert not any(
+        message.additional_kwargs.get("decepticon_internal") for message in result["messages"]
+    )
+
+
+def test_assessment_work_keeps_closure_guard_and_checkpoint_resume(tmp_path: Path) -> None:
+    @tool(description="Synthetic assessment operation; never contacts a target")
+    def execute() -> str:
+        return "Synthetic experiment completed"
+
+    graph = create_agent(
+        ToolModel(
+            responses=[
+                AIMessage(
+                    content="", tool_calls=[{"id": "experiment", "name": "execute", "args": {}}]
+                ),
+                *[AIMessage(content="Done without evidence") for _ in range(4)],
+            ]
+        ),
+        tools=[execute],
+        middleware=[
+            SearchRuntimeMiddleware(FilesystemBackend(root_dir=tmp_path, virtual_mode=True))
+        ],
+        checkpointer=InMemorySaver(),
+        interrupt_after=["tools"],
+    )
+    config: RunnableConfig = {"configurable": {"thread_id": "assessment-turn"}}
+    paused = graph.invoke(
+        {"messages": [HumanMessage(content="Perform the synthetic assessment")]}, config=config
+    )
+    assert paused["search_turn_active"] is True
+    with pytest.raises(SearchContractError, match="premature closure"):
+        graph.invoke(None, config=config)
+    state = graph.get_state(config).values
+    assert state["search_turn_active"] is True
+    assert not state["search_receipt"]
+    directives = [m for m in state["messages"] if m.additional_kwargs.get("decepticon_internal")]
+    assert len(directives) == 3
+
+
+def test_autohunt_still_requires_a_receipt_before_any_work(tmp_path: Path) -> None:
+    graph = create_agent(
+        ToolModel(responses=[AIMessage(content="Finished without experiments")]),
+        middleware=[
+            SearchRuntimeMiddleware(FilesystemBackend(root_dir=tmp_path, virtual_mode=True))
+        ],
+    )
+    with pytest.raises(SearchContractError, match="premature closure"):
+        graph.invoke(
+            {"messages": [HumanMessage(content="Assess the configured target")]},
+            config={
+                "configurable": {"target_type": "web_url", "target_value": "https://example.com"}
+            },
+        )
+
+
+def test_conversation_preserves_terminal_receipt_until_new_assessment_work(tmp_path: Path) -> None:
+    @tool(description="Synthetic assessment operation")
+    def execute() -> str:
+        return "New experiment"
+
+    graph = create_agent(
+        ToolModel(
+            responses=[
+                AIMessage(content="Hi!"),
+                AIMessage(
+                    content="", tool_calls=[{"id": "new-work", "name": "execute", "args": {}}]
+                ),
+                *[AIMessage(content="Done without a new receipt") for _ in range(4)],
+            ]
+        ),
+        tools=[execute],
+        middleware=[
+            SearchRuntimeMiddleware(FilesystemBackend(root_dir=tmp_path, virtual_mode=True))
+        ],
+        checkpointer=InMemorySaver(),
+    )
+    config: RunnableConfig = {"configurable": {"thread_id": "completed-search"}}
+    terminal = SearchSession(
+        thread_id="completed-search",
+        run_id="finished",
+        started_at="2026-10-25T00:00:00Z",
+        status="terminal",
+        disposition="budget_exhausted",
+    )
+    receipt = '{"run_id":"finished","disposition":"budget_exhausted"}'
+    graph.update_state(
+        config,
+        {
+            "search_state": terminal.model_dump_json(),
+            "search_receipt": receipt,
+            "search_turn_active": True,
+        },
+        as_node="tools",
+    )
+    conversation = graph.invoke({"messages": [HumanMessage(content="hi")]}, config=config)
+    assert conversation["search_state"] == terminal.model_dump_json()
+    assert conversation["search_receipt"] == receipt
+    with pytest.raises(SearchContractError, match="premature closure"):
+        graph.invoke(
+            {"messages": [HumanMessage(content="Begin the next assessment")]}, config=config
+        )
+    next_search = graph.get_state(config).values
+    assert SearchSession.model_validate_json(next_search["search_state"]).run_id != "finished"
+    assert not next_search["search_receipt"]

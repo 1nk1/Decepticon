@@ -4,6 +4,7 @@ from uuid import uuid4
 import pytest
 from deepagents.backends import FilesystemBackend
 from langchain.agents import create_agent
+from langchain.tools import tool
 from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.checkpoint.memory import InMemorySaver
 
@@ -51,7 +52,17 @@ def test_optional_legacy_plugin_does_not_inherit_default_red_workflow(
 def test_latest_workflow_automatically_enables_search_gate(tmp_path: Path) -> None:
     # Given the real parent assembly with no explicit search policy override.
     backend = FilesystemBackend(root_dir=tmp_path, virtual_mode=True)
-    model = ToolModel(responses=[AIMessage(content="Done")])
+
+    @tool(description="Synthetic assessment operation without network access")
+    def execute() -> str:
+        return "Experiment returned"
+
+    model = ToolModel(
+        responses=[
+            AIMessage(content="", tool_calls=[{"id": "experiment", "name": "execute", "args": {}}]),
+            *[AIMessage(content="Done") for _ in range(4)],
+        ]
+    )
     middleware = [
         item
         for item in build_middleware(
@@ -59,9 +70,11 @@ def test_latest_workflow_automatically_enables_search_gate(tmp_path: Path) -> No
         )
         if isinstance(item, (WorkflowMiddleware, SearchRuntimeMiddleware))
     ]
-    graph = create_agent(model, middleware=middleware, checkpointer=InMemorySaver())
+    graph = create_agent(
+        model, tools=[execute], middleware=middleware, checkpointer=InMemorySaver()
+    )
     config = {"configurable": {"thread_id": "default-v2"}}
-    # When a new execution attempts to finish before the search objective is met.
+    # When assessment work starts and attempts to finish without its required receipt.
     with pytest.raises(SearchContractError, match="premature closure"):
         graph.invoke(
             {"messages": [HumanMessage(content="Assess the authorized target")]}, config=config
