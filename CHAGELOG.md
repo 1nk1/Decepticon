@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed [engagement run contract PR](https://github.com/BitterSecurity/Decepticon/pulls?q=is%3Apr+head%3Afix%2Foss-engagement-run-contract-20261026): refresh approval from current trusted, bound launch configuration on resume, including revocation. Separate direct scope from Autohunt bootstrap wording, expose canonical OPPLAN objective enums/integer priorities and treat greetings as conversation rather than mission bootstrap. Stop replaying main-model failures as compaction failures; context-check status completes before generation. Existing scope gates, revision checks and saved workspace files remain intact; no data reset is required.
+- Proposed [PR #1096](https://github.com/BitterSecurity/Decepticon/pull/1096): refresh approval from current trusted, bound launch configuration on resume, including revocation. Separate direct scope from Autohunt bootstrap wording, expose canonical OPPLAN objective enums/integer priorities and treat greetings as conversation rather than mission bootstrap. Stop replaying main-model failures as compaction failures; context-check status completes before generation. Existing scope gates, revision checks and saved workspace files remain intact; no data reset is required.
 
 - Proposed [PR #1095](https://github.com/BitterSecurity/Decepticon/pull/1095): recognize upstream cybersecurity/content refusals inside HTTP 500 and fallback wrappers. Show a compact policy/access explanation instead of authentication-priority advice or router dumps; distinguish OAuth subscription access from API-project Daybreak approval. Existing model selection, safeguards and access settings are unchanged; no migration is required.
 
