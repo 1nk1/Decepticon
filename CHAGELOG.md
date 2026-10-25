@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed [neutral onboarding PR](https://github.com/BitterSecurity/Decepticon/pulls?q=is%3Apr+head%3Afix%2Foss-onboarding-neutral-ui-20261025): use example.com/decepticon.red engagement examples, query passive sources concurrently under one deadline and keep partial results with concise timeout guidance; preserve literal wildcard targets in the scope review. Unify the Ink CLI/TUI and Go launcher's branding, controls, activity, agents and Markdown around graphite/silver surfaces, neutral focus edges and explicit status glyphs. Existing commands, scope approval and persisted data remain compatible; external discovery availability is still best-effort.
+- Proposed [PR #1093](https://github.com/BitterSecurity/Decepticon/pull/1093): use example.com/decepticon.red engagement examples, query passive sources concurrently under one deadline and keep partial results with concise timeout guidance; preserve literal wildcard targets in the scope review. Unify the Ink CLI/TUI and Go launcher's branding, controls, activity, agents and Markdown around graphite/silver surfaces, neutral focus edges and explicit status glyphs. Existing commands, scope approval and persisted data remain compatible; external discovery availability is still best-effort.
 
 - Proposed [PR #1092](https://github.com/BitterSecurity/Decepticon/pull/1092): preserve the web terminal's internal port 3003 when host publications are remapped, and pass the selected web host port to its origin checks. Browser runtime endpoints continue using host ports. This compatible follow-up to #1091 requires no data migration.
 
