@@ -19,6 +19,9 @@ const (
 )
 
 func TestMain(m *testing.M) {
+	if os.Getenv("DECEPTICON_PORT_TEST_HELPER") == "1" {
+		os.Exit(portRecoveryProcess(os.Args[1:]))
+	}
 	if os.Getenv("DECEPTICON_NETWORK_TEST_HELPER") == "1" {
 		os.Exit(networkRecoveryProcess(os.Args[1:]))
 	}

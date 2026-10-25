@@ -70,7 +70,9 @@ func migrateLegacyCredentials(env map[string]string) error {
 	return migrateLegacyCredentialsWith(env, credentialDatabaseOps{
 		up: func() error {
 			c = compose.New()
-			return c.UpDatabases()
+			err := c.UpDatabases()
+			c.RefreshPorts(env)
+			return err
 		},
 		postgres: func(password string) error { return rotatePostgresPassword(c, password) },
 		neo4j:    rotateNeo4jPassword,
