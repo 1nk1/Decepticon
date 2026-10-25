@@ -212,7 +212,7 @@ The affected test commands are
 repository's required CI/Security workflows, while retaining #1088 as its
 prerequisite ancestry. The two PRs should be integrated in that order.
 
-Local results: **846 LLM tests passed** with two workers; **9 catalog tests
+Local results: **848 LLM tests passed** with two workers; **9 catalog tests
 passed**; generation drift check clean (204 records / four outputs); repository
 Ruff check and format check passed; basedpyright reported zero errors. The CSV's
 unique identities, redaction, status counts and SHA-256 were checked against the

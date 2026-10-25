@@ -238,6 +238,16 @@ class TestMaxTokensResolution:
         monkeypatch.setenv(LLM_MAX_TOKENS_ENV, "8192")
         assert _resolve_max_tokens(model_id) == 8192
 
+    @pytest.mark.parametrize(("host_limit", "expected"), [(2048, 2048), (8192, 4000)])
+    def test_host_request_limit_does_not_replace_publisher_spec(
+        self, monkeypatch, host_limit, expected
+    ) -> None:
+        from decepticon.llm.model_contracts import ROUTE_OUTPUT_DEFAULTS
+
+        route = "gateway/nvidia/Llama-3.1-Nemotron-70B-Instruct"
+        monkeypatch.setitem(ROUTE_OUTPUT_DEFAULTS, route.lower(), host_limit)
+        assert _model_max_output_tokens(route) == expected
+
     def test_unknown_model_falls_back_to_safe_default(self) -> None:
         assert _model_max_output_tokens("openai/gpt-5-nano") == 64000
 
@@ -653,6 +663,10 @@ class TestLLMFactory:
         legacy = LLMFactory(self.proxy, explicit, apply_role_overrides=False).get_model("recon")
         assert isinstance(legacy, ChatOpenAI)
         assert legacy.model_name == "gemini/gemini-2.5-pro"
+        subscription = LLMModelMapping.from_credentials_and_profile(
+            Credentials(methods=[AuthMethod.GOOGLE_OAUTH]), ModelProfile.ECO
+        )
+        assert subscription.get_assignment("decepticon").primary == "gemini-sub/gemini-2.5-pro"
 
     def test_groq_automatic_chain_uses_current_models_but_keeps_explicit_legacy(self) -> None:
         mapping = LLMModelMapping.from_credentials_and_profile(

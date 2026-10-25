@@ -139,9 +139,10 @@ def _model_max_output_tokens(model: str) -> int:
     not a guarantee of arbitrary providers' limits; operators can override it.
     """
     route = model.lower()
-    if route in ROUTE_OUTPUT_DEFAULTS:
-        return ROUTE_OUTPUT_DEFAULTS[route]
     publisher_limit = PUBLISHER_OUTPUT_LIMITS.get(route.rsplit("/", 1)[-1])
+    if route in ROUTE_OUTPUT_DEFAULTS:
+        route_limit = ROUTE_OUTPUT_DEFAULTS[route]
+        return min(route_limit, publisher_limit) if publisher_limit is not None else route_limit
     if publisher_limit is not None:
         return min(DEFAULT_LLM_MAX_TOKENS, publisher_limit)
     # AWS's Sonnet 4.6 contract is 64K; Anthropic/OpenRouter allow 128K.

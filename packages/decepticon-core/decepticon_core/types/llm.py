@@ -38,7 +38,7 @@ Tier × AuthMethod matrix
   anthropic_oauth  auth/claude-opus-4-8          auth/claude-sonnet-4-6         auth/claude-haiku-4-5
   openai_api       gpt-5.5                       gpt-5.4                        gpt-5-nano
   openai_oauth     auth/gpt-6-astra               auth/gpt-6.1-sol               auth/gpt-6-luna
-  google_api       gemini-2.5-pro                gemini-2.5-flash               gemini-2.5-flash-lite
+  google_api       gemini-3.8-flash              gemini-3.8-flash               gemini-3.5-flash-lite
   minimax_api      MiniMax-M3                    MiniMax-M2.7-highspeed         — (falls through)
   openrouter_api   claude-opus-4-8               claude-sonnet-4-6              claude-haiku-4-5
   nvidia_api       llama-3.3-70b-instruct        nemotron-70b-instruct          llama-3.2-3b-instruct
