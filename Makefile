@@ -290,7 +290,7 @@ quality-cli: node-install
 	npm run build --workspace=@decepticon/streaming
 	npm run typecheck --workspace=@decepticon/cli
 	npm run build --workspace=@decepticon/cli
-	npm run test --workspace=@decepticon/cli
+	npm run test --workspace=@decepticon/cli -- $(CLI_TEST_ARGS)
 
 # The optional Worker has a separate lockfile; the root workspace audit cannot see it.
 .PHONY: telemetry-install telemetry-check telemetry-build quality-telemetry
