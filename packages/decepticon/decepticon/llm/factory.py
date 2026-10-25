@@ -1505,6 +1505,19 @@ _FATAL_STATUS = frozenset({400, 401, 403, 404})
 # LiteLLM/openai surface the upstream status only in the body text.
 _STATUS_IN_MSG = re.compile(r"(?:error\s*code|status(?:_code)?|http)\D{0,8}(\d{3})", re.I)
 
+# Gateways can wrap a provider policy refusal in HTTP 500 and append their
+# entire fallback configuration. The policy signal takes precedence over that
+# wrapper status; a different authentication order does not grant policy access.
+_POLICY_REJECTION = re.compile(
+    r"\b(?:cyber_policy|content_policy_violation|ContentPolicyViolationError)\b"
+    r"|flagged for possible cybersecurity risk",
+    re.I,
+)
+
+
+def _is_provider_policy_rejection(exc: BaseException) -> bool:
+    return bool(_POLICY_REJECTION.search(f"{type(exc).__name__}: {exc}"))
+
 
 def _provider_status_code(exc: BaseException) -> int | None:
     status = getattr(exc, "status_code", None)
@@ -1527,6 +1540,8 @@ def _classify_provider_error(exc: BaseException) -> ProviderErrorClass:
     behavior (LiteLLM ``num_retries`` keeps spinning). Only flip to ``fatal``
     on a positive 4xx signal.
     """
+    if _is_provider_policy_rejection(exc):
+        return "fatal"
     if isinstance(exc, LLMTimeoutError):
         return "retryable"
     if isinstance(exc, (httpx.TransportError, httpx.TimeoutException)):
@@ -1581,6 +1596,22 @@ def _reraise_with_actionable_message(exc: Exception, model_name: str) -> None:
       - 404 NotFoundError (model not registered in litellm.yaml)
       - 429 RateLimitError (provider quota hit)
     """
+    if _is_provider_policy_rejection(exc):
+        route_hint = (
+            " This auth/ route uses subscription/OAuth access; API-project Daybreak "
+            "approval does not establish access on this product surface."
+            if model_name.startswith("auth/")
+            else " For approved API Daybreak access, verify the exact project and model."
+        )
+        raise RuntimeError(
+            f"non-retryable provider policy rejection: Model '{model_name}' was "
+            "blocked by the upstream provider's cybersecurity/content safeguards. "
+            "Review the request and verify access for this account, model and product "
+            f"surface.{route_hint} Changing authentication priority is not a policy-access "
+            "fix. Details: decepticon logs litellm. "
+            "https://developers.openai.com/api/docs/guides/safety-checks/cybersecurity"
+        ) from exc
+
     _reraise_if_connection_error(exc)
 
     err_type = type(exc).__name__

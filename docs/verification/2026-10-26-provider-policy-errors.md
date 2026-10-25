@@ -1,0 +1,9 @@
+# Provider policy refusal diagnostics
+
+The reported `auth/gpt-6-astra` error contains a provider cybersecurity refusal nested in LiteLLM HTTP 500 / MidStreamFallbackError / exhausted-fallback text. The old diagnostic matched fallback exhaustion first and suggested adding authentication methods, hiding the actionable cause.
+
+The factory now recognizes explicit policy error codes/class names and the reported provider phrase before transport/status/fallback classification. It labels that error non-retryable and presents a bounded policy-access explanation without the raw router configuration or echoed credentials. OAuth routes receive a product-surface caveat. Ordinary 500, connection, quota and authentication diagnostics retain their existing behavior. This patch does not grant access, set an access-program tier, automatically change models or alter provider safeguards/fallback configuration.
+
+[OpenAI cybersecurity checks](https://developers.openai.com/api/docs/guides/safety-checks/cybersecurity) document that policy errors can occur during streaming and that approval is specific to the identity, account/project, model and surface. [Daybreak API guidance](https://developers.openai.com/api/docs/guides/daybreak) requires approved project/model access; the request field selects existing access and does not grant it. These API documents do not establish equivalent entitlement for a ChatGPT OAuth route. The operator's account eligibility remains unverified.
+
+Validation: 39 affected policy/classification/fallback tests passed, including nested 500 refusal precedence, compact credential-free output, OAuth/API guidance and ordinary transient failure behavior. Ruff lint/format passed. The upstream refusal is reproduced with a local error fixture; no blocked real request was resent and no full-provider eligibility claim is made.
