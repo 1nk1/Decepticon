@@ -15,6 +15,16 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed (Blue): make the local sensor's detection rules operator-editable —
+  `BLUE_RULES_FILE` loads a jsonl rule set in the bootstrap / Sigma-ish subset
+  that `decepticon.blue_cell.rule_match` accepts (with `compose.rules.yaml` as
+  an overlay and `rules/sample-web-rules.jsonl` as the shipped example); an
+  unreadable or invalid file stops the monitor instead of silently keeping the
+  built-in web rules, which remain the default without the variable. The
+  autonomous watch and investigation prompts now name the defended target id
+  and the loaded rule set, and the Blue agent treats that as scope context.
+  [Live-stack verification](docs/verification/blue-rules-file-20261026.md).
+
 - Proposed (Blue): implement engagement-scoped Blue target configuration —
   `blue.json` materialized in the Blue-owned workspace root
   (`~/.decepticon/blue/<label>`, `DECEPTICON_BLUE_WORKSPACE` override) by a
