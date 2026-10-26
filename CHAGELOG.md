@@ -15,6 +15,28 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed (AutoBot split — Decepticon side): add the shared **contract layer** in
+  `decepticon-core` that the defensive **AutoBot** package (shipped separately in
+  [BitterSecurity/AutoBot](https://github.com/BitterSecurity/AutoBot), depending on
+  `decepticon-core`) builds on, and make the existing Blue sensor path
+  source-agnostic. Contract-layer only here (pydantic + stdlib, no runtime deps);
+  **no behavior change to existing agents**. Design:
+  `docs/design/2026-10-23-autobot-redesign.md` (+ intent, blue-cell-analysis).
+  - `decepticon_core.types.ocsf_event` — OCSF-aligned normalized event envelope
+    (`OcsfEvent`, `SignalType`, `SeverityId`, `Observable`, `Metadata`,
+    `PROMOTED_FIELDS`); preserves `raw_data`/`unmapped`, exposes source-agnostic
+    promoted query keys.
+  - `decepticon_core.types.event_store` + `protocols.event_store.EventStoreProtocol`
+    — swappable, source-agnostic event-store query contract (no proxy/target enum).
+  - `decepticon_core.protocols.coverage.CoverageAdapterProtocol` — pluggable
+    per-environment log coverage contract.
+  - Drop the hardcoded two-source enum from the Blue timeline/metrics path so
+    arbitrary coverage sources are queryable; receiver `/metrics` gains
+    source-agnostic `events_by_source` (legacy keys kept for backward compat).
+  - Public-API surface 74 → 87. (The AutoBot runtime — OpenSearch store, coverage
+    adapters, Sigma detection, triage — lands in the AutoBot repo once this core
+    contract merges.)
+
 - Proposed (design): Blue engagement configuration — a declarative, reviewed
   `blue.json` in a Blue-owned workspace root (`~/.decepticon/blue/<label>`,
   kept outside the Red engagement workspace so the attacking agent cannot

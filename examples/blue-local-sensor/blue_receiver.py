@@ -449,6 +449,19 @@ class EventStore:
                     "SELECT name,value,initialized_at FROM counter_state"
                 )
             }
+            # Source-agnostic per-source breakdown — every delivering source,
+            # not just the two legacy ones. New coverage shows up automatically
+            # (redesign §3.2). Legacy target_log_events/proxy_events kept below
+            # for backward compatibility with existing consumers.
+            events_by_source: dict[str, int] = {}
+            last_by_source: dict[str, str | None] = {}
+            for src, count, last in db.execute(
+                "SELECT json_extract(event_json,'$.source'), COUNT(*), MAX(received_at) "
+                "FROM events GROUP BY json_extract(event_json,'$.source')"
+            ):
+                key = src if src is not None else "unknown"
+                events_by_source[key] = int(count)
+                last_by_source[key] = last
             return {
                 "events_total": int(db.execute("SELECT COUNT(*) FROM events").fetchone()[0]),
                 "events_ingested_total": counters["events_ingested_total"][0],
@@ -461,6 +474,9 @@ class EventStore:
                 "oldest_seq": int(
                     db.execute("SELECT COALESCE(MIN(seq),0) FROM events").fetchone()[0]
                 ),
+                "events_by_source": events_by_source,
+                "last_received_at_by_source": last_by_source,
+                # ── Legacy fields (backward compat; superseded by *_by_source) ──
                 "target_log_events": int(target_logs[0]),
                 "target_log_last_received_at": target_logs[1],
                 "proxy_events": int(proxy_events[0]),
@@ -610,10 +626,9 @@ class Handler(BaseHTTPRequestHandler):
                 if (
                     not 0 < (end - start).total_seconds() <= 3600
                     or not 1 <= limit <= 100
-                    or (
-                        source is not None
-                        and source not in ("blue-ingress-proxy", "target-log-file")
-                    )
+                    # Source is an arbitrary adapter id, not a fixed enum, so new
+                    # coverage is queryable without code changes (redesign §3.2).
+                    or (source is not None and not 1 <= len(source) <= 256)
                     or (before is not None and before < 1)
                 ):
                     raise ValueError
