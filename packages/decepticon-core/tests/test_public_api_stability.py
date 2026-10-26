@@ -60,6 +60,19 @@ CORE_PUBLIC_API: tuple[tuple[str, str], ...] = (
     ("decepticon_core.types.roe", "Decision"),
     ("decepticon_core.types.roe", "evaluate_target"),
     ("decepticon_core.types.roe", "evaluate_command"),
+    # decepticon_core.types.ocsf_event — AutoBot normalized event envelope
+    ("decepticon_core.types.ocsf_event", "OcsfEvent"),
+    ("decepticon_core.types.ocsf_event", "SignalType"),
+    ("decepticon_core.types.ocsf_event", "SeverityId"),
+    ("decepticon_core.types.ocsf_event", "Observable"),
+    ("decepticon_core.types.ocsf_event", "Metadata"),
+    ("decepticon_core.types.ocsf_event", "PROMOTED_FIELDS"),
+    # decepticon_core.types.event_store — event store query contract value types
+    ("decepticon_core.types.event_store", "EventPage"),
+    ("decepticon_core.types.event_store", "SourceInfo"),
+    ("decepticon_core.types.event_store", "StoreMetrics"),
+    ("decepticon_core.types.event_store", "IngestResult"),
+    ("decepticon_core.types.event_store", "SEARCHABLE_FIELDS"),
     # decepticon_core.protocols
     ("decepticon_core.protocols", "BackendProtocol"),
     ("decepticon_core.protocols", "MiddlewareProtocol"),
@@ -68,6 +81,8 @@ CORE_PUBLIC_API: tuple[tuple[str, str], ...] = (
     ("decepticon_core.protocols", "LLMProtocol"),
     ("decepticon_core.protocols", "SandboxProtocol"),
     ("decepticon_core.protocols", "AgentProtocol"),
+    ("decepticon_core.protocols", "EventStoreProtocol"),
+    ("decepticon_core.protocols", "CoverageAdapterProtocol"),
     # decepticon_core.contracts.slots
     ("decepticon_core.contracts.slots", "MiddlewareSlot"),
     ("decepticon_core.contracts.slots", "SAFETY_CRITICAL_SLOTS"),
@@ -137,7 +152,13 @@ def test_manifest_count_unchanged() -> None:
     # Update this number deliberately when adding/removing public names.
     # 2026-10-22: 75 -> 74, EnforcementMode removed (legacy audit/warn/enforce
     # modes retired; RoE now always fail-closed enforce). See CHANGELOG.
-    expected = 74
+    # 2026-10-23: 74 -> 80, AutoBot OcsfEvent envelope added (OcsfEvent,
+    # SignalType, SeverityId, Observable, Metadata, PROMOTED_FIELDS). See CHANGELOG.
+    # 2026-10-23: 80 -> 86, AutoBot event-store query contract added
+    # (EventStoreProtocol + EventPage, SourceInfo, StoreMetrics, IngestResult,
+    # SEARCHABLE_FIELDS). See CHANGELOG.
+    # 2026-10-23: 86 -> 87, AutoBot CoverageAdapterProtocol added. See CHANGELOG.
+    expected = 87
     actual = len(CORE_PUBLIC_API)
     assert actual == expected, (
         f"CORE_PUBLIC_API has {actual} entries, expected {expected}. "

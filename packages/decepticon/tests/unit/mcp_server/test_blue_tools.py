@@ -119,6 +119,42 @@ async def test_blue_search_timeline_validation_and_http_errors(
     assert paths == ["/search", "/timeline"]
 
 
+async def test_blue_timeline_accepts_arbitrary_coverage_source(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Source is an arbitrary adapter id now, not a fixed proxy/target enum."""
+    monkeypatch.setenv("BLUE_SENSOR_URL", "http://receiver:8082")
+    seen: list[str | None] = []
+
+    def respond(request: httpx.Request) -> httpx.Response:
+        seen.append(request.url.params.get("source"))
+        return httpx.Response(200, json={"events": [], "has_more": False})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
+        manager = _server(client)._tool_manager
+        # A brand-new source id (not blue-ingress-proxy/target-log-file) is accepted.
+        result = await manager.call_tool(
+            "decepticon_blue_timeline",
+            {
+                "start_at": "2026-10-05T00:00:00Z",
+                "end_at": "2026-10-05T00:30:00Z",
+                "source": "wazuh",
+            },
+        )
+        assert result["events"] == []
+        # An over-long source is still rejected (bound, not enum).
+        with pytest.raises(Exception, match="1-256 characters"):
+            await manager.call_tool(
+                "decepticon_blue_timeline",
+                {
+                    "start_at": "2026-10-05T00:00:00Z",
+                    "end_at": "2026-10-05T00:30:00Z",
+                    "source": "x" * 257,
+                },
+            )
+    assert seen == ["wazuh"]
+
+
 async def test_blue_events_over_real_stdio_mcp() -> None:
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:
