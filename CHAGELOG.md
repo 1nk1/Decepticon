@@ -15,6 +15,22 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed (Blue): pluggable detection adapters and incident batching for the
+  local sensor. `BLUE_DETECTOR` selects `rules` (the default regex/Sigma-ish
+  matcher, unchanged) or `decision` — a typed classification pass over each
+  ingested page where every event gets exactly one verdict
+  (`attack`/`suspicious`/`benign` with severity and bounded rationale, in the
+  spirit of a typed decision model); malformed or unknown verdicts are dropped
+  individually and a non-array response fails the page. The blue sensor compose
+  files pass the variable through, and the decision adapter requires the Blue
+  agent (fail-closed at startup). Repeat hits of the same rule inside
+  `BLUE_DEDUP_WINDOW_SECONDS` (default 60) collapse into one incident with an
+  incremented `evidence.hits` counter, so scan traffic no longer opens one
+  incident per request. Engagement-creation surfaces (`start_engagement` MCP
+  tool, `decepticon-cli scan --blue-target`) gain an optional blue block that
+  materializes the reviewed `blue.json` (fail-closed, never overwrites).
+  [Live verification: decision adapter + batching](docs/verification/blue-detector-adapters-20261026.md).
+
 - Proposed (AutoBot split — Decepticon side): add the shared **contract layer** in
   `decepticon-core` that the defensive **AutoBot** package (shipped separately in
   [BitterSecurity/AutoBot](https://github.com/BitterSecurity/AutoBot), depending on
