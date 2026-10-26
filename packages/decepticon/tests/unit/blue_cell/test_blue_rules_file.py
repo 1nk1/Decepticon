@@ -83,7 +83,9 @@ def test_file_rules_drive_detect_and_replace_builtins(
     assert traversal == [("traversal_rule", "high", "uri")]
     encoded = monitor.detect(http_event(2, "/?file=%2e%2e%2f%2e%2e%2fetc%2fpasswd"))
     assert [hit[0] for hit in encoded] == ["traversal_rule"]
-    log_hit = monitor.detect({"seq": 3, "event_id": "e3", "event_type": "process_log", "message": "segfault at ip"})
+    log_hit = monitor.detect(
+        {"seq": 3, "event_id": "e3", "event_type": "process_log", "message": "segfault at ip"}
+    )
     assert log_hit == [("log_probe", "low", "message")]
     assert monitor.detect(http_event(4, "/health")) == []
     assert monitor.detect_with_file_rules(http_event(5), "admin_login=1") == [
@@ -98,7 +100,9 @@ def test_builtin_rules_stay_default_without_file(
     assert monitor.FILE_RULES is None
     hits = monitor.detect(http_event(1, "/?file=../../../etc/passwd"))
     assert [hit[0] for hit in hits] == ["path_traversal"]
-    log_hit = monitor.detect({"seq": 2, "event_id": "e2", "event_type": "process_log", "message": "segfault"})
+    log_hit = monitor.detect(
+        {"seq": 2, "event_id": "e2", "event_type": "process_log", "message": "segfault"}
+    )
     assert log_hit == []
 
 
@@ -111,7 +115,9 @@ def test_watch_prompt_names_target_and_loaded_rules(
         [{"start_seq": 1, "end_seq": 2, "decision": "no_alert", "summary": "prior"}],
     )
     assert "You are defending target 'local-web'" in prompt
-    assert "Loaded detection rules: traversal_rule(high), body_probe(medium), log_probe(low)" in prompt
+    assert (
+        "Loaded detection rules: traversal_rule(high), body_probe(medium), log_probe(low)" in prompt
+    )
 
 
 def test_analysis_prompt_names_target_from_incident_evidence(
