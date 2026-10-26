@@ -105,6 +105,18 @@ export function formatBlueNotification(notification: BlueNotification, language 
     `incident ${payload.id}. Real impact under investigation.`;
 }
 
+// Raw rule detections stay out of the conversation feed: the standing-watch
+// and investigation agents produce the conclusions worth reading inline, while
+// every detection still accumulates in state for /alerts and the unread badge.
+const INLINE_FEED_KINDS: ReadonlySet<BlueNotification["kind"]> = new Set([
+  "assessment",
+  "watch_alert",
+  "coverage_gap",
+  "coverage_restored",
+  "watch_error",
+  "analysis_error",
+]);
+
 export function useBlueNotifications(
   addSystemEvent: (message: string) => void,
   // Gate for surfacing Blue Cell events into the conversation feed. Blue events
@@ -173,7 +185,7 @@ export function useBlueNotifications(
             const revision = JSON.stringify([notification.payload.id, notification.kind, notification.payload.revision ?? notification.payload]);
             if (revisions.has(revision)) continue;
             revisions.add(revision);
-            emit(formatBlueNotification(notification));
+            if (INLINE_FEED_KINDS.has(notification.kind)) emit(formatBlueNotification(notification));
             setState(previous => ({ ...previous,
               notifications: [...previous.notifications, notification].slice(-500),
               lastSequence: notification.seq,

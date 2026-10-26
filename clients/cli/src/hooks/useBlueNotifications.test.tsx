@@ -16,7 +16,7 @@ describe("Blue Cell chat notifications", () => {
     vi.unstubAllEnvs();
   });
 
-  it("inserts detection and later agent assessment into the active chat", async () => {
+  it("keeps raw detections out of the feed and inserts the agent assessment", async () => {
     vi.useFakeTimers();
     vi.stubEnv("BLUE_MONITOR_URL", "http://blue-monitor:8085");
     const events: string[] = [];
@@ -38,19 +38,22 @@ describe("Blue Cell chat notifications", () => {
 
     const { result, unmount } = renderHook(() => useBlueNotifications((message) => events.push(message)));
     await act(async () => { await vi.advanceTimersByTimeAsync(0); });
-    expect(events).toHaveLength(1);
-    expect(events[0]).toContain("path_traversal");
+    // Raw detections never enter the feed; they only accumulate for /alerts.
+    expect(events).toHaveLength(0);
+    expect(result.current.notifications).toHaveLength(1);
+    expect(result.current.notifications[0]?.kind).toBe("detected");
+    expect(result.current.unreadCount).toBe(1);
 
     await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
-    expect(events).toHaveLength(2);
-    expect(events[1]).toContain("[Blue Cell investigation] incident incident-1: Traversal attempt observed; impact not proven.");
+    expect(events).toHaveLength(1);
+    expect(events[0]).toContain("[Blue Cell investigation] incident incident-1: Traversal attempt observed; impact not proven.");
     expect(result.current.getDetails("incident-1")[1]?.payload.analysis).toBe("Traversal attempt observed; impact not proven.");
     expect(result.current.unreadCount).toBe(2);
     act(() => result.current.acknowledge());
     expect(result.current.unreadCount).toBe(0);
 
     await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
-    expect(events).toHaveLength(2);
+    expect(events).toHaveLength(1);
     unmount();
   });
 

@@ -64,6 +64,22 @@ request context") because the stub agent replied with only the verdict JSON;
 tool call → tool result → verdict) passed, which incidentally re-confirmed the
 monitor's trajectory verification.
 
+## Follow-up on the same PR: raw detections stay out of the feed
+
+Reviewing the live output showed two probes producing three feed lines: the raw
+`detected` line duplicated what the agents' conclusions already say, and under
+scan traffic `record_event` emits one `detected` notification per rule hit
+(plus one `assessment` per incident analyzed), which would flood the
+conversation. The feed now inlines only the agents' conclusions
+(`assessment`, `watch_alert`) and operational signals (`coverage_gap`,
+`coverage_restored`, `watch_error`, `analysis_error`); raw `detected`
+notifications accumulate in state for `/alerts` and the unread badge.
+
+Verified at the hook level (the feed gate lives in `useBlueNotifications`, so a
+mocked-monitor renderHook test is the harness): the detection arrives in state
+with unread 1 and the feed stays empty, then the assessment lands inline with
+the reasoning. Full CLI suite: **289 passed** (40 files), typecheck clean.
+
 ## Scope notes
 
 - No release, version bump or SaaS change is included; the change rides the
