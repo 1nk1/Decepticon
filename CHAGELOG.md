@@ -37,6 +37,16 @@ Keep proposed and unmerged changes out of released sections.
     adapters, Sigma detection, triage — lands in the AutoBot repo once this core
     contract merges.)
 
+- Proposed (design): Blue engagement configuration — a declarative, reviewed
+  `blue.json` in a Blue-owned workspace root (`~/.decepticon/blue/<label>`,
+  kept outside the Red engagement workspace so the attacking agent cannot
+  reach Blue's observation scope, rules and sensor layout by filesystem
+  coincidence; purple disclosure stays an explicit, logged opt-in for later)
+  holding targets, logs, rules file and watch settings, materialized at
+  creation time by a shared fail-closed module mirroring `plan/roe.json`
+  semantics, consumed by `/blue up`, with engagement-addressable sensor
+  state. Design review document:
+  [docs/design/2026-10-26-blue-engagement-configuration-design.md](docs/design/2026-10-26-blue-engagement-configuration-design.md).
 - Proposed (Blue): make the local sensor's detection rules operator-editable —
   `BLUE_RULES_FILE` loads a jsonl rule set in the bootstrap / Sigma-ish subset
   that `decepticon.blue_cell.rule_match` accepts (with `compose.rules.yaml` as
