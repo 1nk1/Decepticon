@@ -54,8 +54,8 @@ describe("CLI run modes", () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
     const { ctx, selected } = context();
     await mode.execute("blue", ctx);
-    expect(selected).toEqual(["blue_cell"]);
-    expect(getAssistantOverride()).toBe("blue_cell");
+    expect(selected).toEqual(["autobot"]);
+    expect(getAssistantOverride()).toBe("autobot");
   });
 
   it("selects Red even without a scope file", async () => {

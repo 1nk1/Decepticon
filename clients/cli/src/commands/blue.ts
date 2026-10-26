@@ -460,10 +460,10 @@ const blue: Command = {
       }
       if (action === "analyze") {
         await queryMonitor<Record<string, number>>("/metrics");
-        if (context.selectAssistant && !(await context.selectAssistant("blue_cell"))) {
+        if (context.selectAssistant && !(await context.selectAssistant("autobot"))) {
           return;
         }
-        setAssistantOverride("blue_cell");
+        setAssistantOverride("autobot");
         context.addSystemEvent("Blue Cell is investigating live target events. The automatic monitor continues independently; use /mode red to return.");
         context.submit("Inspect the latest local target telemetry with blue_sensor_scan, investigate noteworthy events with blue_sensor_body when useful, and report evidence, uncertainty, and immediate defensive actions.");
         return;

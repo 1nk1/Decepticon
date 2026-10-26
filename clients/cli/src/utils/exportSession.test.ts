@@ -11,7 +11,7 @@ async function target(name: string) {
   temporary.push(directory);
   return path.join(directory, name);
 }
-const snapshot = { engagement: "test-local", assistant: "blue_cell", threadId: "thread-1", events: [
+const snapshot = { engagement: "test-local", assistant: "autobot", threadId: "thread-1", events: [
   { id: "event-1", type: "ai_message" as const, content: "관측 결과\nsecond line", timestamp: 1 },
 ] };
 

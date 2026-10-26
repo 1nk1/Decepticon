@@ -18,7 +18,7 @@ export interface SessionFooterProps {
 }
 
 export function SessionFooter({ assistantId = "decepticon", activeAgent, engagement, model, connection, runState, runtime, budget, onCommand }: SessionFooterProps) {
-  const mode = assistantId === "soundwave" ? "PLAN" : assistantId === "blue_cell" ? "BLUE" : "RED";
+  const mode = assistantId === "soundwave" ? "PLAN" : assistantId === "autobot" ? "BLUE" : "RED";
   const working = runState === "streaming" || runState === "connecting";
   return <Box flexDirection="column" backgroundColor={PALETTE.surface} borderStyle="single" borderTop borderBottom={false} borderLeft={false} borderRight={false} borderColor={PALETTE.border} paddingX={1}>
     <Box flexWrap="wrap" columnGap={1}>

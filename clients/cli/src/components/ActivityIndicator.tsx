@@ -108,7 +108,7 @@ export const ActivityIndicator = React.memo(function ActivityIndicator({
       <Text color={PALETTE.text}>
         <Text color={PULSE_COLORS[pulseIdx]}>{GLYPH_DOT}</Text>
         <Text color={PALETTE.text}>{" "}</Text>
-        <ShimmerText text={assistantId === "soundwave" ? "Planning..." : assistantId === "blue_cell" ? "Investigating..." : "Working..."} tick={tick} />
+        <ShimmerText text={assistantId === "soundwave" ? "Planning..." : assistantId === "autobot" ? "Investigating..." : "Working..."} tick={tick} />
         <Text color={PALETTE.text} dimColor>{metaStr}</Text>
       </Text>
     </Box>

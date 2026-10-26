@@ -322,6 +322,11 @@ services:
       - sh
       - -c
       - >
+        if [ "$${DECEPTICON_ENABLE_BLUE:-0}" = "1" ]; then
+          echo "blue capability: installing AutoBot (bs-autobot)…";
+          uv pip install --python /app/.venv/bin/python "bs-autobot>=0.1.0" &&
+          export LANGSERVE_GRAPHS="$$(python -m decepticon.graph_registry 2>/dev/null || echo '{}')";
+        fi;
         if [ -z "$${LANGGRAPH_STRICT_ASYNC:-}" ]; then
           exec langgraph dev --host 0.0.0.0 --port 2024 --no-browser --n-jobs-per-worker 10 --allow-blocking;
         else
