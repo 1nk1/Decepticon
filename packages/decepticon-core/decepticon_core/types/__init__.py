@@ -16,6 +16,15 @@ Four submodules:
     evaluation layer that decides allow/deny for a target or command;
     consumed by the framework's RoE-enforcement middleware. Distinct from
     ``engagement.RoE`` (the planning document).
+  * ``ocsf_event`` — AutoBot's OCSF-aligned normalized event envelope
+    (``OcsfEvent``, ``SignalType``, ``SeverityId``, ``Observable``,
+    ``Metadata``, ``PROMOTED_FIELDS``). The single contract every coverage
+    adapter normalizes to; read source-agnostically by detection and the
+    Blue agent. See ``docs/design/2026-10-23-autobot-redesign.md``.
+  * ``event_store`` — value types of the swappable event-store query contract
+    (``EventPage``, ``SourceInfo``, ``StoreMetrics``, ``IngestResult``,
+    ``SEARCHABLE_FIELDS``). Callable surface is
+    ``protocols.event_store.EventStoreProtocol``.
 
 These modules import only ``pydantic`` + stdlib + ``typing_extensions`` —
 no ``langchain`` / ``langgraph`` / ``deepagents`` / ``httpx`` /
@@ -24,6 +33,6 @@ no ``langchain`` / ``langgraph`` / ``deepagents`` / ``httpx`` /
 
 from __future__ import annotations
 
-from decepticon_core.types import engagement, kg, llm, roe
+from decepticon_core.types import engagement, event_store, kg, llm, ocsf_event, roe
 
-__all__ = ["engagement", "llm", "kg", "roe"]
+__all__ = ["engagement", "llm", "kg", "ocsf_event", "event_store", "roe"]
