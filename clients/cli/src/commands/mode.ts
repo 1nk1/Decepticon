@@ -1,5 +1,7 @@
+import { existsSync } from "node:fs";
 import type { Command } from "./types.js";
 import { getAssistantOverride, setAssistantOverride } from "./assistantOverride.js";
+import { blueConfigPath, blueMonitorReady, blueUp, engagementLabel } from "./blue.js";
 
 const ASSISTANTS = {
   plan: "soundwave",
@@ -48,17 +50,35 @@ const mode: Command = {
       return;
     }
     const next = selected;
+    const rest = args.trim().replace(/^blue\b/, "").trim();
     try {
+      if (next === "blue" && !(await blueMonitorReady())) {
+        // Fail-closed: Blue requires a running AutoBot sensor. Entering Blue
+        // auto-boots the stack from the engagement blue.json (or an explicit
+        // target) — if that fails, the operator stays in the current mode.
+        const label = engagementLabel();
+        const hasConfig = Boolean(label) && existsSync(blueConfigPath(label));
+        const target = rest ? rest.split(/\s+/)[0] : "";
+        if (!hasConfig && !target) {
+          ctx.addSystemEvent(
+            "Blue requires a running AutoBot sensor. Start one with " +
+            "/mode blue 127.0.0.1:3000, or configure the engagement first: " +
+            "/blue engagement create --label <label> --target 127.0.0.1:3000",
+          );
+          return;
+        }
+        await blueUp(`up${target ? ` ${target}` : ""}${rest.includes("--logs") ? rest.slice(rest.indexOf("--logs")) : ""}`, ctx);
+      }
       const assistant = ASSISTANTS[next];
       if (ctx.selectAssistant && !(await ctx.selectAssistant(assistant))) {
         return;
       }
       setAssistantOverride(assistant);
       if (next === "red") ctx.addSystemEvent("Red enforces the engagement scope in plan/roe.json. Create the engagement with targets, or import a scope with /scope import <file> --confirm.");
-      if (next === "blue") ctx.addSystemEvent("Blue conversation selected. Connect a local sensor with /blue up 127.0.0.1:3000 before investigating telemetry.");
+      if (next === "blue") ctx.addSystemEvent("Blue conversation selected — the AutoBot sensor stack is running. Send target traffic to http://127.0.0.1:18080; use /blue status to inspect coverage.");
       ctx.addSystemEvent(`Mode: ${next}. The next message goes to ${assistant}.`);
     } catch (error) {
-      ctx.addSystemEvent(error instanceof Error ? error.message : String(error));
+      ctx.addSystemEvent(`Blue unavailable: ${error instanceof Error ? error.message : String(error)} — staying in ${currentMode()} mode.`);
     }
   },
 };

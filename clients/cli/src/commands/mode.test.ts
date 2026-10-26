@@ -1,3 +1,4 @@
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -50,12 +51,44 @@ describe("CLI run modes", () => {
     expect(messages.at(-2)).toContain("enforces the engagement scope");
   });
 
-  it("selects Blue without its sensor", async () => {
+  it("refuses Blue when no sensor runs and no target is configured", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+    const { ctx, messages } = context();
+    await mode.execute("blue", ctx);
+    expect(messages.join("\n")).toContain("Blue requires a running AutoBot sensor");
+    expect(getAssistantOverride()).not.toBe("autobot");
+  });
+
+  it("selects Blue when the sensor stack is already running", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true }));
     const { ctx, selected } = context();
     await mode.execute("blue", ctx);
     expect(selected).toEqual(["autobot"]);
     expect(getAssistantOverride()).toBe("autobot");
+  });
+
+  it("boots the sensor from the engagement blue.json on Blue entry", async () => {
+    vi.stubEnv("DECEPTICON_ENGAGEMENT", "tui-live");
+    vi.stubEnv("DECEPTICON_BLUE_WORKSPACE", "/tmp/mode-blue-config");
+    mkdirSync("/tmp/mode-blue-config", { recursive: true });
+    writeFileSync(
+      "/tmp/mode-blue-config/blue.json",
+      JSON.stringify({ version: 1, targets: [{ id: "local-target", upstream: "http://127.0.0.1:3000", enabled: true }] }),
+    );
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+    const blueUp = vi.fn(async () => {});
+    vi.doMock("./blue.js", async (importOriginal) => ({
+      ...(await importOriginal<typeof import("./blue.js")>()),
+      blueMonitorReady: vi.fn(async () => false),
+      blueUp,
+    }));
+    // Dynamic import so the doMock applies to this test only.
+    const { mode } = await import("./mode.js");
+    const { ctx, selected } = context();
+    await mode.execute("blue 127.0.0.1:3000", ctx);
+    expect(blueUp).toHaveBeenCalledWith("up 127.0.0.1:3000", ctx);
+    expect(selected).toEqual(["autobot"]);
+    rmSync("/tmp/mode-blue-config", { recursive: true, force: true });
   });
 
   it("selects Red even without a scope file", async () => {
