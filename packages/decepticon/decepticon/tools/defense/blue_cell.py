@@ -4,8 +4,8 @@ The Offensive Vaccine pipeline documents a ``Defender`` that writes Sigma
 rules, but nothing in the OSS ever ran those rules against the agent's own
 activity (``docs/features/blue-cell.md``). ``blue_cell_scan`` is that missing
 runtime: it replays the engagement's sandbox session logs through the shipped
-:class:`~decepticon.blue_cell.tap.BlueCellTap` +
-:class:`~decepticon.blue_cell.rule_match.RuleMatcher`, and records every rule
+:class:`~autobot.bluecell.tap.BlueCellTap` +
+:class:`~autobot.bluecell.rule_match.RuleMatcher`, and records every rule
 that fires as a ``DetectionFired`` node in the knowledge graph — linked
 ``-[:USES_RULE]->`` the ``DefenseAction`` (the rule artifact) and
 ``-[:DETECTED]->`` the offensive ``Finding`` / ``Technique`` it caught.
@@ -26,11 +26,11 @@ import time
 from pathlib import Path
 from typing import Any
 
+from autobot.bluecell.rule_match import RuleMatcher, load_rules
+from autobot.bluecell.tap import BlueCellTap
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 
-from decepticon.blue_cell.rule_match import RuleMatcher, load_rules
-from decepticon.blue_cell.tap import BlueCellTap
 from decepticon.tools.research._state import _json, graph_transaction
 from decepticon_core.types.kg import Edge, EdgeKind, KnowledgeGraph, Node, NodeKind
 
