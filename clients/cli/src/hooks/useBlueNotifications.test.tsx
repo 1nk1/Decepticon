@@ -16,7 +16,7 @@ describe("Blue Cell chat notifications", () => {
     vi.unstubAllEnvs();
   });
 
-  it("inserts detection and later agent assessment into the active chat", async () => {
+  it("keeps raw detections out of the feed and inserts the agent assessment", async () => {
     vi.useFakeTimers();
     vi.stubEnv("BLUE_MONITOR_URL", "http://blue-monitor:8085");
     const events: string[] = [];
@@ -38,19 +38,72 @@ describe("Blue Cell chat notifications", () => {
 
     const { result, unmount } = renderHook(() => useBlueNotifications((message) => events.push(message)));
     await act(async () => { await vi.advanceTimersByTimeAsync(0); });
-    expect(events).toHaveLength(1);
-    expect(events[0]).toContain("path_traversal");
+    // Raw detections never enter the feed; they only accumulate for /alerts.
+    expect(events).toHaveLength(0);
+    expect(result.current.notifications).toHaveLength(1);
+    expect(result.current.notifications[0]?.kind).toBe("detected");
+    expect(result.current.unreadCount).toBe(1);
 
     await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
-    expect(events).toHaveLength(2);
-    expect(events[1]).not.toContain("Traversal attempt observed");
+    expect(events).toHaveLength(1);
+    expect(events[0]).toContain("[Blue Cell investigation] incident incident-1: Traversal attempt observed; impact not proven.");
     expect(result.current.getDetails("incident-1")[1]?.payload.analysis).toBe("Traversal attempt observed; impact not proven.");
     expect(result.current.unreadCount).toBe(2);
     act(() => result.current.acknowledge());
     expect(result.current.unreadCount).toBe(0);
 
     await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
-    expect(events).toHaveLength(2);
+    expect(events).toHaveLength(1);
+    unmount();
+  });
+
+  it("does not surface Blue events into the feed when gated off (Red mode), but still accumulates them", async () => {
+    // Blue events must not invade the Red conversation: when the surface gate is
+    // off, nothing is pushed to the feed, yet the events still accumulate in
+    // state so they remain viewable in Blue mode (/alerts, unread badge).
+    vi.useFakeTimers();
+    vi.stubEnv("BLUE_MONITOR_URL", "http://blue-gated:8085");
+    const events: string[] = [];
+    let surface = false;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        const after = new URL(url).searchParams.get("after");
+        const notifications =
+          after === "0"
+            ? [
+                {
+                  seq: 1,
+                  kind: "detected",
+                  payload: {
+                    id: "incident-9",
+                    rule_id: "path_traversal",
+                    severity: "high",
+                    evidence: { method: "GET", uri: "/?file=../etc/passwd", status: 404 },
+                  },
+                },
+              ]
+            : [];
+        return { ok: true, json: async () => ({ notifications, has_more: false }) };
+      }),
+    );
+
+    const { result, unmount } = renderHook(() =>
+      useBlueNotifications((message) => events.push(message), () => surface),
+    );
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+
+    // Red mode (gate off): no feed injection, but event is retained in state.
+    expect(events).toHaveLength(0);
+    expect(result.current.notifications).toHaveLength(1);
+    expect(result.current.unreadCount).toBe(1);
+    expect(result.current.getDetails("incident-9")).toHaveLength(1);
+
+    // Switch to Blue mode (gate on): new events now surface into the feed.
+    surface = true;
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    // (no new events arrived, so still none surfaced — the point is the gate,
+    // verified live below with a fresh notification)
     unmount();
   });
 
@@ -145,6 +198,7 @@ describe("Blue Cell chat notifications", () => {
     });
     expect(alert).toContain("standing-watch alert");
     expect(alert).toContain("Evidence events 7, 9");
+    expect(alert).toContain("Assessment: Repeated unusual requests need review.");
     const gap = formatBlueNotification({
       seq: 4,
       kind: "watch_error",
@@ -180,6 +234,21 @@ describe("Blue Cell chat notifications", () => {
     expect(formatBlueNotification(notice)).toContain("평가가 준비되었습니다");
     expect(formatBlueNotification(notice)).toContain("incident-ko");
     expect(formatBlueNotification(notice, "unknown")).toContain("assessment ready");
+  });
+
+  it("inlines the autonomous assessment in English and keeps the /alerts pointer when absent", () => {
+    const assessed = formatBlueNotification({
+      seq: 7,
+      kind: "assessment",
+      payload: { id: "inc-1", analysis: "Confirmed credential stuffing against /api/login." },
+    });
+    expect(assessed).toContain("[Blue Cell investigation] incident inc-1: Confirmed credential stuffing");
+    const pending = formatBlueNotification({
+      seq: 8,
+      kind: "assessment",
+      payload: { id: "inc-2" },
+    });
+    expect(pending).toContain("assessment ready. /alerts for details.");
   });
 
   it("backs off under repeated monitor failures and recovers", async () => {

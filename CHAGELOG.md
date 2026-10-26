@@ -56,6 +56,24 @@ Keep proposed and unmerged changes out of released sections.
   autonomous watch and investigation prompts now name the defended target id
   and the loaded rule set, and the Blue agent treats that as scope context.
   [Live-stack verification](docs/verification/blue-rules-file-20261026.md).
+- Proposed (TUI): surface the Blue agent's autonomous assessment **inline in the
+  Blue feed** — Blue runs continuous observation, so the assessment lands in the
+  conversation when it is produced instead of only when the operator asks. The
+  bounded reasoning slice appears on `assessment`/`watch_alert` notifications
+  (full text stays in `/alerts`), and the Blue monitor is instructed to write
+  its watch summaries and investigation responses in English. Raw rule
+  detections (`detected`) no longer enter the conversation feed — under scan
+  traffic they would flood it — and remain viewable via `/alerts` and the
+  unread badge while the feed carries the agents' conclusions and operational
+  signals only.
+  [Live-stack verification](docs/verification/blue-assessment-inline-20261026.md).
+
+- Proposed (TUI): scope Blue Cell event notifications to **Blue mode only** so they
+  no longer invade the Red (or Plan) conversation. `useBlueNotifications` takes a
+  `surface` gate; the REPL passes `() => assistantId === "blue_cell"`, so Blue
+  detections/incidents are injected into the feed only while in Blue mode. Events
+  still accumulate in state regardless of mode, so they remain viewable in Blue
+  mode via `/alerts` and the unread badge. Default mode stays Red.
 
 - Proposed [PR #1100](https://github.com/BitterSecurity/Decepticon/pull/1100): record actual 2.0.0 publication, candidate launcher/model and WebSocket acceptance, preserved sessions/files/ports, signed distributions and installation update. Reconcile merged changes into the dated release history; the immutable release tag and runtime versions remain unchanged.
 

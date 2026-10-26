@@ -239,6 +239,31 @@ describe("useAgent — engagement handoff lifecycle", () => {
     expect(result.current.assistantId).toBe("decepticon");
   });
 
+  it("keeps Red and Blue conversations on separate threads (events do not cross modes)", async () => {
+    // Blue is a continuous-observation conversation distinct from Red; switching
+    // modes must swap to a separate per-mode transcript so Blue events never
+    // appear in the Red conversation and vice versa.
+    const client = mockState.client;
+    if (!client) throw new Error("Missing fixture client");
+    const { result } = renderHook(() => useAgent());
+
+    await act(async () => { await result.current.selectAssistant("decepticon"); });
+    act(() => result.current.addSystemEvent("RED-ONLY-EVENT"));
+    expect(result.current.events.some((e) => e.content === "RED-ONLY-EVENT")).toBe(true);
+
+    // Switch to Blue: the Red-only event must not be visible.
+    await act(async () => { await result.current.selectAssistant("blue_cell"); });
+    expect(result.current.assistantId).toBe("blue_cell");
+    expect(result.current.events.some((e) => e.content === "RED-ONLY-EVENT")).toBe(false);
+    act(() => result.current.addSystemEvent("BLUE-ONLY-EVENT"));
+    expect(result.current.events.some((e) => e.content === "BLUE-ONLY-EVENT")).toBe(true);
+
+    // Back to Red: the Red transcript is restored and the Blue event is absent.
+    await act(async () => { await result.current.selectAssistant("decepticon"); });
+    expect(result.current.events.some((e) => e.content === "RED-ONLY-EVENT")).toBe(true);
+    expect(result.current.events.some((e) => e.content === "BLUE-ONLY-EVENT")).toBe(false);
+  });
+
   it.each([["soundwave", "resume"], ["soundwave", "answerQuestion"], ["plugin-executor", "resume"], ["plugin-executor", "answerQuestion"], ["blue_cell", "resume"], ["blue_cell", "answerQuestion"]] as const)("isolates workflow namespaces for %s on submit and %s", async (assistant, method) => {
     // Given trusted launch settings in both namespaces.
     vi.stubEnv("DECEPTICON_WORKFLOW_ID", "red-custom");
