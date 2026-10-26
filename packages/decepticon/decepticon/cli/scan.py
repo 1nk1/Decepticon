@@ -39,6 +39,11 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from decepticon.blue_cell.engagement_config import (
+    build_local_target_config,
+    config_path,
+    materialize_blue_config,
+)
 from decepticon.roe_materialization import materialize_engagement_roe
 
 log = logging.getLogger(__name__)
@@ -116,6 +121,16 @@ def _build_parser() -> argparse.ArgumentParser:
         type=int,
         default=None,
         help="Per-scan wall-clock timeout in seconds; mode default if unset.",
+    )
+    p.add_argument(
+        "--blue-target",
+        default=None,
+        help="Optionally materialize a Blue engagement config for this local upstream (127.0.0.1:port).",
+    )
+    p.add_argument(
+        "--blue-logs",
+        default=None,
+        help="Absolute host log directory for the Blue sensor (requires --blue-target).",
     )
     p.add_argument(
         "--verbose",
@@ -290,6 +305,29 @@ def main(argv: list[str] | None = None) -> int:
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_CONFIG
+
+    if args.blue_target:
+        # Blue observation is optional: the engagement runs fine without it.
+        # Fail closed on a broken blue configuration, never on its absence.
+        reviewed = config_path(engagement_name).exists()
+        try:
+            materialize_blue_config(
+                engagement_name,
+                build_local_target_config(
+                    args.blue_target,
+                    logs=[args.blue_logs] if args.blue_logs else None,
+                ),
+            )
+        except (ValueError, OSError) as exc:
+            print(f"error: blue configuration: {exc}", file=sys.stderr)
+            return EXIT_CONFIG
+        if reviewed:
+            print(
+                "blue configuration: reviewed blue.json already exists; left unchanged",
+                file=sys.stderr,
+            )
+        else:
+            print(f"blue configuration: {config_path(engagement_name)}", file=sys.stderr)
 
     mode_cfg = _MODE_DEFAULTS[args.scan_mode]
     timeout = args.timeout or mode_cfg["timeout"]

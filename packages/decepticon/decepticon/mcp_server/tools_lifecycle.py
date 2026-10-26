@@ -9,6 +9,10 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
+from decepticon.blue_cell.engagement_config import (
+    build_local_target_config,
+    materialize_blue_config,
+)
 from decepticon.mcp_server.config import ServerConfig
 from decepticon.mcp_server.engagements import EngagementClient
 from decepticon.mcp_server.findings import (
@@ -71,6 +75,8 @@ def register_lifecycle_tools(
         workflow_id: str | None = None,
         workflow_version: str | None = None,
         workspace_path: str | None = None,
+        blue_target: str | None = None,
+        blue_logs: str | None = None,
     ) -> StartResult:
         """Start an AUTHORIZED Decepticon engagement against one or more targets.
 
@@ -107,6 +113,22 @@ def register_lifecycle_tools(
                 f"cannot start engagement {name!r}: {exc}. Provide at least one "
                 "in-scope target; engagements run only against an authorized scope."
             ) from exc
+        if blue_target is not None:
+            # Blue observation is optional — the engagement runs without it.
+            # A broken blue configuration still fails the start, so a reviewed
+            # blue.json is never silently skipped.
+            try:
+                materialize_blue_config(
+                    name,
+                    build_local_target_config(
+                        blue_target,
+                        logs=[blue_logs] if blue_logs else None,
+                    ),
+                )
+            except (ValueError, OSError) as exc:
+                raise ValueError(
+                    f"cannot materialize blue configuration for {name!r}: {exc}"
+                ) from exc
         bound_workspace = workspace_path or "/workspace"
         if "\x00" in bound_workspace or ".." in Path(bound_workspace).parts:
             raise ValueError(

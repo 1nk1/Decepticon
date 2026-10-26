@@ -248,6 +248,28 @@ def validate_blue_config(config: object, *, root: Path) -> dict:
     return config
 
 
+def build_local_target_config(
+    upstream: str,
+    logs: list[str] | None = None,
+    rules_file: str | None = None,
+    watch: dict | None = None,
+) -> dict:
+    """Build a v1 single-target blue.json document from creation inputs.
+
+    Shared by every engagement-creation surface (headless CLI, MCP bridge) so
+    they all materialize the same reviewed configuration shape.
+    """
+    target: dict = {"id": "local-target", "upstream": upstream, "enabled": True}
+    if logs:
+        target["logs"] = list(logs)
+    config: dict = {"version": 1, "targets": [target]}
+    if rules_file:
+        config["rules_file"] = rules_file
+    if watch:
+        config["watch"] = watch
+    return config
+
+
 def materialize_blue_config(label: str, config: object) -> Path:
     """Validate and write blue.json into the Blue workspace, fail-closed.
 
@@ -342,6 +364,7 @@ def compose_env(config: dict, target: dict, root: Path) -> dict[str, str]:
 
 __all__ = [
     "CONFIG_FILENAME",
+    "build_local_target_config",
     "blue_workspace",
     "config_path",
     "validate_blue_config",
