@@ -1,5 +1,7 @@
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { assessBlueCoverage, blueMonitorReady, parseBlueUpArgs, parseLocalUpstream } from "./blue.js";
+import { assessBlueCoverage, blueConfigPath, blueMonitorReady, engagementProjectSuffix, parseBlueUpArgs, parseLocalUpstream } from "./blue.js";
 
 describe("Blue mode readiness", () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -106,5 +108,27 @@ describe("Blue source verification", () => {
       },
     });
     expect(silent[1]).toContain("no record reached");
+  });
+});
+
+describe("Blue engagement configuration", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("names the blue-owned workspace root outside the Red workspace", () => {
+    vi.stubEnv("DECEPTICON_ENGAGEMENT", "shop");
+    vi.stubEnv("DECEPTICON_BLUE_WORKSPACE", "/srv/blue-root");
+    expect(blueConfigPath()).toBe("/srv/blue-root/blue.json");
+    vi.stubEnv("DECEPTICON_BLUE_WORKSPACE", "");
+    expect(blueConfigPath().startsWith(join(homedir(), ".decepticon", "blue", "shop"))).toBe(true);
+  });
+
+  it("refuses to resolve a config path without an engagement", () => {
+    expect(() => blueConfigPath()).toThrow(/No active engagement/);
+  });
+
+  it("requires an existing blue.json before the project is engagement-scoped", () => {
+    vi.stubEnv("DECEPTICON_ENGAGEMENT", "shop");
+    vi.stubEnv("DECEPTICON_BLUE_WORKSPACE", "/tmp/does-not-exist-blue");
+    expect(engagementProjectSuffix()).toBe("");
   });
 });
