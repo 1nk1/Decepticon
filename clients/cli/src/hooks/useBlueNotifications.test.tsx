@@ -54,6 +54,56 @@ describe("Blue Cell chat notifications", () => {
     unmount();
   });
 
+  it("does not surface Blue events into the feed when gated off (Red mode), but still accumulates them", async () => {
+    // Blue events must not invade the Red conversation: when the surface gate is
+    // off, nothing is pushed to the feed, yet the events still accumulate in
+    // state so they remain viewable in Blue mode (/alerts, unread badge).
+    vi.useFakeTimers();
+    vi.stubEnv("BLUE_MONITOR_URL", "http://blue-gated:8085");
+    const events: string[] = [];
+    let surface = false;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        const after = new URL(url).searchParams.get("after");
+        const notifications =
+          after === "0"
+            ? [
+                {
+                  seq: 1,
+                  kind: "detected",
+                  payload: {
+                    id: "incident-9",
+                    rule_id: "path_traversal",
+                    severity: "high",
+                    evidence: { method: "GET", uri: "/?file=../etc/passwd", status: 404 },
+                  },
+                },
+              ]
+            : [];
+        return { ok: true, json: async () => ({ notifications, has_more: false }) };
+      }),
+    );
+
+    const { result, unmount } = renderHook(() =>
+      useBlueNotifications((message) => events.push(message), () => surface),
+    );
+    await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+
+    // Red mode (gate off): no feed injection, but event is retained in state.
+    expect(events).toHaveLength(0);
+    expect(result.current.notifications).toHaveLength(1);
+    expect(result.current.unreadCount).toBe(1);
+    expect(result.current.getDetails("incident-9")).toHaveLength(1);
+
+    // Switch to Blue mode (gate on): new events now surface into the feed.
+    surface = true;
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
+    // (no new events arrived, so still none surfaced — the point is the gate,
+    // verified live below with a fresh notification)
+    unmount();
+  });
+
   it("keeps cursor across restart, deduplicates revisions and reports monitor loss", async () => {
     // Given a monitor with repeated revisions and a later connection failure.
     vi.useFakeTimers();

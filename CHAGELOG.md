@@ -15,6 +15,13 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed (TUI): scope Blue Cell event notifications to **Blue mode only** so they
+  no longer invade the Red (or Plan) conversation. `useBlueNotifications` takes a
+  `surface` gate; the REPL passes `() => assistantId === "blue_cell"`, so Blue
+  detections/incidents are injected into the feed only while in Blue mode. Events
+  still accumulate in state regardless of mode, so they remain viewable in Blue
+  mode via `/alerts` and the unread badge. Default mode stays Red.
+
 - Proposed [PR #1100](https://github.com/BitterSecurity/Decepticon/pull/1100): record actual 2.0.0 publication, candidate launcher/model and WebSocket acceptance, preserved sessions/files/ports, signed distributions and installation update. Reconcile merged changes into the dated release history; the immutable release tag and runtime versions remain unchanged.
 
 - Merged, unreleased [PR #1090](https://github.com/BitterSecurity/Decepticon/pull/1090):

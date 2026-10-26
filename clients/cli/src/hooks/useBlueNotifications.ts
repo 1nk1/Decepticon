@@ -90,9 +90,22 @@ export function formatBlueNotification(notification: BlueNotification, language 
     `incident ${payload.id}. Real impact under investigation.`;
 }
 
-export function useBlueNotifications(addSystemEvent: (message: string) => void) {
+export function useBlueNotifications(
+  addSystemEvent: (message: string) => void,
+  // Gate for surfacing Blue Cell events into the conversation feed. Blue events
+  // belong to Blue mode only and must never invade the Red (or Plan)
+  // conversation, so the caller passes `() => mode === "blue"`. Events still
+  // accumulate in state regardless, so they stay viewable in Blue mode (via
+  // /alerts and the unread badge). Defaults to always-surface for tests.
+  surface: () => boolean = () => true,
+) {
   const callback = useRef(addSystemEvent);
   callback.current = addSystemEvent;
+  const surfaceRef = useRef(surface);
+  surfaceRef.current = surface;
+  const emit = useCallback((message: string) => {
+    if (surfaceRef.current()) callback.current(message);
+  }, []);
   const url = (process.env.BLUE_MONITOR_URL ?? "http://127.0.0.1:18085").replace(/\/$/, "");
   const [state, setState] = useState<BlueState>({ status: "unavailable", notifications: [], unreadCount: 0, lastSequence: 0, collectorStatus: "unknown", aiStatus: "unknown", error: null });
   const cursor = useRef({ after: 0, acknowledged: 0 });
@@ -134,7 +147,7 @@ export function useBlueNotifications(addSystemEvent: (message: string) => void) 
             cursor.current = { after: 0, acknowledged: 0 };
             revisions.clear();
             setState(previous => ({ ...previous, notifications: [], unreadCount: 0, collectorStatus: "gap", lastSequence: 0 }));
-            callback.current("[Blue Cell] Receiver sequence reset; observation continuity needs review.");
+            emit("[Blue Cell] Receiver sequence reset; observation continuity needs review.");
             persist();
             continue;
           }
@@ -145,7 +158,7 @@ export function useBlueNotifications(addSystemEvent: (message: string) => void) 
             const revision = JSON.stringify([notification.payload.id, notification.kind, notification.payload.revision ?? notification.payload]);
             if (revisions.has(revision)) continue;
             revisions.add(revision);
-            callback.current(formatBlueNotification(notification));
+            emit(formatBlueNotification(notification));
             setState(previous => ({ ...previous,
               notifications: [...previous.notifications, notification].slice(-500),
               lastSequence: notification.seq,
@@ -162,7 +175,7 @@ export function useBlueNotifications(addSystemEvent: (message: string) => void) 
         if (stopped) return;
         const message = error instanceof Error ? error.message : String(error);
         setState(previous => ({ ...previous, status: connected ? "disconnected" : "unavailable", error: message, collectorStatus: "unknown", aiStatus: "unknown" }));
-        if (connected && !disconnected) callback.current(`[Blue Cell] Monitor disconnected: ${message}`);
+        if (connected && !disconnected) emit(`[Blue Cell] Monitor disconnected: ${message}`);
         disconnected = true;
         // The Blue stack is optional. Bound retries when it is unavailable;
         // keep the existing overlap guard and restore 1 s polling on success.

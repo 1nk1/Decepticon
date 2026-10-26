@@ -64,7 +64,13 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
   const terminal = useTerminalUI();
   const size = useTerminalSize();
   const agent = useAgent({ resumeThread });
-  const blue = useBlueNotifications(agent.addSystemEvent);
+  // Blue Cell events surface into the conversation only in Blue mode — they
+  // must not invade the Red (or Plan) conversation. They still accumulate in
+  // the hook state and stay viewable in Blue mode via /alerts and the badge.
+  const blue = useBlueNotifications(
+    agent.addSystemEvent,
+    () => agent.assistantId === "blue_cell",
+  );
   const connection = useServiceStatus();
   const opplan = useOpplan(agent.events);
   const sessions = useSubAgentSessions(agent.events);
