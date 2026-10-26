@@ -1,6 +1,8 @@
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 import { isIP } from "node:net";
-import { isAbsolute } from "node:path";
+import { homedir } from "node:os";
+import { isAbsolute, join } from "node:path";
 import type { Command, CommandContext } from "./types.js";
 import { setAssistantOverride } from "./assistantOverride.js";
 
@@ -94,13 +96,70 @@ export function parseBlueUpArgs(input: string): { upstream: string; logDir?: str
   return { upstream, logDir };
 }
 
-function composeArgs(logsOverlay = false): string[] {
+function composeArgs(logsOverlay = false, engagementOverlay = engagementProjectSuffix() !== ""): string[] {
   const file = process.env.BLUE_SENSOR_COMPOSE_FILE ?? "/app/blue-sensor/compose.runtime.yaml";
   const logsFile = process.env.BLUE_SENSOR_LOGS_COMPOSE_FILE ?? "/app/blue-sensor/compose.logs.yaml";
+  const engagementFile = process.env.BLUE_SENSOR_ENGAGEMENT_COMPOSE_FILE ?? "/app/blue-sensor/compose.engagement.yaml";
   const project = process.env.DECEPTICON_COMPOSE_PROJECT ?? "decepticon";
   const envFile = process.env.DECEPTICON_COMPOSE_ENV_FILE;
   return ["compose", "-f", file, ...(logsOverlay ? ["-f", logsFile] : []),
-    "-p", `${project}-blue`, ...(envFile ? ["--env-file", envFile] : [])];
+    ...(engagementOverlay ? ["-f", engagementFile] : []),
+    "-p", `${project}-blue${engagementProjectSuffix()}`, ...(envFile ? ["--env-file", envFile] : [])];
+}
+
+// The Blue workspace root is Blue-owned and deliberately sits outside the Red
+// engagement workspace, so Red's workspace-scoped file tools never enumerate
+// the defensive configuration (observation scope, rules, sensor layout).
+function engagementLabel(): string {
+  return (process.env.DECEPTICON_ENGAGEMENT ?? "").trim();
+}
+
+export function blueConfigPath(label: string = engagementLabel()): string {
+  if (!label) throw new Error("No active engagement: DECEPTICON_ENGAGEMENT is not set.");
+  const override = process.env.DECEPTICON_BLUE_WORKSPACE?.trim();
+  const root = override || join(homedir(), ".decepticon", "blue", label);
+  return join(root, "blue.json");
+}
+
+// Existence only — never validation. A hand-broken blue.json still names the
+// compose project the sensor runs under so status/stop keep finding it; the
+// fail-closed validation happens in the python package when the stack starts.
+export function engagementProjectSuffix(): string {
+  const label = engagementLabel();
+  return label && existsSync(blueConfigPath(label)) ? `-${label}` : "";
+}
+
+function cliBin(): string {
+  return process.env.DECEPTICON_CLI_BIN ?? "decepticon-cli";
+}
+
+function runPythonCli(args: string[]): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    const child = spawn(cliBin(), args, { env: process.env });
+    let out = "";
+    let err = "";
+    child.stdout.on("data", (chunk) => { out += String(chunk); });
+    child.stderr.on("data", (chunk) => { err += String(chunk); });
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code === 0) resolve(out.trim());
+      else reject(new Error(err.trim() || `${cliBin()} ${args.join(" ")} exited with ${code}`));
+    });
+  });
+}
+
+// Single-sourced validation and mapping live in the python package; the TUI
+// consumes the validated compose environment instead of re-parsing blue.json.
+async function loadEngagementSensorEnv(): Promise<Record<string, string>> {
+  const output = await runPythonCli(["blue-engagement", "env"]);
+  let payload: { env?: Record<string, string> };
+  try {
+    payload = JSON.parse(output);
+  } catch {
+    throw new Error(`blue-engagement env returned unexpected output: ${output.slice(0, 200)}`);
+  }
+  if (!payload.env) throw new Error("blue-engagement env returned no environment mapping.");
+  return payload.env;
 }
 
 function sensorUrl(): string {
@@ -157,8 +216,9 @@ function runDocker(args: string[], environment: NodeJS.ProcessEnv): Promise<stri
   });
 }
 
-function runCompose(args: string[], environment: NodeJS.ProcessEnv, logsOverlay = false): Promise<string> {
-  return runDocker([...composeArgs(logsOverlay), ...args], environment);
+function runCompose(args: string[], environment: NodeJS.ProcessEnv, logsOverlay = false, engagementOverlay?: boolean): Promise<string> {
+  const overlays = engagementOverlay ?? engagementProjectSuffix() !== "";
+  return runDocker([...composeArgs(logsOverlay, overlays), ...args], environment);
 }
 
 interface DockerMount {
@@ -231,11 +291,11 @@ export function assessBlueCoverage(logSource: string, metrics: SensorMetrics): s
 const blue: Command = {
   name: "blue",
   description: "Run the always-on local Blue Cell sensor and incident monitor",
-  argumentHint: "<up|status|verify|sources|events|incidents|metrics|analyze|stop> [local port] [--logs /host/path]",
+  argumentHint: "<up|engagement|status|verify|sources|events|incidents|metrics|analyze|stop> [local port] [--logs /host/path]",
   complete: (args) =>
     args.includes(" ")
       ? []
-      : ["up", "status", "verify", "sources", "events", "incidents", "metrics", "analyze", "stop"].filter(
+      : ["up", "engagement", "status", "verify", "sources", "events", "incidents", "metrics", "analyze", "stop"].filter(
           (choice) => choice.startsWith(args),
         ),
   async execute(args, context: CommandContext) {
@@ -246,18 +306,48 @@ const blue: Command = {
           context.addSystemEvent("Start the local Blue sensor from the host CLI with /blue up, then select Blue in the web dashboard.");
           return;
         }
-        const { upstream, logDir } = parseBlueUpArgs(args);
+        const label = engagementLabel();
+        const hasConfig = Boolean(label) && existsSync(blueConfigPath(label));
+        const explicit = value ? parseBlueUpArgs(args) : null;
+        if (!hasConfig && !explicit) {
+          throw new Error(
+            "Usage: /blue up 127.0.0.1:3000 [--logs /absolute/host/logs] — or create the engagement Blue config first: /blue engagement create --label <label> --target 127.0.0.1:3000",
+          );
+        }
+        // With an engagement the reviewed blue.json provides the defaults;
+        // explicit arguments override for this run without rewriting the
+        // file. Validation is fail-closed in the python package.
+        const engagementEnv = hasConfig ? await loadEngagementSensorEnv() : {};
+        const upstream = explicit?.upstream ?? engagementEnv.BLUE_TARGET_UPSTREAM;
+        const logDir = explicit?.logDir ?? engagementEnv.BLUE_TARGET_LOG_DIR;
+        if (!upstream) throw new Error("No target upstream resolved from the engagement Blue config.");
         const gateway = await hostGatewayIp();
         const project = process.env.DECEPTICON_COMPOSE_PROJECT ?? "decepticon";
-        context.addSystemEvent(`Starting Blue sensor for ${upstream}…`);
+        context.addSystemEvent(`Starting Blue sensor for ${upstream}${label && hasConfig ? ` (engagement ${label})` : ""}…`);
         await runCompose(["up", "-d", "--build", "--wait", "--wait-timeout", "600"], {
           ...process.env,
-          BLUE_TARGET_UPSTREAM: upstream,
+          ...engagementEnv,
+          ...(explicit?.upstream ? { BLUE_TARGET_UPSTREAM: explicit.upstream } : {}),
           ...(logDir ? { BLUE_TARGET_LOG_DIR: logDir } : {}),
           BLUE_HOST_GATEWAY_IP: gateway,
           DECEPTICON_CORE_NETWORK: `${project}_decepticon-net`,
         }, Boolean(logDir));
-        context.addSystemEvent(`Blue Cell is monitoring ${upstream}${logDir ? ` and logs in ${logDir}` : ""}. Send traffic to http://127.0.0.1:18080; use /blue status to inspect coverage.`);
+        const targetName = engagementEnv.BLUE_TARGET_ID ? `${engagementEnv.BLUE_TARGET_ID} (${upstream})` : upstream;
+        context.addSystemEvent(`Blue Cell is monitoring ${targetName}${logDir ? ` and logs in ${logDir}` : ""}. Send traffic to http://127.0.0.1:18080; use /blue status to inspect coverage.`);
+        return;
+      }
+      if (action === "engagement") {
+        const [, sub = "", ...rest] = args.trim().split(/\s+/);
+        if (sub !== "create") {
+          throw new Error("Usage: /blue engagement create --label <label> --target 127.0.0.1:3000 [--logs /absolute/host/logs] [--rules file.jsonl] [--confirm]");
+        }
+        if (!rest.includes("--confirm")) {
+          const preview = await runPythonCli(["blue-engagement", "create", ...rest.filter((token) => token !== "--confirm"), "--dry-run"]);
+          context.addSystemEvent(`Resolved Blue configuration (not written yet):\n${preview}\nRe-run with --confirm to write it.`);
+          return;
+        }
+        const output = await runPythonCli(["blue-engagement", "create", ...rest.filter((token) => token !== "--confirm")]);
+        context.addSystemEvent(output);
         return;
       }
       if (action === "stop" || action === "down") {

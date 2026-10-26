@@ -75,6 +75,19 @@ Keep proposed and unmerged changes out of released sections.
   still accumulate in state regardless of mode, so they remain viewable in Blue
   mode via `/alerts` and the unread badge. Default mode stays Red.
 
+- Proposed (Blue): implement engagement-scoped Blue target configuration —
+  `blue.json` materialized in the Blue-owned workspace root
+  (`~/.decepticon/blue/<label>`, `DECEPTICON_BLUE_WORKSPACE` override) by a
+  shared fail-closed module (`blue_cell/engagement_config.py`) with strict
+  rule-file validation at creation and never-overwrite semantics for reviewed
+  configurations. New `decepticon-cli blue-engagement create|env` surfaces and
+  TUI `/blue engagement create` (dry-run preview, `--confirm` to write);
+  `/blue up` consumes the reviewed config as defaults (explicit arguments
+  override for one run), and the compose project gains an engagement suffix so
+  containers, volumes and networks are isolated per engagement. Ad-hoc usage
+  without an engagement is unchanged. Design review:
+  [docs/design/2026-10-26-blue-engagement-configuration-design.md](docs/design/2026-10-26-blue-engagement-configuration-design.md) (PR #1104).
+
 - Proposed [PR #1100](https://github.com/BitterSecurity/Decepticon/pull/1100): record actual 2.0.0 publication, candidate launcher/model and WebSocket acceptance, preserved sessions/files/ports, signed distributions and installation update. Reconcile merged changes into the dated release history; the immutable release tag and runtime versions remain unchanged.
 
 - Merged, unreleased [PR #1090](https://github.com/BitterSecurity/Decepticon/pull/1090):

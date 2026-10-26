@@ -6,6 +6,7 @@ import sys
 
 from decepticon.cli.audit import main as audit_main
 from decepticon.cli.auth import main as auth_main
+from decepticon.cli.blue_engagement import main as blue_engagement_main
 from decepticon.cli.export_transcript import main as export_transcript_main
 from decepticon.cli.scan import main as scan_main
 from decepticon.cli.telemetry import main as telemetry_main
@@ -18,6 +19,7 @@ def _print_help() -> int:
         "Subcommands:\n"
         "  scan               Run a one-shot security scan and emit SARIF\n"
         "  auth               Show provider/auth configuration (API keys + subscriptions)\n\n"
+        "  blue-engagement    Create/read the Blue target configuration (blue.json)\n\n"
         "  audit              Verify engagement audit ledgers\n"
         "  zip                Export/import engagement workspaces as ZIP archives\n\n"
         "  export-transcript  Render an engagement event log as Markdown\n\n"
@@ -40,6 +42,8 @@ def main(argv: list[str] | None = None) -> int:
         return auth_main(rest)
     if sub == "audit":
         return audit_main(rest)
+    if sub == "blue-engagement":
+        return blue_engagement_main(rest)
     if sub == "zip":
         return zip_main(rest)
     if sub == "export-transcript":
