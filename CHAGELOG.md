@@ -17,6 +17,14 @@ Keep proposed and unmerged changes out of released sections.
 
 - Proposed [PR #1100](https://github.com/BitterSecurity/Decepticon/pull/1100): record actual 2.0.0 publication, candidate launcher/model and WebSocket acceptance, preserved sessions/files/ports, signed distributions and installation update. Reconcile merged changes into the dated release history; the immutable release tag and runtime versions remain unchanged.
 
+- Merged, unreleased [PR #1090](https://github.com/BitterSecurity/Decepticon/pull/1090):
+  make LiteLLM and LangGraph healthcheck startup grace honor the launcher’s
+  validated `DECEPTICON_STARTUP_TIMEOUT_SECONDS` budget (default 600 seconds).
+  Preserve readiness probes, overall wait failures, post-start retries, data
+  and credentials. Share launcher/opscontrol budget normalization; integrate
+  with current main without selecting a release or changing downstream pins.
+  [Integration verification](docs/verification/startup-budget-integration-20261026.md).
+
 ## [2.0.0] — 2026-10-26
 
 - Published from `dd5b43c01bbc6ac09615a98444afcd2a4664480e` at 00:22:53 UTC after source and downloaded-candidate qualification. See the [qualification record](docs/releases/2.0.0-qualification.md) and [release](https://github.com/BitterSecurity/Decepticon/releases/tag/v2.0.0).
