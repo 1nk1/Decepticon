@@ -80,6 +80,29 @@ mocked-monitor renderHook test is the harness): the detection arrives in state
 with unread 1 and the feed stays empty, then the assessment lands inline with
 the reasoning. Full CLI suite: **289 passed** (40 files), typecheck clean.
 
+The gate was then re-verified against the **live stack**: the real hook
+(rendered with real timers) polled the real monitor while probes hit the proxy.
+Two path-traversal probes produced two `detected` notifications — the
+autonomous-pipeline trigger — which stayed out of the conversation feed (state
+only, unread 5 with the other three), while the feed received exactly the
+agents' conclusions and operational signals:
+
+```
+=== FEED LINES (what the TUI conversation shows) ===
+  [Blue Cell] incident ece8cec4c0be3fc10a0a94eb automatic investigation did not complete. Retry with /blue analyze.
+  [Blue Cell] MEDIUM standing-watch alert. Evidence events 5, incident a10c2d368ed17f1d13856019.
+  Assessment: Fixture watch probe observed; automated review could not prove impact.
+  [Blue Cell investigation] incident 4af7cafc25084570bb1874b9: Investigation complete. Attack likelihood: plausible attempt, unproven effect. Evidence: one path-traversal probe against the fixture target. Uncertainty: no follow-up requests observed. Next action: block the source and review downstream file access.
+=== STATE KINDS (what /alerts and the badge see) ===
+  ["detected","analysis_error","watch_alert","detected","assessment"]
+  unread badge: 5
+```
+
+(The `analysis_error` line came from a stub-agent outage window during the
+verification itself and is an operational signal by design; the retry through
+`/blue analyze` self-healed the pipeline, which also re-confirmed the monitor's
+agent retry behavior.)
+
 ## Scope notes
 
 - No release, version bump or SaaS change is included; the change rides the
