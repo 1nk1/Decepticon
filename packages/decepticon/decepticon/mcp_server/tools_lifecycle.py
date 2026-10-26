@@ -9,10 +9,6 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
-from decepticon.blue_cell.engagement_config import (
-    build_local_target_config,
-    materialize_blue_config,
-)
 from decepticon.mcp_server.config import ServerConfig
 from decepticon.mcp_server.engagements import EngagementClient
 from decepticon.mcp_server.findings import (
@@ -28,6 +24,24 @@ from decepticon.mcp_server.models import (
 )
 from decepticon.roe_materialization import engagement_workspace, materialize_engagement_roe
 from decepticon_core.utils.engagement_scope import is_valid_engagement_label
+
+
+def _bluecell():
+    """Resolve the blue engagement-configuration module (optional dependency).
+
+    The module moved to the AutoBot package (migration stage 2c). Without it
+    installed the MCP blue block fails with a clean install hint at tool-call
+    time instead of breaking the MCP server import — Blue is optional.
+    """
+    try:
+        from autobot.bluecell import engagement_config as bc
+    except ImportError as exc:  # pragma: no cover - install-shape dependent
+        raise RuntimeError(
+            "Blue engagement configuration requires the AutoBot package. "
+            "Install it with: pip install decepticon[blue]  (or install "
+            "autobot from the BitterSecurity/AutoBot repository)"
+        ) from exc
+    return bc
 
 
 def default_engagement_name() -> str:
@@ -118,9 +132,10 @@ def register_lifecycle_tools(
             # A broken blue configuration still fails the start, so a reviewed
             # blue.json is never silently skipped.
             try:
-                materialize_blue_config(
+                _bc = _bluecell()
+                _bc.materialize_blue_config(
                     name,
-                    build_local_target_config(
+                    _bc.build_local_target_config(
                         blue_target,
                         logs=[blue_logs] if blue_logs else None,
                     ),
