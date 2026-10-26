@@ -120,4 +120,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"{destination} already exists — the reviewed configuration wins, nothing written.")
     else:
         print(f"wrote {destination}")
+    rules = getattr(args, "rules", None)
+    if rules:
+        rules_path = blue_workspace(label) / rules
+        if rules_path.is_file():
+            rules_path.chmod(0o644)  # the monitor container reads rules through the ro mount
     return 0

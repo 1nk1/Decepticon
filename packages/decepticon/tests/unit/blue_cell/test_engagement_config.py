@@ -152,7 +152,8 @@ def test_compose_env_maps_target_rules_and_watch(blue_root: Path) -> None:
     assert env["BLUE_TARGET_UPSTREAM"] == "http://127.0.0.1:3000"
     assert env["BLUE_TARGET_ID"] == "shop-web"
     assert env["BLUE_TARGET_LOG_DIR"] == "/var/log/target"
-    assert env["BLUE_RULES_FILE"] == str((blue_root / "web-rules.jsonl").resolve())
+    assert env["BLUE_RULES_FILE"] == "/blue-engagement/web-rules.jsonl"
+    assert env["BLUE_ENGAGEMENT_DIR"] == str(blue_root)
     assert env["BLUE_WATCH_INTERVAL_SECONDS"] == "5"
     assert env["BLUE_WATCH_BATCH_SIZE"] == "10"
 

@@ -255,6 +255,12 @@ def materialize_blue_config(label: str, config: object) -> Path:
     root = blue_workspace(label)
     validate_blue_config(config, root=root)
     root.mkdir(parents=True, exist_ok=True)
+    # The engagement compose overlay bind-mounts this root read-only into the
+    # monitor container (user "blue", uid 10001), so the workspace must be
+    # traversable and its files world-readable on the host. Nothing in
+    # blue.json is secret-bearing; Blue-owned is enforced by placement, not
+    # by host permissions.
+    root.chmod(0o755)
     payload = json.dumps(config, indent=2, ensure_ascii=False).encode("utf-8")
     with tempfile.NamedTemporaryFile(dir=root, prefix=".blue-", delete=False) as staged:
         staged_path = Path(staged.name)
@@ -262,6 +268,7 @@ def materialize_blue_config(label: str, config: object) -> Path:
             staged.write(payload)
             staged.flush()
             os.fsync(staged.fileno())
+            os.chmod(staged_path, 0o644)
             os.replace(staged_path, destination)
         except BaseException:
             staged_path.unlink(missing_ok=True)
@@ -302,18 +309,22 @@ def compose_env(config: dict, target: dict, root: Path) -> dict[str, str]:
 
     The sensor DB stays a named volume; the TUI namespaces the compose
     project by the engagement label, which isolates containers, volumes and
-    networks per engagement without compose file changes.
+    networks per engagement without compose file changes. The Blue workspace
+    is bind-mounted read-only into the monitor container at
+    ``/blue-engagement`` via the engagement compose overlay, so
+    ``BLUE_RULES_FILE`` is a container path into that mount.
     """
     env = {
         "BLUE_TARGET_UPSTREAM": target["upstream"],
         "BLUE_TARGET_ID": str(target["id"]),
+        "BLUE_ENGAGEMENT_DIR": str(root),
     }
     logs = target.get("logs") or []
     if logs:
         env["BLUE_TARGET_LOG_DIR"] = logs[0]
     rules_file = config.get("rules_file")
     if rules_file:
-        env["BLUE_RULES_FILE"] = str((root / rules_file).resolve())
+        env["BLUE_RULES_FILE"] = f"/blue-engagement/{rules_file}"
     watch = config.get("watch") or {}
     if isinstance(watch.get("interval_seconds"), (int, float)):
         env["BLUE_WATCH_INTERVAL_SECONDS"] = str(watch["interval_seconds"])

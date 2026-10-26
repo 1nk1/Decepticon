@@ -96,12 +96,14 @@ export function parseBlueUpArgs(input: string): { upstream: string; logDir?: str
   return { upstream, logDir };
 }
 
-function composeArgs(logsOverlay = false): string[] {
+function composeArgs(logsOverlay = false, engagementOverlay = engagementProjectSuffix() !== ""): string[] {
   const file = process.env.BLUE_SENSOR_COMPOSE_FILE ?? "/app/blue-sensor/compose.runtime.yaml";
   const logsFile = process.env.BLUE_SENSOR_LOGS_COMPOSE_FILE ?? "/app/blue-sensor/compose.logs.yaml";
+  const engagementFile = process.env.BLUE_SENSOR_ENGAGEMENT_COMPOSE_FILE ?? "/app/blue-sensor/compose.engagement.yaml";
   const project = process.env.DECEPTICON_COMPOSE_PROJECT ?? "decepticon";
   const envFile = process.env.DECEPTICON_COMPOSE_ENV_FILE;
   return ["compose", "-f", file, ...(logsOverlay ? ["-f", logsFile] : []),
+    ...(engagementOverlay ? ["-f", engagementFile] : []),
     "-p", `${project}-blue${engagementProjectSuffix()}`, ...(envFile ? ["--env-file", envFile] : [])];
 }
 
@@ -214,8 +216,9 @@ function runDocker(args: string[], environment: NodeJS.ProcessEnv): Promise<stri
   });
 }
 
-function runCompose(args: string[], environment: NodeJS.ProcessEnv, logsOverlay = false): Promise<string> {
-  return runDocker([...composeArgs(logsOverlay), ...args], environment);
+function runCompose(args: string[], environment: NodeJS.ProcessEnv, logsOverlay = false, engagementOverlay?: boolean): Promise<string> {
+  const overlays = engagementOverlay ?? engagementProjectSuffix() !== "";
+  return runDocker([...composeArgs(logsOverlay, overlays), ...args], environment);
 }
 
 interface DockerMount {
