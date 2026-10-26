@@ -44,15 +44,24 @@ def _subagent_entry_point_names() -> list[str]:
     return sorted(ep.name for ep in entry_points(group="decepticon.subagents"))
 
 
-def test_every_registered_subagent_has_a_graph():
-    """Each ``decepticon.subagents`` entry point must have a built-in graph.
+def test_every_in_tree_subagent_has_a_graph():
+    """Each **in-tree** ``decepticon.subagents`` entry point must have a
+    built-in graph.
 
     Catches the original defect: a specialist registered as a dispatchable
     subagent but missing from ``graph_registry`` (so it can never be served
-    as a standalone LangGraph assistant).
+    as a standalone LangGraph assistant). External packages (values not
+    rooted at ``decepticon.``, e.g. the AutoBot defender served by its own
+    runtime) are out of scope — their serving is their repository's
+    contract.
     """
-    missing = [name for name in _subagent_entry_point_names() if name not in BUILTIN_GRAPHS]
-    assert not missing, f"subagents without a built-in graph: {missing}"
+    in_tree = [
+        ep.name
+        for ep in entry_points(group="decepticon.subagents")
+        if ep.value.startswith("decepticon.")
+    ]
+    missing = [name for name in in_tree if name not in BUILTIN_GRAPHS]
+    assert not missing, f"in-tree subagents without a built-in graph: {missing}"
 
 
 def test_every_slot_role_has_a_model_tier():
