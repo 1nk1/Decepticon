@@ -305,15 +305,8 @@ def build_engagement_roe(
     in_scope = _dedupe_targets(targets)
     if not in_scope:
         raise ValueError("engagement RoE requires at least one in-scope target")
-    # A subdomain glob authorizes the operator's zone, and the apex is part of
-    # that zone — host matching would otherwise never reach the bare domain
-    # (``*.elice.io`` does not match ``elice.io``). Appended after the authored
-    # targets so operator entries keep their order.
-    in_scope += [
-        base
-        for pattern in list(in_scope)
-        if (base := wildcard_base_domain(pattern)) and base not in in_scope
-    ]
+    # A wildcard authorizes its matching labels only. An apex is included
+    # solely when the operator provided that host as a separate scope target.
     return {
         "engagement_name": engagement_name,
         "machine_enforcement": {
@@ -381,11 +374,19 @@ class Decision:
         )
 
 
+def matches_domain_glob(pattern: str, candidate: str) -> bool:
+    """Match a DNS glob without crossing label boundaries.
+
+    ``*`` matches one or more characters within one label; ``?`` matches
+    exactly one non-dot character. A wildcard grants neither its apex nor
+    deeper descendants. Additional hosts require their own scope rules.
+    """
+    regex = re.escape(pattern).replace(r"\*", "[^.]+").replace(r"\?", "[^.]")
+    return re.fullmatch(regex, candidate, re.IGNORECASE) is not None
+
+
 def _glob_match(pattern: str, candidate: str) -> bool:
-    if pattern.startswith("*.") and pattern.count("*") == 1 and "?" not in pattern:
-        return candidate.lower().endswith(pattern[1:].lower())
-    regex = "^" + re.escape(pattern).replace(r"\*", "[^.]+").replace(r"\?", ".") + "$"
-    return re.match(regex, candidate, re.IGNORECASE) is not None
+    return matches_domain_glob(pattern, candidate)
 
 
 def network_scope_pattern(rule: ScopeRule, *, deny: bool = False) -> str | None:

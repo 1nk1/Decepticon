@@ -15,6 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed ([#1118](https://github.com/BitterSecurity/Decepticon/pull/1118)) — restrict domain wildcards to one DNS label across RoE and research scope checks. `*.example.com` permits `a.example.com`, while `a.b.example.com` needs an explicit rule. Exclusions use the same depth. Filter automatic passive enrichment to the same one-label wildcard boundary so discovery cannot add deeper hosts or the apex. Keep explicitly provided apex rules and stop Python/Go creation builders from adding an apex for wildcard-only input. Existing saved RoE entries are not rewritten. Validate fixtures with the selected formatter. Review existing recursive exclusions before adopting this source revision: deeper exclusions must now be explicit. Consolidate full history and references into `CHAGELOG.md`. Source change only; SaaS/Desktop pins and releases are unchanged.
 - Proposed test-lane cleanup ([#1121](https://github.com/BitterSecurity/Decepticon/pull/1121)): separate externally provisioned OpenShell/Neo4j tests behind explicit `--live`, require selected live services to be configured and healthy, consolidate duplicate tmux parser assertions and move framework boot checks out of SDK-only tests. Isolate benchmark unit tests from real stack health/cost calls; restore collected RoE network tests after removing unused legacy fixture methods. [Test structure](docs/testing.md). No production runtime change.
 
 - Proposed opt-in OpenShell session transport ([#1120](https://github.com/BitterSecurity/Decepticon/pull/1120)): route the retained tmux/daemon contract through an admitted OpenShell SDK session, with per-request admission checks and no direct daemon HTTP fallback. Preserve existing defaults; keep the live listener override compatible with the HTTP server protocol; add stock-runtime tests for controlled network policy, sessions, interactive input, jobs and files. [Validation and remaining production gates](docs/validation/openshell-session-adapter-20261026.md). Depends on the agent-stack refresh; no E2B driver or production rollout.
@@ -688,6 +689,7 @@ acceptance are separate from this OSS publication.
   run-directory mismatches before startup, and apply updated service settings
   during explicit reinstall.
 
+- Consolidate change tracking in this single `CHAGELOG.md`; remove the former
 - Consolidate change tracking in this single `CHANGELOG.md`; remove the former
   alternate entry point and update contributor/release instructions.
 
@@ -714,6 +716,7 @@ acceptance are separate from this OSS publication.
   No runtime network dependency, version bump or release. See
   [catalog maintenance](model-catalog/README.md).
 
+- Consolidate version history into the single root `CHAGELOG.md`, preserving
 - Consolidate version history into the single root `CHANGELOG.md`, preserving
   existing history and updating contributor guidance, links and tooling.
   Documentation only; no runtime or upgrade changes.
@@ -845,6 +848,7 @@ acceptance are separate from this OSS publication.
   Workflow updates affect new executions; existing checkpoint pins remain stable.
   Optional legacy VR and benchmark contracts retain their
   separately documented integration boundaries. Add root change-tracking
+  instructions while preserving the canonical CHAGELOG.md
   instructions while preserving the canonical CHANGELOG.md
   history and release automation. Included in v1.5.0.
 - Regenerate the checked-in Skillogy graph from the changed skill corpus so
