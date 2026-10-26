@@ -63,7 +63,7 @@ def _build_config(args: argparse.Namespace, bc) -> dict:
         watch["interval_seconds"] = args.watch_interval
     if args.watch_batch is not None:
         watch["batch_size"] = args.watch_batch
-    return build_local_target_config(
+    return bc.build_local_target_config(
         args.target,
         logs=[args.logs] if args.logs else None,
         rules_file=args.rules,
@@ -120,7 +120,7 @@ def main(argv: list[str] | None = None) -> int:
     except (ValueError, OSError) as error:
         print(f"blue-engagement create: {error}", file=sys.stderr)
         return 1
-    print(f"blue workspace: {blue_workspace(label)}")
+    print(f"blue workspace: {bc.blue_workspace(label)}")
     if already:
         print(f"{destination} already exists — the reviewed configuration wins, nothing written.")
     else:

@@ -61,7 +61,12 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/clients/shared/streaming/package.json ./clients/shared/streaming/package.json
 COPY --from=builder /app/clients/shared/streaming/dist ./clients/shared/streaming/dist
 COPY --from=builder /app/clients/cli/dist ./dist
-COPY examples/blue-local-sensor/ /app/blue-sensor/
+# The blue sensor stack moved to BitterSecurity/AutoBot (migration stage 2c).
+# The /blue CLI surfaces expect the sensor compose files at /app/blue-sensor;
+# deployments source them from the AutoBot repository checkout (or a future
+# autobot distribution) — see examples/local-sensor there. Keep the mount
+# point declarative so the compose files can be installed without rebuilding.
+COPY examples/README.md /app/blue-sensor/README.md
 
 ENV DECEPTICON_API_URL=http://langgraph:2024
 ENV NODE_ENV=production
