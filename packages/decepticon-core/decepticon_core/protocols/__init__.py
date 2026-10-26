@@ -25,6 +25,8 @@ from __future__ import annotations
 from decepticon_core.protocols.agent import AgentProtocol
 from decepticon_core.protocols.backend import BackendProtocol
 from decepticon_core.protocols.callback import CallbackProtocol
+from decepticon_core.protocols.coverage import CoverageAdapterProtocol
+from decepticon_core.protocols.event_store import EventStoreProtocol
 from decepticon_core.protocols.llm import LLMProtocol
 from decepticon_core.protocols.middleware import MiddlewareProtocol
 from decepticon_core.protocols.sandbox import SandboxProtocol
@@ -34,6 +36,8 @@ __all__ = [
     "AgentProtocol",
     "BackendProtocol",
     "CallbackProtocol",
+    "CoverageAdapterProtocol",
+    "EventStoreProtocol",
     "LLMProtocol",
     "MiddlewareProtocol",
     "SandboxProtocol",
