@@ -15,24 +15,27 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed (TUI): surface the Blue agent's autonomous assessment **inline in the
-  Blue feed** — Blue runs continuous observation, so the assessment lands in the
-  conversation when it is produced instead of only when the operator asks. The
-  bounded reasoning slice appears on `assessment`/`watch_alert` notifications
-  (full text stays in `/alerts`), and the Blue monitor is instructed to write
-  its watch summaries and investigation responses in English. Raw rule
-  detections (`detected`) no longer enter the conversation feed — under scan
-  traffic they would flood it — and remain viewable via `/alerts` and the
-  unread badge while the feed carries the agents' conclusions and operational
-  signals only.
-  [Live-stack verification](docs/verification/blue-assessment-inline-20261026.md).
-
-- Proposed (TUI): scope Blue Cell event notifications to **Blue mode only** so they
-  no longer invade the Red (or Plan) conversation. `useBlueNotifications` takes a
-  `surface` gate; the REPL passes `() => assistantId === "blue_cell"`, so Blue
-  detections/incidents are injected into the feed only while in Blue mode. Events
-  still accumulate in state regardless of mode, so they remain viewable in Blue
-  mode via `/alerts` and the unread badge. Default mode stays Red.
+- Proposed (AutoBot split — Decepticon side): add the shared **contract layer** in
+  `decepticon-core` that the defensive **AutoBot** package (shipped separately in
+  [BitterSecurity/AutoBot](https://github.com/BitterSecurity/AutoBot), depending on
+  `decepticon-core`) builds on, and make the existing Blue sensor path
+  source-agnostic. Contract-layer only here (pydantic + stdlib, no runtime deps);
+  **no behavior change to existing agents**. Design:
+  `docs/design/2026-10-23-autobot-redesign.md` (+ intent, blue-cell-analysis).
+  - `decepticon_core.types.ocsf_event` — OCSF-aligned normalized event envelope
+    (`OcsfEvent`, `SignalType`, `SeverityId`, `Observable`, `Metadata`,
+    `PROMOTED_FIELDS`); preserves `raw_data`/`unmapped`, exposes source-agnostic
+    promoted query keys.
+  - `decepticon_core.types.event_store` + `protocols.event_store.EventStoreProtocol`
+    — swappable, source-agnostic event-store query contract (no proxy/target enum).
+  - `decepticon_core.protocols.coverage.CoverageAdapterProtocol` — pluggable
+    per-environment log coverage contract.
+  - Drop the hardcoded two-source enum from the Blue timeline/metrics path so
+    arbitrary coverage sources are queryable; receiver `/metrics` gains
+    source-agnostic `events_by_source` (legacy keys kept for backward compat).
+  - Public-API surface 74 → 87. (The AutoBot runtime — OpenSearch store, coverage
+    adapters, Sigma detection, triage — lands in the AutoBot repo once this core
+    contract merges.)
 
 - Proposed [PR #1100](https://github.com/BitterSecurity/Decepticon/pull/1100): record actual 2.0.0 publication, candidate launcher/model and WebSocket acceptance, preserved sessions/files/ports, signed distributions and installation update. Reconcile merged changes into the dated release history; the immutable release tag and runtime versions remain unchanged.
 

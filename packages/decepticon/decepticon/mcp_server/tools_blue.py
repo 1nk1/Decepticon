@@ -93,8 +93,9 @@ def register_blue_tools(mcp: FastMCP, blue: BlueClient) -> None:
                 raise ValueError
         except ValueError as error:
             raise ValueError("start_at and end_at need timezones and a window <= 1 hour") from error
-        if source is not None and source not in {"blue-ingress-proxy", "target-log-file"}:
-            raise ValueError("source must be blue-ingress-proxy or target-log-file")
+        # Arbitrary coverage-adapter source id, not a fixed enum (redesign §3.2).
+        if source is not None and not 1 <= len(source) <= 256:
+            raise ValueError("source must be 1-256 characters")
         if before is not None and before < 1:
             raise ValueError("before must be a positive sequence")
         params: dict[str, Any] = {"start_at": start_at, "end_at": end_at, "limit": _limit(limit)}
