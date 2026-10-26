@@ -60,6 +60,7 @@ def _bluecell():
         ) from exc
     return bc
 
+
 log = logging.getLogger(__name__)
 
 
