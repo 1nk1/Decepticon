@@ -21,6 +21,7 @@ Keep proposed and unmerged changes out of released sections.
   bounded reasoning slice appears on `assessment`/`watch_alert` notifications
   (full text stays in `/alerts`), and the Blue monitor is instructed to write
   its watch summaries and investigation responses in English.
+  [Live-stack verification](docs/verification/blue-assessment-inline-20261026.md).
 
 - Proposed (TUI): scope Blue Cell event notifications to **Blue mode only** so they
   no longer invade the Red (or Plan) conversation. `useBlueNotifications` takes a
