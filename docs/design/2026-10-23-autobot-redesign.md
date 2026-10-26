@@ -1,7 +1,7 @@
 # AutoBot 재설계 — 에이전트 구동 OSS SIEM (탐지 → 조사 → 대응)
 
-- Status: Draft 설계 (딥리서치 종합, 완전 재설계 전제)
-- Date: 2026-10-23
+- Status: **진행 중** — Phase 1 핵심 착수 완료(§0 실행 갱신 참조), 레포 이전 결정(2026-10-26 사용자 승인: "온전 이전 — 완전 독립")
+- Date: 2026-10-23 (실행 갱신: 2026-10-26)
 - 선행 문서: `2026-10-23-ecosystem-split-intent.md`(의도), `2026-10-23-blue-cell-analysis.md`(현 Blue 전수 해부)
 - 근거: 웹 딥리서치 4축(SIEM 아키텍처 / 수집·정규화 / 탐지엔지니어링 / SOAR·대응) + 사내 선례(`bugclaw-core-extraction.md`, `extension-contract.md`)
 - 전제: 사용자 승인 — "기존 Blue Cell을 완전히 재설계해도 좋다"
@@ -16,6 +16,90 @@
 > OSS substrate 채택**(기본 **OpenSearch+Security Analytics**, 대안 ClickHouse,
 > dev DuckDB/SQLite — 추상화 뒤 교체), **설정/케이스는 Postgres**, **Wazuh는
 > 베이스 아닌 1급 소스/통합**. 기존 시스템 **호환성(§9b)**을 1급 기둥으로.
+
+---
+
+## 0. 실행 갱신 — 레포 이전 결정 (2026-10-26, 사용자 승인)
+
+### 0.1 Phase 1에서 착지한 것 (Decepticon, 전부 머지·라이브 검증 완료)
+
+| 작업 | PR | 본 문서 대응 |
+|---|---|---|
+| core 계약(OCSF envelope·EventStoreProtocol·CoverageAdapterProtocol) + source enum 제거 | #1101 | §11.1 #1·#3 착수 |
+| Blue 피드 게이트(Blue 모드 전용) + 인라인 어세스먼트(영어 고정) | #1102 | 조사 에이전트 UX 계승 |
+| 탐지 룰 파일화(`BLUE_RULES_FILE`, bootstrap/Sigma 부분집합 계약) + 에이전트 타겟 컨텍스트 | #1103 | §11.1 #7의 **부분 선행**(Sigma는 목표 유지) |
+| Blue engagement 구성 설계·구현(`blue.json`, Blue 전용 워크스페이스 루트) | #1104·#1105 | §9b 하위호환 표면 확장 |
+| 탐지 어댑터(rules/decision) + 인시던트 배치 + 생성 표면 blue 블록 | #1106 | §6 계층 관계 조정(§0.3), §11.1 #8 관련 |
+| engagement 스코프 compose 명령 수정 + 실제 TUI PTY 실측 | #1107 | 클라이언트 어댑터 검증 |
+
+### 0.2 오늘 승인된 이탈 — decision 어댑터 (§5 원칙과의 관계)
+
+본 문서 원칙 5("LLM은 매칭 결정에 관여하지 않는다")에 대한 **사용자 승인 이탈**:
+`BLUE_DETECTOR=decision`은 정규화 이벤트 전체에 대해 타입화 분류(attack/suspicious/benign)로
+인시던트를 생성할 수 있다. 완화 조건: ① **옵트인**(기본은 결정적 rules 어댑터) ② 타입화 출력·
+페이지 단위 호출·개별 판정 fail-closed·비배열 응답은 페이지 실패 ③ 매칭 결정 코드로 강제가
+아니라 **어댑터 선택으로 분리** — OpenSearch+Sigma substrate(§5)가 착지하면 decision
+어댑터는 §6의 ③ triage tier로 재편하고 rules 어댑터가 ① per-event 결정적 매처를 흡수한다.
+bootstrap jsonl 룰 포맷은 Sigma 부분집합 계약이므로 룰팩 이동이 무손실이어야 한다.
+
+### 0.3 레포 이전 실행 계획 — "온전 이전" (완전 독립)
+
+**자산 분류**:
+
+| 자산 | 이전 | 잔류(Decepticon) |
+|---|---|---|
+| core 계약(OCSF·EventStore·Coverage 프로토콜) | — | ✅ 잔류(공유 계약 홈, §9 경계 절) |
+| `packages/autobot` WIP(OpenSearch 스토어·coverage 플러그인·Sigma 탐지·triage 경계, 23파일 2커밋 — 최신 main 대비 stale) | ✅ 2a | |
+| `examples/blue-local-sensor/` 센서 스택(receiver·monitor·compose·Caddyfile — 오늘 완성형) | ✅ 2b | |
+| `blue_cell` 패키지(rule_match·tap·engagement_config)·`blue_sensor_*` 도구·blue_cell 에이전트·LangGraph 연결 | ✅ 2b/2c | |
+| 연산자 표면(TUI `/blue`·알림 훅 — URL 기반, 제품 불문) | | ✅ 잔류(씬 클라이언트) |
+| engagement 생성 blue 블록(`blue.json` 상호운용) | | ✅ 잔류(Decepticon engagement ⇄ AutoBot 센서 연결 고리) |
+
+**핵심 공백**: WIP는 데이터 평면만 보유. watch·조사·decision 분류가 Decepticon LangGraph
+서버(blue_cell)에 HTTP 의존 — **온전 이전의 조건은 AutoBot 자체 에이전트 런타임**(blue-only
+그래프+도구+서버)이며, 이것이 2b의 최대 공사다.
+
+**단계**:
+
+- **2a — 레포 부트스트랩** (즉시, 저위험): `BitterSecurity/AutoBot`(현재 README만 존재)에
+  WIP 패키지를 **최신 main 기준 재기반**하여 이전, CI(ruff format 포함 — CI 미러 교훈),
+  `decepticon-core` 의존(PyPI 2.0.0 배포본), 라이브 스택 검증 하네스 이식. 충돌 리스크 0.
+- **2b — 런타임 이전**: 센서 스택 → AutoBot `examples/local-sensor`; **blue-only LangGraph
+  에이전트 서버**(blue_cell 프롬프트·도구·그래프 이전) — 모니터의 `AGENT_URL`이 AutoBot
+  서버를 가리킴. 오늘의 라이브 검증 하네스(stub 에이전트+PTY TUI)로 전 단계 재검증.
+- **2c — Decepticon 정리**: `blue_cell` 패키지·`blue_sensor_*` 도구·blue_cell 에이전트·
+  그래프 등록 제거(§11.1 #9·#10의 플러그인 게이팅을 **제거형**으로 실행), TUI·engagement
+  blue 블록은 URL 기반 상호운용으로 잔류, 문서 피벗. 하위호환: receiver 질의 API·센서툴
+  계약은 §9b대로 유지.
+
+**회귀 방지 원칙**: 각 단계마다 오늘 확립한 실측 하네스(센서 스택 라이브 + headless CLI +
+PTY TUI 구동)을 재실행한다 — 단위 테스트만으로는 engagement 스코프 compose 보간 같은
+통합 결함을 잡지 못한다(#1107 교훈).
+
+### 0.5 이전 후에도 Decepticon TUI/CLI에서 Blue 사용은 보장된다 (두 경로)
+
+1. **URL 클라이언트 경로(임포트 불필요)** — TUI `/blue` 명령·알림 훅·blue 대화가 전부
+   URL 기반(`BLUE_MONITOR_URL`, 에이전트 서버 URL). AutoBot 스택이 어느 호스트에 있든
+   동작하며, 이 클라이언트 코드는 2c 이후에도 Decepticon에 잔류한다.
+2. **import 경로 — `decepticon[blue]` extra(§9 계획)** — 같은 파이썬 환경에 `autobot`
+   패키지 설치 시 entry-point로 blue_cell 그래프·도구가 Decepticon 서버에 등록되어
+   설치만으로 오늘과 동일한 TUI blue 모드가 동작한다. 2c의 플러그인 게이팅(§11.1
+   #9·#10)은 제거가 아니라 이 extra 경로로 흡수된다(§0.4).
+
+2c 이후 상태 매트릭스: `decepticon` 단독 = red만(blue 모드 진입 시 capability probe가
+"`decepticon[blue]` 설치 또는 AutoBot URL 지정"을 안내); `decepticon[blue]` = blue_cell
+그래프가 Decepticon 서버에 등록되어 완전 동작; `decepticon` + 원격 AutoBot URL = 원격 blue
+(blue 전용 에이전트 base URL 설정은 2b에서 확정할 항목). 이 보장은 이전 작업의 수용 기준에
+포함된다 — 어느 단계에서도 오늘의 TUI blue UX가 기능 저하 없이 유지되어야 한다.
+
+### 0.4 §11 Phase 계획과의 정렬
+
+- §11.1 #1·#3(계약·enum 제거) — **완료**(#1101). #2(OpenSearch PoC) — WIP에 포함, 2a에서
+  레포화. #4·#5(어댑터 계약·dispatch) — WIP에 프로토콜 존재, receiver dispatch 미착수(2b).
+  #6(커버리지 레지스트리) — 미착수(2b). #7(Sigma 룰팩 교체) — **bootstrap jsonl이 선행**
+  (§0.2), Sigma는 2b 목표. #8(triage 경계) — decision 어댑터가 §0.2 형태로 선행(2b 재편).
+  #9·#10(플러그인 게이팅·capability probe) — **2c 제거형으로 흡수**.
+- §11 Phase 2/3는 본 §0.3 단계로 **치환**된다(레포 이전이 먼저, substrate 전환은 이후).
 
 ---
 
