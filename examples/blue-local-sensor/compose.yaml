@@ -82,6 +82,7 @@ services:
     environment:
       BLUE_SENSOR_URL: http://blue-receiver:8082
       BLUE_AGENT_URL: ${BLUE_AGENT_URL:-}
+      BLUE_DETECTOR: ${BLUE_DETECTOR:-rules}
       BLUE_MONITOR_DB: /monitor-data/incidents.sqlite3
       BLUE_INCIDENT_MAX_ROWS: ${BLUE_INCIDENT_MAX_ROWS:-10000}
       BLUE_NOTIFICATION_MAX_ROWS: ${BLUE_NOTIFICATION_MAX_ROWS:-20000}
