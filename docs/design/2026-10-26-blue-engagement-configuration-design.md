@@ -41,12 +41,41 @@ design.
 
 ## Design
 
+### Workspace boundary — Blue owns a separate root
+
+Blue configuration does **not** live inside the Red engagement workspace.
+Red's agents hold file access to the engagement workspace, so any Blue
+subtree there would expose the observation scope, loaded rules and sensor
+layout to the attacking agent by filesystem coincidence. Two concrete harms
+follow even with a single operator: the red agent's reasoning gets
+contaminated by knowledge of Blue's coverage (e.g. probing the documented
+proxy-bypass blind spot deliberately), and red transcripts/reports — the
+client-facing deliverable — would carry defensive configuration by default.
+This continues the red/blue separation the TUI work already established
+(Blue events scoped to Blue mode, no Red invasion).
+
+The engagement stays the unit of work through its label. Blue materializes
+into a Blue-owned root:
+
+- `<blue root>/<label>/blue.json` with `<blue root>` resolving from
+  `DECEPTICON_BLUE_WORKSPACE` override, else `~/.decepticon/blue/<label>` —
+  mirroring the Red workspace override pattern (`DECEPTICON_ENGAGEMENT_WORKSPACE`);
+- sibling to `~/.decepticon/workspace/<label>/`, outside the path Red's
+  workspace-scoped file tools enumerate;
+- the label is the only shared element (validated by the same
+  engagement-label contract).
+
+Purple-team transparency remains possible later as explicit, logged
+disclosure — a dedicated tool that hands Red a summarized Blue coverage
+report on request — rather than raw filesystem reach. Deliberate disclosure
+scales to the phase-2 multi-tenant shape; filesystem coincidence does not.
+
 ### Creation-time materialization (mirrors `roe_materialization.py`)
 
 A shared module `packages/decepticon/decepticon/blue_cell/engagement_config.py`
 (free of the `mcp` extra, imported by every surface) materializes
-`blue/blue.json` into the same engagement workspace resolution Red uses.
-Every surface that creates engagements can carry an optional blue block:
+`blue.json` into the Blue workspace root above. Every surface that creates
+engagements can carry an optional blue block:
 
 - MCP `start_engagement` gains an optional `blue` argument.
 - `decepticon-cli scan` gains the same optional block.
@@ -55,7 +84,7 @@ Every surface that creates engagements can carry an optional blue block:
   (operator interaction and scope input belong to the client adapter; the
   materialization does not).
 
-`blue/blue.json` schema (v1):
+`blue.json` schema (v1):
 
 ```json
 {
@@ -68,10 +97,13 @@ Every surface that creates engagements can carry an optional blue block:
       "enabled": true
     }
   ],
-  "rules_file": "blue/web-rules.jsonl",
+  "rules_file": "web-rules.jsonl",
   "watch": { "interval_seconds": 15, "batch_size": 25 }
 }
 ```
+
+`rules_file` resolves relative to the Blue workspace root, keeping rule
+files Blue-owned as well.
 
 Validation, all fail-closed at creation time:
 
@@ -84,7 +116,7 @@ Validation, all fail-closed at creation time:
   rule file is a creation error, not a runtime surprise;
 - at most one `enabled` target in phase 1 (the stack is single-target);
   additional targets validate but stay disabled;
-- an already-present `blue/blue.json` is never overwritten — a reviewed
+- an already-present `blue.json` is never overwritten — a reviewed
   configuration wins, exactly like `plan/roe.json`. Changing targets means
   editing the file deliberately and re-verifying.
 
@@ -94,20 +126,21 @@ applies to authorization.
 
 ### Consumption
 
-`/blue up [target-id]` resolves the engagement's `blue/blue.json` (workspace
-from `DECEPTICON_ENGAGEMENT`, override envs honored) and maps it to the
+`/blue up [target-id]` resolves the engagement's `blue.json` (Blue root from
+`DECEPTICON_BLUE_WORKSPACE` override, else `~/.decepticon/blue/<label>` keyed
+by `DECEPTICON_ENGAGEMENT`, override envs honored) and maps it to the
 compose environment the executor already consumes: `BLUE_TARGET_UPSTREAM`,
 `BLUE_TARGET_LOG_DIR`, `BLUE_TARGET_ID`, `BLUE_RULES_FILE` (absolute path
 inside the workspace), plus watch settings. Explicit `/blue up` arguments keep
 working as ad-hoc overrides for runs without an engagement; with an
 engagement, file values are the defaults and arguments override for one run
-without rewriting the file. A workspace without a `blue/blue.json` keeps the
+without rewriting the file. A label without a `blue.json` keeps the
 current behavior unchanged.
 
 ### State namespacing
 
 - The monitor incident DB becomes engagement-addressable:
-  `<workspace>/blue/monitor.sqlite3` bind-mounted read-write into the
+  `<blue root>/<label>/monitor.sqlite3` bind-mounted read-write into the
   monitor container when running under an engagement, replacing the anonymous
   volume for that case (ad-hoc runs keep volumes). Incidents, assessments and
   notifications then survive stack recreation and belong to the engagement
@@ -126,28 +159,29 @@ sensor, not silently fall back to previous defaults — the same principle PR
 
 ## Open questions
 
-- File location: `blue/blue.json` (proposed — configuration of a sensor) vs
-  `plan/blue.json` (authorization-adjacent, alongside `roe.json`). The
-  observation scope of one's own asset is arguably authorization-adjacent;
-  phase 2 multi-target may settle it.
 - Whether watch/analysis thread state should move from the monitor volume
-  into the workspace for provenance (agent threads currently live in the
+  into the Blue workspace for provenance (agent threads currently live in the
   agent server, keyed by target-derived thread ids).
 - Phase 2: multi-target registry, remote sensor profile (TLS + authenticated
   APIs, TUI env pointing at remote monitors), and whether Red's engagement
   creation flow should expose the blue block in its interactive form.
 - Whether `enabled: false` targets should still be probed by `/blue verify`
   (helps staging a multi-target engagement before enabling).
+- The shape of deliberate purple disclosure (a logged tool handing Red a
+  summarized Blue coverage report) — deferred until phase 2 so the boundary
+  is first established as deny-by-default.
 
 ## What to change
 
 - New `packages/decepticon/decepticon/blue_cell/engagement_config.py` with
-  schema validation, materialization and fail-closed load (+ unit tests,
-  including never-overwrite and creation-error cases).
+  the Blue workspace resolver (`DECEPTICON_BLUE_WORKSPACE` override, else
+  `~/.decepticon/blue/<label>`), schema validation, materialization and
+  fail-closed load (+ unit tests, including never-overwrite and
+  creation-error cases).
 - `start_engagement` MCP tool and `decepticon-cli scan` gain the optional
   blue block; both surfaces share the materialization.
 - `clients/cli` `blue.ts`: `/blue engagement create` (TUI, with confirmation
-  step) and `/blue up` consumption of the workspace config.
+  step) and `/blue up` consumption of the Blue workspace config.
 - `compose.runtime.yaml` needs no structural change; the CLI derives its
   environment. Documentation under `examples/blue-local-sensor/README.md`
   gains an engagement-first usage section.
