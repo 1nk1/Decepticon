@@ -21,7 +21,7 @@ it("selects Blue through the no-argument mode picker", async () => {
   // When the operator confirms Blue
   await picker.onSelect("blue");
   // Then the assistant routes to Blue
-  expect(getAssistantOverride()).toBe("blue_cell");
+  expect(getAssistantOverride()).toBe("autobot");
 });
 
 it("selects a model through the no-argument model picker", async () => {

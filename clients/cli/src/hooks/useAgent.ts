@@ -179,7 +179,7 @@ let _nextEventId = 0;
 
 async function assertAssistantReady(assistant: string, apiUrl: string): Promise<RolePurpose> {
   const purpose = await rolePurpose(assistant, apiUrl);
-  if (assistant === "blue_cell" && !(await blueMonitorReady())) {
+  if (assistant === "autobot" && !(await blueMonitorReady())) {
     throw new DOMException("Blue sensor is unavailable. Use /blue up 127.0.0.1:3000 before sending in Blue mode.", "NotAllowedError");
   }
   if (purpose === "execution") await assertRedApproved();

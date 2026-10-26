@@ -71,7 +71,7 @@ export async function validateThread(threadId: string, signal?: AbortSignal): Pr
       (saved.workspacePath && !acceptsRuntimeWorkspace(saved.workspacePath))) {
     throw new SessionScopeError(threadId, "Session belongs to a different engagement or workspace. Open that engagement to resume.");
   }
-  if (!["soundwave", "decepticon", "blue_cell"].includes(saved.assistantId)) throw new SessionScopeError(threadId, "Session assistant metadata is missing or unsupported.");
+  if (!["soundwave", "decepticon", "autobot"].includes(saved.assistantId)) throw new SessionScopeError(threadId, "Session assistant metadata is missing or unsupported.");
   return saved;
 }
 
@@ -79,7 +79,7 @@ export async function validateThread(threadId: string, signal?: AbortSignal): Pr
 export async function claimLegacyThread(threadId: string): Promise<ThreadEntry> {
   const saved = entry(await getClient().threads.get(threadId));
   if (!saved.legacyMetadata) return validateThread(threadId);
-  if (!["soundwave", "decepticon", "blue_cell"].includes(saved.assistantId)) throw new SessionScopeError(threadId, "Legacy session has no supported assistant; metadata must be repaired before adoption.");
+  if (!["soundwave", "decepticon", "autobot"].includes(saved.assistantId)) throw new SessionScopeError(threadId, "Legacy session has no supported assistant; metadata must be repaired before adoption.");
   const state = await getClient().threads.getState(threadId);
   const values = state.values;
   if (values && typeof values === "object") {

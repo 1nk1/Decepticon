@@ -4,7 +4,7 @@ import { getAssistantOverride, setAssistantOverride } from "./assistantOverride.
 const ASSISTANTS = {
   plan: "soundwave",
   red: "decepticon",
-  blue: "blue_cell",
+  blue: "autobot",
 } as const;
 
 type RunMode = keyof typeof ASSISTANTS;
@@ -12,7 +12,7 @@ type RunMode = keyof typeof ASSISTANTS;
 function currentMode(): RunMode {
   const assistant = getAssistantOverride() || process.env.DECEPTICON_ASSISTANT_ID;
   if (assistant === "soundwave") return "plan";
-  if (assistant === "blue_cell") return "blue";
+  if (assistant === "autobot") return "blue";
   return "red";
 }
 

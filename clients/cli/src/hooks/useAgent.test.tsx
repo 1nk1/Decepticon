@@ -31,7 +31,7 @@ vi.mock("../utils/threadStore.js", () => ({
 }));
 
 vi.mock("../commands/rolePurpose.js", () => ({
-  rolePurpose: vi.fn(async (role: string) => role === "soundwave" ? "planning" : role === "blue_cell" ? "observation" : "execution"),
+  rolePurpose: vi.fn(async (role: string) => role === "soundwave" ? "planning" : role === "autobot" ? "observation" : "execution"),
 }));
 
 vi.mock("../commands/planMode.js", () => ({
@@ -252,8 +252,8 @@ describe("useAgent — engagement handoff lifecycle", () => {
     expect(result.current.events.some((e) => e.content === "RED-ONLY-EVENT")).toBe(true);
 
     // Switch to Blue: the Red-only event must not be visible.
-    await act(async () => { await result.current.selectAssistant("blue_cell"); });
-    expect(result.current.assistantId).toBe("blue_cell");
+    await act(async () => { await result.current.selectAssistant("autobot"); });
+    expect(result.current.assistantId).toBe("autobot");
     expect(result.current.events.some((e) => e.content === "RED-ONLY-EVENT")).toBe(false);
     act(() => result.current.addSystemEvent("BLUE-ONLY-EVENT"));
     expect(result.current.events.some((e) => e.content === "BLUE-ONLY-EVENT")).toBe(true);
@@ -264,7 +264,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
     expect(result.current.events.some((e) => e.content === "BLUE-ONLY-EVENT")).toBe(false);
   });
 
-  it.each([["soundwave", "resume"], ["soundwave", "answerQuestion"], ["plugin-executor", "resume"], ["plugin-executor", "answerQuestion"], ["blue_cell", "resume"], ["blue_cell", "answerQuestion"]] as const)("isolates workflow namespaces for %s on submit and %s", async (assistant, method) => {
+  it.each([["soundwave", "resume"], ["soundwave", "answerQuestion"], ["plugin-executor", "resume"], ["plugin-executor", "answerQuestion"], ["autobot", "resume"], ["autobot", "answerQuestion"]] as const)("isolates workflow namespaces for %s on submit and %s", async (assistant, method) => {
     // Given trusted launch settings in both namespaces.
     vi.stubEnv("DECEPTICON_WORKFLOW_ID", "red-custom");
     vi.stubEnv("DECEPTICON_WORKFLOW_VERSION", "exec-v2");
@@ -828,11 +828,11 @@ describe("useAgent — engagement handoff lifecycle", () => {
     await act(async () => { await vi.runAllTimersAsync(); await stream.emit({ event: "metadata", data: { run_id: "plan-run" } }); });
     act(() => result.current.enqueue("queued plan"));
     let switching: Promise<boolean> | boolean = false;
-    act(() => { switching = result.current.selectAssistant("blue_cell"); });
+    act(() => { switching = result.current.selectAssistant("autobot"); });
     await act(async () => { await Promise.resolve(); });
     expect(result.current.assistantId).toBe("soundwave");
     await act(async () => { acknowledge(); await switching; });
-    expect(result.current.assistantId).toBe("blue_cell");
+    expect(result.current.assistantId).toBe("autobot");
     expect(mockState.client!.runs.cancel).toHaveBeenCalledWith(expect.any(String), "plan-run", true, "interrupt", expect.objectContaining({ signal: expect.any(AbortSignal) }));
     await act(async () => { await stream.emit({ event: "values", data: { messages: [{ type: "ai", content: "late plan" }] } }); stream.end(); });
     expect(result.current.events.some((event) => event.content === "late plan")).toBe(false);
@@ -841,7 +841,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
     expect(result.current.queuedMessage).toBe("queued plan");
   });
 
-  it.each(["blue_cell", "soundwave"])("keeps the active mode and never commits %s when server interruption fails", async (next) => {
+  it.each(["autobot", "soundwave"])("keeps the active mode and never commits %s when server interruption fails", async (next) => {
     const stream = createControllableStream();
     (mockState.client!.runs.stream as Mock).mockReturnValueOnce(stream);
     (mockState.client!.runs.cancel as Mock).mockRejectedValueOnce(new Error("pause unavailable"));
@@ -918,12 +918,12 @@ describe("useAgent — engagement handoff lifecycle", () => {
     act(() => result.current.submit("plan"));
     await act(async () => { await vi.runAllTimersAsync(); });
     let switching: Promise<boolean> | boolean = false;
-    act(() => { switching = result.current.selectAssistant("blue_cell"); });
+    act(() => { switching = result.current.selectAssistant("autobot"); });
     await act(async () => { expect(await result.current.selectAssistant("decepticon")).toBe(false); });
     expect(mockState.client!.runs.cancel).not.toHaveBeenCalled();
     await act(async () => { await stream.emit({ event: "metadata", data: { run_id: "late-run" } }); await switching; });
     expect(mockState.client!.runs.cancel).toHaveBeenCalledWith(expect.any(String), "late-run", true, "interrupt", expect.objectContaining({ signal: expect.any(AbortSignal) }));
-    expect(result.current.assistantId).toBe("blue_cell");
+    expect(result.current.assistantId).toBe("autobot");
     await act(async () => stream.end());
   });
 
@@ -938,7 +938,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
     const { result } = renderHook(() => useAgent());
     await act(async () => { result.current.submit("plan"); });
     let outcome: boolean | undefined;
-    act(() => { void result.current.selectAssistant("blue_cell").then((selected) => { outcome = selected; }); });
+    act(() => { void result.current.selectAssistant("autobot").then((selected) => { outcome = selected; }); });
     try {
       await act(async () => { await vi.advanceTimersByTimeAsync(6000); });
       await act(async () => { await stream.emit({ event: "metadata", data: { run_id: "delayed-run" } }); });
@@ -966,7 +966,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
     await act(async () => { await vi.runAllTimersAsync(); });
     const question = result.current.activeQuestion;
     expect(question).not.toBeNull();
-    await act(async () => { await result.current.selectAssistant("blue_cell"); });
+    await act(async () => { await result.current.selectAssistant("autobot"); });
     expect(result.current.activeQuestion).toBeNull();
     await act(async () => { await result.current.selectAssistant("soundwave"); });
     expect(result.current.activeQuestion).toEqual(question);
@@ -1002,7 +1002,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
       let settled = false;
       let deadline: ReturnType<typeof setTimeout> | undefined;
       await act(async () => {
-        const switching = result.current.selectAssistant("blue_cell").then(() => { settled = true; });
+        const switching = result.current.selectAssistant("autobot").then(() => { settled = true; });
         await Promise.race([switching, new Promise<void>((resolve) => { deadline = setTimeout(resolve, 11_000); })]);
         clearTimeout(deadline);
       });
@@ -1049,7 +1049,7 @@ describe("useAgent — engagement handoff lifecycle", () => {
       { event: "custom", data: { type: "ask_user_question", question: "Inspect?", id: "blue-question" } },
     ]));
     const { result } = renderHook(() => useAgent());
-    await act(async () => { await result.current.selectAssistant("blue_cell"); });
+    await act(async () => { await result.current.selectAssistant("autobot"); });
     act(() => result.current.submit("inspect telemetry"));
     await act(async () => { await vi.runAllTimersAsync(); });
     const question = result.current.activeQuestion;
@@ -1073,10 +1073,10 @@ describe("useAgent — engagement handoff lifecycle", () => {
     let finishState = (_state: { values: object }) => {};
     (mockState.client!.threads.getState as Mock).mockImplementationOnce(() => new Promise((resolve) => { finishState = resolve; }));
     await act(async () => { result.current.resume("yes"); });
-    await act(async () => { await result.current.selectAssistant("blue_cell"); });
+    await act(async () => { await result.current.selectAssistant("autobot"); });
     expect(mockState.client!.runs.cancel).not.toHaveBeenCalled();
     await act(async () => { finishState({ values: {} }); });
-    expect(result.current.assistantId).toBe("blue_cell");
+    expect(result.current.assistantId).toBe("autobot");
     expect(mockState.client!.runs.stream).toHaveBeenCalledTimes(1);
     await act(async () => { await result.current.selectAssistant("soundwave"); });
     expect(result.current.runState).toBe("paused");

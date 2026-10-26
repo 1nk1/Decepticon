@@ -69,7 +69,7 @@ export function REPL({ initialMessage, resumeThread }: REPLProps) {
   // the hook state and stay viewable in Blue mode via /alerts and the badge.
   const blue = useBlueNotifications(
     agent.addSystemEvent,
-    () => agent.assistantId === "blue_cell",
+    () => agent.assistantId === "autobot",
   );
   const connection = useServiceStatus();
   const opplan = useOpplan(agent.events);
