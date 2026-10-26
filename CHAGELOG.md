@@ -15,7 +15,9 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed [PR #1090](https://github.com/BitterSecurity/Decepticon/pull/1090):
+- Proposed [PR #1100](https://github.com/BitterSecurity/Decepticon/pull/1100): record actual 2.0.0 publication, candidate launcher/model and WebSocket acceptance, preserved sessions/files/ports, signed distributions and installation update. Reconcile merged changes into the dated release history; the immutable release tag and runtime versions remain unchanged.
+
+- Merged, unreleased [PR #1090](https://github.com/BitterSecurity/Decepticon/pull/1090):
   make LiteLLM and LangGraph healthcheck startup grace honor the launcher’s
   validated `DECEPTICON_STARTUP_TIMEOUT_SECONDS` budget (default 600 seconds).
   Preserve readiness probes, overall wait failures, post-start retries, data
@@ -23,16 +25,20 @@ Keep proposed and unmerged changes out of released sections.
   with current main without selecting a release or changing downstream pins.
   [Integration verification](docs/verification/startup-budget-integration-20261026.md).
 
+## [2.0.0] — 2026-10-26
 
-- Proposed [PR #1099](https://github.com/BitterSecurity/Decepticon/pull/1099): stop the search-closure middleware from turning greetings, operator questions and read-only status answers into unsolicited assessment runs. Track actual assessment work per interactive turn; preserve pending objectives and completed receipts across conversation, while retaining receipt/review/budget gates for assessment tools, checkpoint resume and explicit autonomous search requests. New checkpoint state is runtime-owned and optional; no data migration or workflow-pin reset is required.
+- Published from `dd5b43c01bbc6ac09615a98444afcd2a4664480e` at 00:22:53 UTC after source and downloaded-candidate qualification. See the [qualification record](docs/releases/2.0.0-qualification.md) and [release](https://github.com/BitterSecurity/Decepticon/releases/tag/v2.0.0).
+- **Major command change:** `/resume` selects saved sessions and `/resume <thread-id>` restores one; the prior `/resume [message]` pause-feedback meaning is replaced. Send ordinary input to continue a paused session; use `/answer` for a pending question. Existing engagement, conversation and database formats are retained; no reset or migration is required. Upgrade with `decepticon update --channel latest`, then reopen the OSS CLI. Source version fields retain the release-stamped `0.0.0` sentinel; SaaS versions are independent.
 
-- Proposed [PR #1098](https://github.com/BitterSecurity/Decepticon/pull/1098): isolate two no-credential resolver tests from ambient OAuth intent and provider settings using the existing credential scrub helper. This fixes local release verification on configured developer machines; shipped authentication behavior and credentials are unchanged.
+- Released [PR #1099](https://github.com/BitterSecurity/Decepticon/pull/1099): stop the search-closure middleware from turning greetings, operator questions and read-only status answers into unsolicited assessment runs. Track actual assessment work per interactive turn; preserve pending objectives and completed receipts across conversation, while retaining receipt/review/budget gates for assessment tools, checkpoint resume and explicit autonomous search requests. New checkpoint state is runtime-owned and optional; no data migration or workflow-pin reset is required.
 
-- Proposed [PR #1097](https://github.com/BitterSecurity/Decepticon/pull/1097): add a fixed fullscreen terminal conversation with mouse selection, composer caret placement, wheel/keyboard history scrolling and tool expansion. `/resume` now selects saved sessions and restores without dispatching a model turn; send new input to continue a paused conversation and use `/answer` for a pending question. Stabilize the port-recovery HTTP fixture against ephemeral-port reuse in macOS CI. Clarify the session/runtime footer and apply graphite/silver styling to inherited text and previously unthemed first-launch Go prompts. Existing saved conversations and scope checks remain compatible. Use `--no-alt-screen` or `/tui inline` for native scrollback and `--no-mouse` or `/mouse off` for native selection; no data migration is needed.
+- Released [PR #1098](https://github.com/BitterSecurity/Decepticon/pull/1098): isolate two no-credential resolver tests from ambient OAuth intent and provider settings using the existing credential scrub helper. This fixes local release verification on configured developer machines; shipped authentication behavior and credentials are unchanged.
 
-- Proposed [PR #1096](https://github.com/BitterSecurity/Decepticon/pull/1096): refresh approval from current trusted, bound launch configuration on resume, including revocation. Separate direct scope from Autohunt bootstrap wording, expose canonical OPPLAN objective enums/integer priorities and treat greetings as conversation rather than mission bootstrap. Stop replaying main-model failures as compaction failures; context-check status completes before generation. Existing scope gates, revision checks and saved workspace files remain intact; no data reset is required.
+- Released [PR #1097](https://github.com/BitterSecurity/Decepticon/pull/1097): add a fixed fullscreen terminal conversation with mouse selection, composer caret placement, wheel/keyboard history scrolling and tool expansion. `/resume` now selects saved sessions and restores without dispatching a model turn; send new input to continue a paused conversation and use `/answer` for a pending question. Stabilize the port-recovery HTTP fixture against ephemeral-port reuse in macOS CI. Clarify the session/runtime footer and apply graphite/silver styling to inherited text and previously unthemed first-launch Go prompts. Existing saved conversations and scope checks remain compatible. Use `--no-alt-screen` or `/tui inline` for native scrollback and `--no-mouse` or `/mouse off` for native selection; no data migration is needed.
 
-- Proposed [PR #1095](https://github.com/BitterSecurity/Decepticon/pull/1095): recognize upstream cybersecurity/content refusals inside HTTP 500 and fallback wrappers. Show a compact policy/access explanation instead of authentication-priority advice or router dumps; distinguish OAuth subscription access from API-project Daybreak approval. Existing model selection, safeguards and access settings are unchanged; no migration is required.
+- Released [PR #1096](https://github.com/BitterSecurity/Decepticon/pull/1096): refresh approval from current trusted, bound launch configuration on resume, including revocation. Separate direct scope from Autohunt bootstrap wording, expose canonical OPPLAN objective enums/integer priorities and treat greetings as conversation rather than mission bootstrap. Stop replaying main-model failures as compaction failures; context-check status completes before generation. Existing scope gates, revision checks and saved workspace files remain intact; no data reset is required.
+
+- Released [PR #1095](https://github.com/BitterSecurity/Decepticon/pull/1095): recognize upstream cybersecurity/content refusals inside HTTP 500 and fallback wrappers. Show a compact policy/access explanation instead of authentication-priority advice or router dumps; distinguish OAuth subscription access from API-project Daybreak approval. Existing model selection, safeguards and access settings are unchanged; no migration is required.
 
 - Release record: document actual 1.6.1 publication, immutable distributions,
   measured port recovery, neutral onboarding and same-volume WSL acceptance
@@ -1896,7 +1902,8 @@ The following legacy import paths keep working but emit a
   atomic release.
 - Downstream plugin package lockstep migration.
 
-[Unreleased]: https://github.com/BitterSecurity/Decepticon/compare/v1.6.1...HEAD
+[Unreleased]: https://github.com/BitterSecurity/Decepticon/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/BitterSecurity/Decepticon/compare/v1.6.1...v2.0.0
 [1.6.1]: https://github.com/BitterSecurity/Decepticon/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/BitterSecurity/Decepticon/compare/v1.5.4...v1.6.0
 [1.5.4]: https://github.com/BitterSecurity/Decepticon/compare/v1.5.2...v1.5.4
