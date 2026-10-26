@@ -15,7 +15,13 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed (design): record the AutoBot repo-migration decision and execution
+- Released v2.1.1 — 2026-10-26: the sandbox image build fix (PR #1109) completes the v2.1.0 publication that was stopped on the Kali base-image drift (pip uninstall-no-record-file). The intermediate v2.1.0 PyPI wheels are immutable and remain; the v2.1.0 GitHub draft was superseded and never announced.
+
+## [2.1.1] — 2026-10-26
+
+- Published from `8fdb3bb2f636abc3636ec310ea7dd273c6897f9d` at 07:16:10 UTC after the sandbox image build fix was verified passing in PR CI and the release workflow (sandbox amd64+arm64 built, manifests signed, SBOMs generated, images verified).
+
+- Released (design): record the AutoBot repo-migration decision and execution
   plan — Phase 1 landed items reconciled (PRs #1101–#1107), the approved
   deviation for the optional decision detection adapter (typed classification,
   opt-in, fail-closed; re-scoped to the triage tier once the Sigma/OpenSearch
@@ -26,7 +32,7 @@ Keep proposed and unmerged changes out of released sections.
   and the blue.json interop contract (2c). Design:
   [docs/design/2026-10-23-autobot-redesign.md](docs/design/2026-10-23-autobot-redesign.md) §0.
 
-- Proposed (TUI): fix the engagement-scoped Blue sensor commands — `compose`
+- Released (TUI): fix the engagement-scoped Blue sensor commands — `compose`
   interpolates the whole merged model even for `ps`/`down`, so `/blue status`
   and `/blue stop` failed under an engagement with "required variable
   BLUE_ENGAGEMENT_DIR is missing a value" (the overlay declares it required).
@@ -35,7 +41,7 @@ Keep proposed and unmerged changes out of released sections.
   PTY; [live TUI verification](docs/verification/blue-tui-live-20261026.md)
   covers create/status/up/stop against the actual Ink process.
 
-- Proposed (Blue): pluggable detection adapters and incident batching for the
+- Released (Blue): pluggable detection adapters and incident batching for the
   local sensor. `BLUE_DETECTOR` selects `rules` (the default regex/Sigma-ish
   matcher, unchanged) or `decision` — a typed classification pass over each
   ingested page where every event gets exactly one verdict
@@ -51,7 +57,7 @@ Keep proposed and unmerged changes out of released sections.
   materializes the reviewed `blue.json` (fail-closed, never overwrites).
   [Live verification: decision adapter + batching](docs/verification/blue-detector-adapters-20261026.md).
 
-- Proposed (AutoBot split — Decepticon side): add the shared **contract layer** in
+- Released (AutoBot split — Decepticon side): add the shared **contract layer** in
   `decepticon-core` that the defensive **AutoBot** package (shipped separately in
   [BitterSecurity/AutoBot](https://github.com/BitterSecurity/AutoBot), depending on
   `decepticon-core`) builds on, and make the existing Blue sensor path
@@ -73,7 +79,7 @@ Keep proposed and unmerged changes out of released sections.
     adapters, Sigma detection, triage — lands in the AutoBot repo once this core
     contract merges.)
 
-- Proposed (design): Blue engagement configuration — a declarative, reviewed
+- Released (design): Blue engagement configuration — a declarative, reviewed
   `blue.json` in a Blue-owned workspace root (`~/.decepticon/blue/<label>`,
   kept outside the Red engagement workspace so the attacking agent cannot
   reach Blue's observation scope, rules and sensor layout by filesystem
@@ -83,7 +89,7 @@ Keep proposed and unmerged changes out of released sections.
   semantics, consumed by `/blue up`, with engagement-addressable sensor
   state. Design review document:
   [docs/design/2026-10-26-blue-engagement-configuration-design.md](docs/design/2026-10-26-blue-engagement-configuration-design.md).
-- Proposed (Blue): make the local sensor's detection rules operator-editable —
+- Released (Blue): make the local sensor's detection rules operator-editable —
   `BLUE_RULES_FILE` loads a jsonl rule set in the bootstrap / Sigma-ish subset
   that `decepticon.blue_cell.rule_match` accepts (with `compose.rules.yaml` as
   an overlay and `rules/sample-web-rules.jsonl` as the shipped example); an
@@ -92,7 +98,7 @@ Keep proposed and unmerged changes out of released sections.
   autonomous watch and investigation prompts now name the defended target id
   and the loaded rule set, and the Blue agent treats that as scope context.
   [Live-stack verification](docs/verification/blue-rules-file-20261026.md).
-- Proposed (TUI): surface the Blue agent's autonomous assessment **inline in the
+- Released (TUI): surface the Blue agent's autonomous assessment **inline in the
   Blue feed** — Blue runs continuous observation, so the assessment lands in the
   conversation when it is produced instead of only when the operator asks. The
   bounded reasoning slice appears on `assessment`/`watch_alert` notifications
@@ -104,14 +110,14 @@ Keep proposed and unmerged changes out of released sections.
   signals only.
   [Live-stack verification](docs/verification/blue-assessment-inline-20261026.md).
 
-- Proposed (TUI): scope Blue Cell event notifications to **Blue mode only** so they
+- Released (TUI): scope Blue Cell event notifications to **Blue mode only** so they
   no longer invade the Red (or Plan) conversation. `useBlueNotifications` takes a
   `surface` gate; the REPL passes `() => assistantId === "blue_cell"`, so Blue
   detections/incidents are injected into the feed only while in Blue mode. Events
   still accumulate in state regardless of mode, so they remain viewable in Blue
   mode via `/alerts` and the unread badge. Default mode stays Red.
 
-- Proposed (Blue): implement engagement-scoped Blue target configuration —
+- Released (Blue): implement engagement-scoped Blue target configuration —
   `blue.json` materialized in the Blue-owned workspace root
   (`~/.decepticon/blue/<label>`, `DECEPTICON_BLUE_WORKSPACE` override) by a
   shared fail-closed module (`blue_cell/engagement_config.py`) with strict
@@ -124,7 +130,7 @@ Keep proposed and unmerged changes out of released sections.
   without an engagement is unchanged. Design review:
   [docs/design/2026-10-26-blue-engagement-configuration-design.md](docs/design/2026-10-26-blue-engagement-configuration-design.md) (PR #1104).
 
-- Proposed [PR #1100](https://github.com/BitterSecurity/Decepticon/pull/1100): record actual 2.0.0 publication, candidate launcher/model and WebSocket acceptance, preserved sessions/files/ports, signed distributions and installation update. Reconcile merged changes into the dated release history; the immutable release tag and runtime versions remain unchanged.
+- Released [PR #1100](https://github.com/BitterSecurity/Decepticon/pull/1100): record actual 2.0.0 publication, candidate launcher/model and WebSocket acceptance, preserved sessions/files/ports, signed distributions and installation update. Reconcile merged changes into the dated release history; the immutable release tag and runtime versions remain unchanged.
 
 - Merged, unreleased [PR #1090](https://github.com/BitterSecurity/Decepticon/pull/1090):
   make LiteLLM and LangGraph healthcheck startup grace honor the launcher’s
@@ -134,6 +140,7 @@ Keep proposed and unmerged changes out of released sections.
   with current main without selecting a release or changing downstream pins.
   [Integration verification](docs/verification/startup-budget-integration-20261026.md).
 
+- Released [PR #1109](https://github.com/BitterSecurity/Decepticon/pull/1109): fix the sandbox image build — the Kali rolling base began shipping an apt-managed Python certifi without a RECORD file, and pip's certifi upgrade aborted with uninstall-no-record-file; the sandbox pip layer now uses --ignore-installed (packaging defect patch per RELEASE.md).
 ## [2.0.0] — 2026-10-26
 
 - Published from `dd5b43c01bbc6ac09615a98444afcd2a4664480e` at 00:22:53 UTC after source and downloaded-candidate qualification. See the [qualification record](docs/releases/2.0.0-qualification.md) and [release](https://github.com/BitterSecurity/Decepticon/releases/tag/v2.0.0).
@@ -2012,6 +2019,8 @@ The following legacy import paths keep working but emit a
 - Downstream plugin package lockstep migration.
 
 [Unreleased]: https://github.com/BitterSecurity/Decepticon/compare/v2.0.0...HEAD
+[2.1.1]: https://github.com/BitterSecurity/Decepticon/compare/v2.0.0...v2.1.1
+[2.1.0]: https://github.com/BitterSecurity/Decepticon/compare/v2.0.0...6243c51640aed28fd68834d05e728f634eb40855
 [2.0.0]: https://github.com/BitterSecurity/Decepticon/compare/v1.6.1...v2.0.0
 [1.6.1]: https://github.com/BitterSecurity/Decepticon/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/BitterSecurity/Decepticon/compare/v1.5.4...v1.6.0
