@@ -147,8 +147,10 @@ def blue_sensor_timeline(
         return json.dumps(
             {"error": "start_at and end_at need a timezone and a window of at most one hour"}
         )
-    if source is not None and source not in {"blue-ingress-proxy", "target-log-file"}:
-        return json.dumps({"error": "invalid source"})
+    # Source is an arbitrary coverage-adapter source id, not a fixed enum, so
+    # new log coverage is queryable without code changes (redesign §3.2).
+    if source is not None and not 1 <= len(source) <= 256:
+        return json.dumps({"error": "source must be 1-256 characters"})
     if not 1 <= limit <= 100 or (before is not None and before < 1):
         return json.dumps({"error": "limit must be 1-100 and before a positive sequence"})
     sensor = _url("BLUE_SENSOR_URL", "http://127.0.0.1:18081")
