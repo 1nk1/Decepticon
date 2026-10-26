@@ -107,7 +107,9 @@ def _event_field(event: dict, dotted: str) -> str:
     return str(current)
 
 
-def _selection_matches(selection: dict[str, re.Pattern[str]], event: dict) -> tuple[bool, list[str]]:
+def _selection_matches(
+    selection: dict[str, re.Pattern[str]], event: dict
+) -> tuple[bool, list[str]]:
     matched: list[str] = []
     for field_name, pattern in selection.items():
         found = pattern.search(_event_field(event, field_name))
@@ -125,7 +127,7 @@ def _file_rule_matches(rule: FileRule, event: dict) -> list[str]:
         for name, fields in rule.selections.items()
     }
     tokens: list[str] = []
-    for token in (rule.condition.split() or ["and"]):
+    for token in rule.condition.split() or ["and"]:
         clean = token.strip("()")
         if clean.lower() in {"and", "or", "not"} and clean == token:
             tokens.append(token)
@@ -179,7 +181,9 @@ def _rule_from_entry(entry: object) -> FileRule:
         if not isinstance(match, dict) or not match:
             raise ValueError(f"rule {entry['id']}: match must be a non-empty object")
         return FileRule(
-            id=entry["id"], title=str(entry.get("title", entry["id"])), level=level,
+            id=entry["id"],
+            title=str(entry.get("title", entry["id"])),
+            level=level,
             mitre=tuple(str(item) for item in mitre),
             selections={"match": {str(name): str(raw) for name, raw in match.items()}},
             condition="match",
@@ -189,7 +193,9 @@ def _rule_from_entry(entry: object) -> FileRule:
     normalized: dict[str, dict[str, str]] = {}
     for name, fields in selections.items():
         if not isinstance(fields, dict) or not fields:
-            raise ValueError(f"rule {entry['id']}: selection '{name}' must map field names to patterns")
+            raise ValueError(
+                f"rule {entry['id']}: selection '{name}' must map field names to patterns"
+            )
         normalized[str(name)] = {str(field_name): str(raw) for field_name, raw in fields.items()}
     condition = str(entry.get("condition", "")).strip() or " ".join(normalized)
     for token in condition.split():
@@ -199,11 +205,16 @@ def _rule_from_entry(entry: object) -> FileRule:
         if token in {"(", ")"}:
             continue
         if clean not in normalized:
-            raise ValueError(f"rule {entry['id']}: condition references unknown selection '{clean}'")
+            raise ValueError(
+                f"rule {entry['id']}: condition references unknown selection '{clean}'"
+            )
     return FileRule(
-        id=entry["id"], title=str(entry.get("title", entry["id"])), level=level,
+        id=entry["id"],
+        title=str(entry.get("title", entry["id"])),
+        level=level,
         mitre=tuple(str(item) for item in mitre),
-        selections=normalized, condition=condition,
+        selections=normalized,
+        condition=condition,
     )
 
 
