@@ -16,6 +16,7 @@ import sys
 
 from decepticon.blue_cell.engagement_config import (
     blue_workspace,
+    build_local_target_config,
     compose_env,
     config_path,
     load_blue_config,
@@ -53,20 +54,17 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _build_config(args: argparse.Namespace) -> dict:
-    target: dict = {"id": "local-target", "upstream": args.target, "enabled": True}
-    if args.logs:
-        target["logs"] = [args.logs]
-    config: dict = {"version": 1, "targets": [target]}
-    if args.rules:
-        config["rules_file"] = args.rules
     watch: dict = {}
     if args.watch_interval is not None:
         watch["interval_seconds"] = args.watch_interval
     if args.watch_batch is not None:
         watch["batch_size"] = args.watch_batch
-    if watch:
-        config["watch"] = watch
-    return config
+    return build_local_target_config(
+        args.target,
+        logs=[args.logs] if args.logs else None,
+        rules_file=args.rules,
+        watch=watch or None,
+    )
 
 
 def _print_env(args: argparse.Namespace) -> int:
