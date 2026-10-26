@@ -113,7 +113,9 @@ def _load_file_rules(path: Path) -> list[dict]:
 def _read_rules_file(path: Path) -> None:
     """Strictly validate that a rules file will satisfy the monitor loader."""
     if not path.is_file():
-        raise ValueError(f"rules_file must be an existing jsonl file inside the Blue workspace: {path}")
+        raise ValueError(
+            f"rules_file must be an existing jsonl file inside the Blue workspace: {path}"
+        )
     try:
         _load_file_rules(path)
     except OSError as error:
@@ -139,7 +141,9 @@ def _rule_from_entry(entry: object) -> dict:
         if not isinstance(match, dict) or not match:
             raise ValueError(f"rule {entry['id']}: match must be a non-empty object")
         return {
-            "id": entry["id"], "level": level, "title": str(entry.get("title", entry["id"])),
+            "id": entry["id"],
+            "level": level,
+            "title": str(entry.get("title", entry["id"])),
             "mitre": tuple(str(item) for item in mitre),
             "selections": {"match": {str(name): str(raw) for name, raw in match.items()}},
             "condition": "match",
@@ -149,7 +153,9 @@ def _rule_from_entry(entry: object) -> dict:
     normalized: dict[str, dict[str, str]] = {}
     for name, fields in selections.items():
         if not isinstance(fields, dict) or not fields:
-            raise ValueError(f"rule {entry['id']}: selection '{name}' must map field names to patterns")
+            raise ValueError(
+                f"rule {entry['id']}: selection '{name}' must map field names to patterns"
+            )
         normalized[str(name)] = {str(field_name): str(raw) for field_name, raw in fields.items()}
     condition = str(entry.get("condition", "")).strip() or " ".join(normalized)
     for token in condition.split():
@@ -159,11 +165,16 @@ def _rule_from_entry(entry: object) -> dict:
         if token in {"(", ")"}:
             continue
         if clean not in normalized:
-            raise ValueError(f"rule {entry['id']}: condition references unknown selection '{clean}'")
+            raise ValueError(
+                f"rule {entry['id']}: condition references unknown selection '{clean}'"
+            )
     return {
-        "id": entry["id"], "level": level, "title": str(entry.get("title", entry["id"])),
+        "id": entry["id"],
+        "level": level,
+        "title": str(entry.get("title", entry["id"])),
         "mitre": tuple(str(item) for item in mitre),
-        "selections": normalized, "condition": condition,
+        "selections": normalized,
+        "condition": condition,
     }
 
 
@@ -188,8 +199,7 @@ def validate_blue_config(config: object, *, root: Path) -> dict:
         target_id = target.get("id")
         if not isinstance(target_id, str) or not is_valid_engagement_label(target_id):
             raise ValueError(
-                f"blue.json: target id {target_id!r} must match "
-                "[A-Za-z0-9][A-Za-z0-9._-]{0,127}"
+                f"blue.json: target id {target_id!r} must match [A-Za-z0-9][A-Za-z0-9._-]{{0,127}}"
             )
         if target_id in seen_ids:
             raise ValueError(f"blue.json: duplicate target id '{target_id}'")
@@ -200,9 +210,7 @@ def validate_blue_config(config: object, *, root: Path) -> dict:
             raise ValueError(f"blue.json: target '{target_id}' logs must be a list")
         for entry in logs:
             if not isinstance(entry, str) or not entry.startswith("/") or "\0" in entry:
-                raise ValueError(
-                    f"blue.json: target '{target_id}' logs need absolute host paths"
-                )
+                raise ValueError(f"blue.json: target '{target_id}' logs need absolute host paths")
         enabled_flag = target.get("enabled", True)
         if not isinstance(enabled_flag, bool):
             raise ValueError(f"blue.json: target '{target_id}' enabled must be a boolean")
@@ -216,8 +224,7 @@ def validate_blue_config(config: object, *, root: Path) -> dict:
             )
     if enabled != 1:
         raise ValueError(
-            "blue.json: exactly one enabled target is required in this phase "
-            f"(found {enabled})"
+            f"blue.json: exactly one enabled target is required in this phase (found {enabled})"
         )
     rules_file = config.get("rules_file")
     if rules_file is not None:

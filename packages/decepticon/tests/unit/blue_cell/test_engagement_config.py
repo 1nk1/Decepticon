@@ -75,7 +75,9 @@ def test_invalid_rules_file_fails_creation(blue_root: Path) -> None:
 
 
 def test_unknown_condition_selection_fails_creation(blue_root: Path) -> None:
-    write_rules(blue_root, '{"id": "r", "selections": {"s": {"uri": "x"}}, "condition": "s and other"}\n')
+    write_rules(
+        blue_root, '{"id": "r", "selections": {"s": {"uri": "x"}}, "condition": "s and other"}\n'
+    )
     with pytest.raises(ValueError):
         materialize_blue_config("shop", valid_config(rules_file="web-rules.jsonl"))
 

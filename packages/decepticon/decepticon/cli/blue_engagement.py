@@ -40,10 +40,14 @@ def _build_parser() -> argparse.ArgumentParser:
     create.add_argument("--rules", help="rule file relative to the Blue workspace")
     create.add_argument("--watch-interval", type=float)
     create.add_argument("--watch-batch", type=int)
-    create.add_argument("--dry-run", action="store_true", help="print the resolved config without writing")
+    create.add_argument(
+        "--dry-run", action="store_true", help="print the resolved config without writing"
+    )
 
     env = sub.add_parser("env", help="emit the sensor compose environment as JSON")
-    env.add_argument("target_id", nargs="?", help="target id from blue.json (default: the enabled one)")
+    env.add_argument(
+        "target_id", nargs="?", help="target id from blue.json (default: the enabled one)"
+    )
 
     return parser
 
