@@ -15,6 +15,17 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed (design): record the AutoBot repo-migration decision and execution
+  plan — Phase 1 landed items reconciled (PRs #1101–#1107), the approved
+  deviation for the optional decision detection adapter (typed classification,
+  opt-in, fail-closed; re-scoped to the triage tier once the Sigma/OpenSearch
+  substrate lands), and the three-stage "full independence" migration:
+  bootstrap the AutoBot repository with the rebased WIP package (2a), move the
+  sensor stack and a blue-only agent runtime (2b), then remove the in-tree
+  blue_cell code from Decepticon while keeping the URL-based client surfaces
+  and the blue.json interop contract (2c). Design:
+  [docs/design/2026-10-23-autobot-redesign.md](docs/design/2026-10-23-autobot-redesign.md) §0.
+
 - Proposed (TUI): fix the engagement-scoped Blue sensor commands — `compose`
   interpolates the whole merged model even for `ps`/`down`, so `/blue status`
   and `/blue stop` failed under an engagement with "required variable
