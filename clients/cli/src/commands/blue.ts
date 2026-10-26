@@ -216,9 +216,22 @@ function runDocker(args: string[], environment: NodeJS.ProcessEnv): Promise<stri
   });
 }
 
+// Compose interpolates the whole merged model even for ps/down, so the
+// engagement overlay's required BLUE_ENGAGEMENT_DIR must be present on every
+// engagement-scoped invocation — not only on `up` (which gets it from the
+// python env mapping).
+function blueWorkspaceDir(): string {
+  const override = process.env.DECEPTICON_BLUE_WORKSPACE?.trim();
+  if (override) return override;
+  return join(homedir(), ".decepticon", "blue", engagementLabel());
+}
+
 function runCompose(args: string[], environment: NodeJS.ProcessEnv, logsOverlay = false, engagementOverlay?: boolean): Promise<string> {
   const overlays = engagementOverlay ?? engagementProjectSuffix() !== "";
-  return runDocker([...composeArgs(logsOverlay, overlays), ...args], environment);
+  const effective = overlays && !environment.BLUE_ENGAGEMENT_DIR
+    ? { ...environment, BLUE_ENGAGEMENT_DIR: blueWorkspaceDir() }
+    : environment;
+  return runDocker([...composeArgs(logsOverlay, overlays), ...args], effective);
 }
 
 interface DockerMount {

@@ -15,6 +15,15 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed (TUI): fix the engagement-scoped Blue sensor commands — `compose`
+  interpolates the whole merged model even for `ps`/`down`, so `/blue status`
+  and `/blue stop` failed under an engagement with "required variable
+  BLUE_ENGAGEMENT_DIR is missing a value" (the overlay declares it required).
+  The CLI now supplies the Blue workspace root on every engagement-scoped
+  compose invocation that lacks it. Found by driving the real TUI through a
+  PTY; [live TUI verification](docs/verification/blue-tui-live-20261026.md)
+  covers create/status/up/stop against the actual Ink process.
+
 - Proposed (Blue): pluggable detection adapters and incident batching for the
   local sensor. `BLUE_DETECTOR` selects `rules` (the default regex/Sigma-ish
   matcher, unchanged) or `decision` — a typed classification pass over each
