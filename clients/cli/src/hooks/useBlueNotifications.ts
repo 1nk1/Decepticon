@@ -24,6 +24,15 @@ export interface BlueState {
   readonly aiStatus: "unknown" | "healthy" | "error";
   readonly error: string | null;
 }
+// Blue runs continuous observation, so the agent's autonomous assessment should
+// surface in the feed when it lands — not only when the operator asks. Inline a
+// bounded slice of the agent's reasoning; the full text stays in /alerts.
+function inlineAnalysis(analysis: string | undefined, max = 400): string {
+  if (!analysis) return "";
+  const text = analysis.trim();
+  return text.length > max ? `${text.slice(0, max)}… (/alerts)` : text;
+}
+
 export function formatBlueNotification(notification: BlueNotification, language = process.env.DECEPTICON_LANGUAGE || "en"): string {
   const { payload } = notification;
   if (language.toLowerCase().startsWith("ko")) {
@@ -46,6 +55,10 @@ export function formatBlueNotification(notification: BlueNotification, language 
         `사건 ${payload.id}. 실제 영향은 조사 중입니다.`;
     }
   }
+  // Blue's assessment text is the autonomous agent's reasoning, which the
+  // monitor is instructed to produce in English, so the feed surfaces it
+  // inline instead of only pointing at /alerts.
+  const analysis = inlineAnalysis(payload.analysis);
   if (notification.kind === "coverage_gap") {
     if (payload.reason === "collector_restarted") {
       return "[Blue Cell] Collector restarted. Review the persisted collection counters and recent target events for observation continuity.";
@@ -66,15 +79,17 @@ export function formatBlueNotification(notification: BlueNotification, language 
   if (notification.kind === "watch_alert") {
     const sequences = payload.evidence?.event_seqs?.join(", ") ?? "?";
     return `[Blue Cell] ${(payload.severity ?? "unknown").toUpperCase()} standing-watch alert. ` +
-      `` +
-      `Evidence events ${sequences}, incident ${payload.id}.`;
+      `Evidence events ${sequences}, incident ${payload.id}.` +
+      (analysis ? `\n  Assessment: ${analysis}` : "");
   }
   if (notification.kind === "watch_error") {
     return `[Blue Cell] events ${payload.start_seq ?? "?"}–${payload.end_seq ?? "?"} –` +
       `AI watch failed. ${payload.error ?? "Check the watch state."}`;
   }
   if (notification.kind === "assessment") {
-    return `[Blue Cell investigation] incident ${payload.id}: assessment ready. /alerts for details.`;
+    return analysis
+      ? `[Blue Cell investigation] incident ${payload.id}: ${analysis}`
+      : `[Blue Cell investigation] incident ${payload.id}: assessment ready. /alerts for details.`;
   }
   if (notification.kind === "analysis_error") {
     return `[Blue Cell] incident ${payload.id} automatic investigation did not complete. Retry with /blue analyze.`;

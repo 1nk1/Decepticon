@@ -15,6 +15,13 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed (TUI): surface the Blue agent's autonomous assessment **inline in the
+  Blue feed** — Blue runs continuous observation, so the assessment lands in the
+  conversation when it is produced instead of only when the operator asks. The
+  bounded reasoning slice appears on `assessment`/`watch_alert` notifications
+  (full text stays in `/alerts`), and the Blue monitor is instructed to write
+  its watch summaries and investigation responses in English.
+
 - Proposed (TUI): scope Blue Cell event notifications to **Blue mode only** so they
   no longer invade the Red (or Plan) conversation. `useBlueNotifications` takes a
   `surface` gate; the REPL passes `() => assistantId === "blue_cell"`, so Blue

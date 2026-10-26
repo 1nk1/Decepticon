@@ -43,7 +43,7 @@ describe("Blue Cell chat notifications", () => {
 
     await act(async () => { await vi.advanceTimersByTimeAsync(1000); });
     expect(events).toHaveLength(2);
-    expect(events[1]).not.toContain("Traversal attempt observed");
+    expect(events[1]).toContain("[Blue Cell investigation] incident incident-1: Traversal attempt observed; impact not proven.");
     expect(result.current.getDetails("incident-1")[1]?.payload.analysis).toBe("Traversal attempt observed; impact not proven.");
     expect(result.current.unreadCount).toBe(2);
     act(() => result.current.acknowledge());
@@ -195,6 +195,7 @@ describe("Blue Cell chat notifications", () => {
     });
     expect(alert).toContain("standing-watch alert");
     expect(alert).toContain("Evidence events 7, 9");
+    expect(alert).toContain("Assessment: Repeated unusual requests need review.");
     const gap = formatBlueNotification({
       seq: 4,
       kind: "watch_error",
@@ -230,6 +231,21 @@ describe("Blue Cell chat notifications", () => {
     expect(formatBlueNotification(notice)).toContain("평가가 준비되었습니다");
     expect(formatBlueNotification(notice)).toContain("incident-ko");
     expect(formatBlueNotification(notice, "unknown")).toContain("assessment ready");
+  });
+
+  it("inlines the autonomous assessment in English and keeps the /alerts pointer when absent", () => {
+    const assessed = formatBlueNotification({
+      seq: 7,
+      kind: "assessment",
+      payload: { id: "inc-1", analysis: "Confirmed credential stuffing against /api/login." },
+    });
+    expect(assessed).toContain("[Blue Cell investigation] incident inc-1: Confirmed credential stuffing");
+    const pending = formatBlueNotification({
+      seq: 8,
+      kind: "assessment",
+      payload: { id: "inc-2" },
+    });
+    expect(pending).toContain("assessment ready. /alerts for details.");
   });
 
   it("backs off under repeated monitor failures and recovers", async () => {
