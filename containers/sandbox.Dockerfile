@@ -134,7 +134,12 @@ RUN pip3 install --break-system-packages --no-cache-dir \
 #   * yt-dlp       — Phase 0 media route (YouTube/Vimeo/… --dump-json)
 #   * pydantic*    — decepticon-core dep so the per-hop RoE scope_check
 #                    (evaluate_target on <workspace>/plan/roe.json) is live.
-RUN pip3 install --break-system-packages --no-cache-dir \
+# --ignore-installed: the Kali rolling base began shipping apt-managed Python
+# packages (certifi, no RECORD file) — plain pip upgrade dies with
+# uninstall-no-record-file. Image builds install everything fresh anyway, so
+# ignoring the distro-installed copies is safe and keeps the layer
+# base-image-drift-proof (the v2.1.0 release build failed on this).
+RUN pip3 install --break-system-packages --no-cache-dir --ignore-installed \
     "curl_cffi>=0.15.0" \
     "beautifulsoup4>=4.12.0" \
     "pyyaml>=6.0.0" \
