@@ -263,10 +263,10 @@ def materialize_blue_config(label: str, config: object) -> Path:
     validate_blue_config(config, root=root)
     root.mkdir(parents=True, exist_ok=True)
     # The engagement compose overlay bind-mounts this root read-only into the
-    # monitor container (user "blue", uid 10001), so the workspace must be
-    # traversable and its files world-readable on the host. Nothing in
-    # blue.json is secret-bearing; Blue-owned is enforced by placement, not
-    # by host permissions.
+    # monitor container (user "blue", uid 10001), so the directory must be
+    # traversable on the host and the detection-rule files world-readable —
+    # they carry patterns, not secrets. blue.json itself stays private
+    # (0o600): it is operator configuration and the container never reads it.
     root.chmod(0o755)
     payload = json.dumps(config, indent=2, ensure_ascii=False).encode("utf-8")
     with tempfile.NamedTemporaryFile(dir=root, prefix=".blue-", delete=False) as staged:
@@ -275,7 +275,7 @@ def materialize_blue_config(label: str, config: object) -> Path:
             staged.write(payload)
             staged.flush()
             os.fsync(staged.fileno())
-            os.chmod(staged_path, 0o644)
+            os.chmod(staged_path, 0o600)
             os.replace(staged_path, destination)
         except BaseException:
             staged_path.unlink(missing_ok=True)

@@ -128,5 +128,8 @@ def main(argv: list[str] | None = None) -> int:
     if rules:
         rules_path = blue_workspace(label) / rules
         if rules_path.is_file():
-            rules_path.chmod(0o644)  # the monitor container reads rules through the ro mount
+            # Detection patterns are not secret and the sensor container
+            # (uid 10001) reads them through the read-only engagement mount.
+            # codeql[py/overly-permissive-file]
+            rules_path.chmod(0o644)
     return 0
