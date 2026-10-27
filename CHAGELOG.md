@@ -15,10 +15,16 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Released v2.2.0 — 2026-10-27: the conservative Minor publication of the qualified candidate (the 3.0.0 draft tag was superseded before publication; no announcement, no artifacts). Compare: v2.1.1...v2.2.0.
+
+## [2.2.0] — 2026-10-27
+
+- Published from `0b229b4` (verified main CI green) at 2026-10-27 05:10:16 UTC. All three PyPI wheels (decepticon-core, decepticon, decepticon-sdk) at 2.2.0 with the AutoBot contract layer; six launchers, eight image platforms signed with SBOMs, config/skill checksums verified. Qualification evidence: [docs/releases/3.0.0-qualification.md](docs/releases/3.0.0-qualification.md) — executed gates stand as evidence under the conservative v2.2.0 classification (6,129 Python tests, 74.95% coverage, WSL product run, same-volume persistence, MCP).
+
 - Proposed OSS 3.0.0 release qualification ([#1122](https://github.com/BitterSecurity/Decepticon/pull/1122)): classify the combined scope/Blue compatibility changes and audit open PRs/issues. Record final-source local gates, actual isolated WSL model/MCP use and same-volume state preservation; retain the installed AutoBot server startup and unpublished peer-package boundaries as release blockers. Record the GitHub Actions account-payment/spending-limit rejection separately from executed tests. [Candidate audit](docs/releases/3.0.0-qualification.md). Not yet tagged or published; SaaS version/deployment is independent.
 - Proposed OpenShell host-provider guard ([#1123](https://github.com/BitterSecurity/Decepticon/pull/1123)): allow the trusted host to require native execution, reject a run-config downgrade to HTTP, and keep graph-construction backends unbound until a real admission resolves. Bind background-job notifications to the current runtime without sharing notification state across engagements. No default provider switch.
 
-- Proposed ([#1118](https://github.com/BitterSecurity/Decepticon/pull/1118)) — restrict domain wildcards to one DNS label across RoE and research scope checks. `*.example.com` permits `a.example.com`, while `a.b.example.com` needs an explicit rule. Exclusions use the same depth. Filter automatic passive enrichment to the same one-label wildcard boundary so discovery cannot add deeper hosts or the apex. Keep explicitly provided apex rules and stop Python/Go creation builders from adding an apex for wildcard-only input. Existing saved RoE entries are not rewritten. Validate fixtures with the selected formatter. Review existing recursive exclusions before adopting this source revision: deeper exclusions must now be explicit. Consolidate full history and references into `CHAGELOG.md`. Source change only; SaaS/Desktop pins and releases are unchanged.
+- Released ([#1118](https://github.com/BitterSecurity/Decepticon/pull/1118)) — restrict domain wildcards to one DNS label across RoE and research scope checks. `*.example.com` permits `a.example.com`, while `a.b.example.com` needs an explicit rule. Exclusions use the same depth. Filter automatic passive enrichment to the same one-label wildcard boundary so discovery cannot add deeper hosts or the apex. Keep explicitly provided apex rules and stop Python/Go creation builders from adding an apex for wildcard-only input. Existing saved RoE entries are not rewritten. Validate fixtures with the selected formatter. Review existing recursive exclusions before adopting this source revision: deeper exclusions must now be explicit. Consolidate full history and references into `CHAGELOG.md`. Source change only; SaaS/Desktop pins and releases are unchanged.
 - Proposed test-lane cleanup ([#1121](https://github.com/BitterSecurity/Decepticon/pull/1121)): separate externally provisioned OpenShell/Neo4j tests behind explicit `--live`, require selected live services to be configured and healthy, consolidate duplicate tmux parser assertions and move framework boot checks out of SDK-only tests. Isolate benchmark unit tests from real stack health/cost calls; restore collected RoE network tests after removing unused legacy fixture methods. [Test structure](docs/testing.md). No production runtime change.
 
 - Proposed opt-in OpenShell session transport ([#1120](https://github.com/BitterSecurity/Decepticon/pull/1120)): route the retained tmux/daemon contract through an admitted OpenShell SDK session, with per-request admission checks and no direct daemon HTTP fallback. Preserve existing defaults; keep the live listener override compatible with the HTTP server protocol; add stock-runtime tests for controlled network policy, sessions, interactive input, jobs and files. [Validation and remaining production gates](docs/validation/openshell-session-adapter-20261026.md). Depends on the agent-stack refresh; no E2B driver or production rollout.
@@ -26,7 +32,6 @@ Keep proposed and unmerged changes out of released sections.
 - Proposed agent-stack refresh ([#1119](https://github.com/BitterSecurity/Decepticon/pull/1119)): move the framework to Deep Agents 0.7.32, LangChain 1.4.7 and LangGraph 1.2.17. Preserve per-engagement filesystem/transport selection using task-local bindings after upstream removed backend factories and `_get_backend`; keep recursive delete unexposed until it has the same scope/RoE contract. Consolidate the complete version history into root `CHAGELOG.md` and update references. [Compatibility and validation](docs/validation/agent-stack-20261026.md). Source change only; no package release or SaaS deployment.
 
 - Released v2.1.1 — 2026-10-26: the sandbox image build fix (PR #1109) completes the v2.1.0 publication that was stopped on the Kali base-image drift (pip uninstall-no-record-file). The intermediate v2.1.0 PyPI wheels are immutable and remain; the v2.1.0 GitHub draft was superseded and never announced.
-
 ## [2.1.1] — 2026-10-26
 
 - Published from `8fdb3bb2f636abc3636ec310ea7dd273c6897f9d` at 07:16:10 UTC after the sandbox image build fix was verified passing in PR CI and the release workflow (sandbox amd64+arm64 built, manifests signed, SBOMs generated, images verified).
@@ -2032,6 +2037,7 @@ The following legacy import paths keep working but emit a
 - Downstream plugin package lockstep migration.
 
 [Unreleased]: https://github.com/BitterSecurity/Decepticon/compare/v2.0.0...HEAD
+[2.2.0]: https://github.com/BitterSecurity/Decepticon/compare/v2.1.1...v2.2.0
 [2.1.1]: https://github.com/BitterSecurity/Decepticon/compare/v2.0.0...v2.1.1
 [2.1.0]: https://github.com/BitterSecurity/Decepticon/compare/v2.0.0...6243c51640aed28fd68834d05e728f634eb40855
 [2.0.0]: https://github.com/BitterSecurity/Decepticon/compare/v1.6.1...v2.0.0
