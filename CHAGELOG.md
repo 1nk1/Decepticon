@@ -23,6 +23,14 @@ Keep proposed and unmerged changes out of released sections.
 
 - Proposed step-budget async middleware fix ([#1130](https://github.com/BitterSecurity/Decepticon/pull/1130)): add `awrap_model_call` to `StepBudgetMiddleware` with a shared `_budget_note` helper so the sync and async paths stay identical. On 2.2.0, any engagement run invoked asynchronously (LangGraph background runs) crashed in the `model` node with `NotImplementedError: Asynchronous implementation of awrap_model_call is not available`, because `decepticon/middleware/step_budget.py` defined only the sync `wrap_model_call` and langchain's `AgentMiddleware` base raises on the missing async variant. Verified against a live 2.2.0 stack: an MCP `start_engagement` run failed in ~1.2 s before the first model call; with the patch the same call reaches the model and runs normally. Add async unit tests mirroring the sync budget cases (warn at 80%, hard stop at 100%, silent under budget, sync/async parity).
 
+- Proposed launcher fix ([#1129](https://github.com/BitterSecurity/Decepticon/pull/1129)): the self-update / consent prompts
+  (`huh.Select`) now give the active option its own background+foreground pair
+  in `DecepticonTheme` instead of relying on the field base fill. This keeps the
+  highlighted row legible when Huh mis-detects the terminal canvas (e.g. a WSL
+  terminal that does not answer the OSC 11 background query selects the light
+  ramp on a dark screen, rendering near-black option text onto the real dark
+  background). Matches the engagement picker's selected-row styling. Regression
+  test added. No version bump or release implied.
 - Released v2.2.0 — 2026-10-27: the conservative Minor publication of the qualified candidate (the 3.0.0 draft tag was superseded before publication; no announcement, no artifacts). Compare: v2.1.1...v2.2.0.
 
 ## [2.2.0] — 2026-10-27
