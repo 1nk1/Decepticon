@@ -1,87 +1,82 @@
 ---
 name: decepticon
-description: "Operate Decepticon OSS through its installed CLI and engagement MCP tools when the user asks to run or inspect an authorized security engagement or a local Blue Cell. Do not use for unrelated security questions or raw scanner commands."
+description: Operate the Decepticon security platform through its CLI when the user asks to set up, diagnose, run, resume, or inspect a Decepticon engagement or local Blue Cell. Use for Decepticon operations, not general security advice or standalone scanner commands.
 license: Apache-2.0
 metadata:
-  version: 2.1.0
   homepage: "https://github.com/BitterSecurity/Decepticon"
 ---
 
-# Decepticon operator
+# Decepticon CLI
 
-Use Decepticon as the user's security platform. The host `decepticon` command
-manages the installation and opens an interactive CLI. The registered MCP
-server exposes engagement control and observation to coding agents. These
-interfaces cover different operations; choose the one that actually exists.
+Wrap the installed `decepticon` command. Check its version and help before
+choosing commands; installed releases may differ from repository `main`.
 
-## Connect
+```bash
+decepticon --version
+decepticon --help
+decepticon status --json
+decepticon doctor --json
+```
 
-1. Check `decepticon status`. If the installation is missing, the user can run
-   `decepticon onboard`. `decepticon start` starts services and opens the
-   interactive terminal; it is not a headless scan command.
-2. For MCP, confirm `decepticon_list_graphs` works. A connection error means
-   the stack or MCP registration needs attention. See the
-   [integration guide](https://github.com/BitterSecurity/Decepticon/blob/main/docs/integrations/external-agents.md) for
-   Claude Code and Codex registration.
-3. The user can install this skill for both clients with
-   `decepticon skill install` after a release containing that command.
+If the command is missing, use the project's
+[installation guide](https://github.com/BitterSecurity/Decepticon#quick-start).
+Do not install a similarly named Python package as a launcher replacement.
+For first-time configuration use `decepticon onboard`; it needs an interactive
+terminal and provider input. Never include credentials in a report.
 
-## Choose the operation
+## Run and resume
 
-| Request | Supported surface |
-|---|---|
-| Discover agents, list engagements, read status or a compact state summary | MCP `decepticon_list_graphs`, `decepticon_list_engagements`, `decepticon_engagement_status`, `decepticon_engagement_state` |
-| Watch an engagement | MCP `decepticon_transcript` with `next_index`; `decepticon_watch` for a bounded live sample |
-| Send a follow-up or stop a run | MCP `decepticon_send_message` or `decepticon_cancel_engagement` |
-| Onboard, start, stop, update, inspect services | Host `decepticon` command |
-| Start or stop a local Blue Cell sensor | Interactive CLI `/blue up`, `/blue stop` |
-| Inspect a running Blue Cell | MCP `decepticon_blue_status`, `decepticon_blue_sources`, `decepticon_blue_events`, `decepticon_blue_incidents`, `decepticon_blue_notifications`, `decepticon_blue_body`, `decepticon_blue_search`, `decepticon_blue_timeline`; interactive CLI `/blue verify` and `/blue analyze` |
-| List or toggle agent plugin bundles | MCP `decepticon_plugin_bundles`, `decepticon_plugin_enable`, `decepticon_plugin_disable`; interactive CLI `/plugins` |
-| Control web dashboard or select the active CLI agent | Interactive CLI `/web`, `/agent` |
+`decepticon start` starts services and opens an interactive terminal UI. Run it
+in a persistent PTY when the host agent supports terminal interaction. Read the
+screen, enter the requested input, and inspect the resulting screen before
+sending another action. Without interactive terminal access, hand the exact
+command to the operator. Do not claim that a background shell launch completed
+an engagement.
 
-Do not invent MCP tools for Blue Cell setup or service
-management. The slash commands above work inside Decepticon's interactive
-terminal, not in the shell or the MCP bridge.
+```bash
+decepticon start
+decepticon --resume             # choose a saved session
+decepticon --resume=<thread-id> # resume a known session
+decepticon --continue           # continue the latest session
+```
 
-- Poll `decepticon_blue_events` with its `next_after` cursor and
-  `decepticon_blue_notifications` with its separate `next_after` cursor.
-- Check `decepticon_blue_status` for collector and monitor health before
-  interpreting missing events. Cite exact incident IDs and event sequences.
+New engagements prompt for a name and target URL. Use the user's authorized
+scope and exclusions; ask only for missing authorization or target information.
+Saved engagements retain their scope. Plan is optional. Enter `/help` inside
+the terminal for commands supported by that running version.
 
-## Engagement workflow
+Slash commands such as `/status`, `/sessions`, `/mode`, `/blue`, `/web`, and
+`/export` are terminal input, not shell subcommands. Do not invent shell forms
+like `decepticon scan`, `decepticon blue up`, or `decepticon start --target`.
+See [examples.md](examples.md) for terminal, service, and result workflows.
 
-- Obtain the user's explicit target scope and rules of engagement before any
-  active testing. State both included and excluded assets. Do not infer
-  authorization from a URL or repository path.
-- For an existing CLI engagement, call `decepticon_list_engagements`, identify
-  its `thread_id`, then read `decepticon_engagement_state` and
-  `decepticon_transcript`. Keep the returned `next_index` for later reads.
-- `decepticon_start_engagement` binds the run to a workspace via
-  `workspace_path` (default `/workspace`). To share the workspace binding the
-  interactive CLI selected, pass the same binding explicitly — the binding is
-  returned in the result's `workspace_path` field. A non-default binding must
-  be the engagement's own directory (final segment = `engagement_name`, e.g.
-  `/workspace/<engagement_name>`); anything else is rejected so one
-  engagement's run cannot write into another engagement's workspace. The run
-  still requires the workspace mapping on the server to exist and be
-  authorized for that engagement; when in doubt, start the engagement in the
-  interactive CLI and observe its thread through MCP.
-- Engagement `targets` are network assets (URLs, hosts, CIDRs, globs, git
-  remotes). A local repository path is not a valid target — the standalone
-  SAST/CI entry was removed (issue #1059); code analysis happens inside an
-  engagement once the operation itself obtains the source, with the code
-  mounted or fetched as part of that engagement's workflow.
-- `decepticon_send_message` queues a new turn behind an active run. Do not tell
-  the user it changed the current execution until a subsequent transcript or
-  state confirms the effect.
-- `decepticon_engagement_findings` reads a persisted `graph.json` only. An
-  `available=false` result does not prove the absence of findings. For an
-  installed CLI engagement, inspect the selected host workspace's
-  `findings/FIND-*.md` and `report/` artifacts when available. Cite the
-  actual artifact and verification status; do not invent a SARIF result.
-- If a run is interrupted or fails, read the latest transcript and status
-  before retrying. Stop polling when the user has the requested update or
-  the run reaches a terminal state.
+## Inspect and report
 
-Read [reference.md](reference.md) for exact MCP arguments and
-[examples.md](examples.md) for CLI and MCP handoffs.
+Use `decepticon status --json` for service state and `decepticon doctor --json`
+for diagnostics. Use `decepticon engagements` to list local workspaces and
+`decepticon logs --engagement <name-or-thread-id> --limit 20` to replay recent
+conversation messages. `decepticon logs langgraph` follows service logs; bound
+the observation with the host terminal timeout or interrupt it after the needed
+sample. Consult `logs --help` first.
+A running container does not establish engagement progress or completion.
+
+Read the conversation and actual workspace `findings/FIND-*.md` and `report/`
+artifacts when available. Report observed state, evidence paths, verification
+status, and remaining work. Missing artifacts do not establish a clean result.
+Exiting the UI leaves services running; use `decepticon stop` when the user
+requests stack shutdown. `update`, `onboard --reset`, and `remove` change the
+installation: use them only when the requested operation calls for them.
+
+`decepticon cancel <name-or-thread-id>` requests cancellation of an active
+agent run and leaves services running. Use it when the user requests a run stop,
+then inspect the transcript to report the observed outcome.
+
+## Optional MCP integration
+
+The CLI workflow does not require MCP. If the user already has Decepticon MCP
+tools and asks for programmatic background control or observation, use
+[reference.md](reference.md) for their arguments, cursors, workspace constraints,
+and findings limitations. Registering MCP is documented in the
+[integration guide](https://github.com/BitterSecurity/Decepticon/blob/main/docs/integrations/external-agents.md).
+Do not run `decepticon mcp serve` as a one-shot shell query; it is a persistent
+stdio server. MCP tools and skill retrieval do not grant target authorization.

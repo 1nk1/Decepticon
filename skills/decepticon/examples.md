@@ -1,68 +1,83 @@
-# Decepticon operator examples
+# CLI workflows
 
-These examples separate host commands, Decepticon's interactive slash commands,
-and MCP tool calls. Confirm target scope before active testing.
+Check `decepticon <command> --help` against the installed release before using
+these examples. Values in angle brackets are placeholders.
 
-## Inspect a running CLI engagement from Claude Code or Codex
+## Diagnose an installation
 
-The operator started `decepticon start`, selected an engagement, and began a
-run in the interactive CLI. From the coding agent:
-
-```text
-decepticon_list_engagements(limit=20)
-  -> [{thread_id: "th_1", engagement_name: "example-assessment", ...}]
-decepticon_engagement_state(thread_id="th_1")
-decepticon_transcript(thread_id="th_1", after_index=0, limit=40)
-  -> {next_index: 8, messages: [...], run_status: "running"}
-decepticon_transcript(thread_id="th_1", after_index=8, limit=40)
+```bash
+decepticon --version
+decepticon status --json
+decepticon doctor --json
 ```
 
-Report only new, observed activity. A `decepticon_watch` call can sample a
-short live window; it is not a durable event subscription.
+Read the diagnostic failures before proposing a fix. A missing installation
+needs `decepticon onboard`; a stopped existing stack can use `decepticon start`.
+`decepticon logs langgraph` follows logs until interrupted; use a terminal
+timeout or stop reading after the relevant sample. Do not automatically reset,
+update, or remove an installation to fix a connection failure.
 
-## Steer after the current run
+## Open an authorized engagement
 
-```text
-decepticon_send_message(
-  thread_id="th_1",
-  message="Within the approved scope, focus on /api/v2 before other endpoints."
-)
+Start `decepticon start` in a persistent PTY. Read the engagement picker, then
+select the intended saved workspace or create one with the user's name and
+approved target URL. Enter the requested objective in the conversation after
+startup completes. Preserve scope exclusions in the request.
+
+To select a supported business workflow at launch:
+
+```bash
+decepticon start --workflow pentest --workflow-version 1
 ```
 
-This queues a later turn. Check the subsequent transcript before claiming that
-the agent changed its current activity. `decepticon_cancel_engagement` stops an
-active run when the operator requests that.
+Use `/help` inside the conversation to discover the installed slash commands.
+`/mode plan` enters optional planning; it does not authorize a Red run.
+`/mode red` returns to execution. Existing scope and approval gates still apply.
 
-## Start a local Blue Cell
+`decepticon start --background` prepares the workspace and services without
+opening the conversation. It can still prompt for setup/engagement input and
+does not itself submit an objective or start an autonomous agent turn.
 
-Inside the Decepticon interactive CLI, the operator can enter:
+## Inspect, resume, or cancel
 
-```text
-/blue up 127.0.0.1:3000
-/blue verify
-/blue events 20
-/blue incidents 20
-/blue analyze
+```bash
+decepticon engagements
+decepticon logs --engagement <name-or-thread-id> --limit 20
+decepticon attach <engagement-name> --continue
+# Or resume a known thread:
+decepticon --resume=<thread-id>
 ```
 
-Tell the operator to send test traffic to `http://127.0.0.1:18080`. These are
-interactive CLI commands, not MCP tools or shell commands. The coding agent
-may inspect the target's local logs and the selected workspace when it has
-host access, but it must not claim that MCP started the sensor.
+The `logs --engagement` command reads conversation state without entering the
+UI. `attach` and `--resume` open interactive sessions. Read the current state
+before sending a follow-up; retrying a failed command does not prove the run
+restarted. If the user asks to cancel the active agent turn:
 
-## Read results without hiding a gap
+```bash
+decepticon cancel <name-or-thread-id>
+```
 
-`decepticon_engagement_findings(engagement_name="example-assessment")` reads
-`graph.json` only. If it returns `available=false`, inspect the selected host
-workspace's `findings/FIND-*.md` and `report/` files. The installed MCP bridge
-cannot currently read those files from its container. Report the actual
-finding IDs, evidence, verification status, and affected targets from files
-you opened; do not turn `available=false` into a no-findings claim.
+Cancellation requests do not shut down services. For a stack shutdown requested
+by the user, use `decepticon stop`.
 
-## A separately mapped LangGraph server
+## Blue Cell and web dashboard
 
-For a deployment that explicitly maps the MCP engagement name to its own
-workspace, the agent can call `decepticon_start_engagement` with the user's
-approved targets and a full in-scope and out-of-scope instruction. Save its
-`thread_id`, then use the transcript cursor, status, and cancel tools as above.
-Confirm that mapping before using this flow on an installed Docker stack.
+Inside the interactive conversation, use `/blue status` to inspect a local
+Blue Cell. `/blue up` and `/blue stop` control its lifecycle. `/blue verify`
+and `/blue analyze` inspect coverage and request analysis. Read `/help` for the
+version's supported arguments. No events with an unhealthy collector is not a
+clean security result.
+
+`/web` controls the optional local web dashboard; it does not start with the
+core services by default. Read the displayed URL rather than assuming a port.
+
+## Results
+
+Use the selected host engagement workspace, not an arbitrary similarly named
+folder. Read `findings/FIND-*.md` and `report/` when present, or use `/export`
+in the interactive UI to save the conversation. Cite actual paths and separate
+verified findings, hypotheses, interrupted runs, and missing evidence.
+
+For optional MCP control, read [reference.md](reference.md). Keep its returned
+thread ID and observation cursors; an MCP-created engagement name does not
+rebind the sandbox to a different host workspace.

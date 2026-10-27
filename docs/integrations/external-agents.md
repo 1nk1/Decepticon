@@ -75,9 +75,10 @@ The launcher keeps MCP stdout reserved for JSON-RPC and sends runtime errors
 to stderr. A missing install or stopped stack produces an MCP startup error;
 run `decepticon onboard` or `decepticon start`, respectively.
 
-Install the [Decepticon Agent Skill](../../integrations/agent-skills/decepticon/SKILL.md)
-to teach either coding agent which operations use MCP and which require the
-interactive CLI. A released launcher installs the version-matched skill with:
+Install the [Decepticon Agent Skill](../../skills/decepticon/SKILL.md)
+to teach either coding agent how to wrap the installed CLI. MCP is optional;
+the skill uses CLI diagnostics, transcript replay, and interactive sessions first.
+A released launcher installs the version-matched skill with:
 
 ```bash
 decepticon skill install
@@ -88,7 +89,7 @@ From a source checkout using a development launcher:
 
 ```bash
 cd clients/launcher
-go run . skill install --from ../../integrations/agent-skills/decepticon
+go run . skill install --from ../../skills/decepticon
 ```
 
 The installer preserves a modified existing skill unless `--force` is given;
@@ -137,7 +138,7 @@ openclaw mcp set decepticon '{
 }'
 
 # Install the agent skill (clone the repo first, then point at the skill dir)
-openclaw skills install ./Decepticon/integrations/agent-skills/decepticon --as decepticon --global
+openclaw skills install ./Decepticon/skills/decepticon --as decepticon --global
 openclaw gateway restart
 ```
 
@@ -162,28 +163,33 @@ mcp_servers:
 
 ```bash
 # Install the skill for Hermes (copy the skill folder into Hermes' skills dir)
-cp -r ./Decepticon/integrations/agent-skills/decepticon ~/.hermes/skills/red-teaming/decepticon
+cp -r ./Decepticon/skills/decepticon ~/.hermes/skills/red-teaming/decepticon
 ```
 
 Restart Hermes; the `decepticon` skill and `decepticon_*` tools become available.
 
 ### The bundled skill
 
-The skill at `integrations/agent-skills/decepticon/` is one canonical AgentSkill
+The conventional `skills/<name>/SKILL.md` path makes the CLI wrapper
+discoverable by skill tooling. Runtime knowledge used inside Decepticon lives
+separately under `packages/decepticon/decepticon/skills/` and uses Skillogy;
+it is not installed into the host coding agent by this command.
+
+The skill at `skills/decepticon/` is one canonical AgentSkill
 that loads in **both** OpenClaw and Hermes (same `SKILL.md` format), using
 progressive disclosure so the always-loaded context stays lean:
 
-- `SKILL.md` — the playbook (mental model, authorization, the core loop,
-  polling cadence, result interpretation, error recovery).
-- `reference.md` — exact params, defaults, clamps, and return schemas per tool.
-- `examples.md` — worked end-to-end tool-call sequences (bug bounty from a
-  phone, recon-only, steering, resume, live burst, failure handling).
+- `SKILL.md` — CLI entry point, installation checks, terminal interaction,
+  scope, and result interpretation.
+- `reference.md` — optional MCP parameters, cursors, and return schemas.
+- `examples.md` — CLI diagnosis, engagement startup/resume/cancel, Blue Cell,
+  and artifact inspection.
 
 Both install commands above copy the whole directory, so the reference files
 come along automatically. OpenClaw installs it globally as `decepticon`; Hermes
 auto-discovers it under the `red-teaming` category.
 
-## 5. CLI-like workflow (what the agent does)
+## 5. Optional MCP workflow
 
 1. `decepticon_start_engagement(targets=[...], instruction="In scope: …; Out of scope: …")`
    → keep the `thread_id`.
@@ -238,4 +244,4 @@ Point the agent's MCP client at `http://<bridge-host>:8765/mcp`. Loopback
 Engagements run under Decepticon's Rules-of-Engagement enforcement. The calling
 agent **must** pass scope (in / out of scope) in the `instruction` argument and
 only target assets the operator is authorized to test. See the bundled
-`integrations/agent-skills/decepticon/SKILL.md` for the agent-facing contract.
+`skills/decepticon/SKILL.md` for the agent-facing contract.
