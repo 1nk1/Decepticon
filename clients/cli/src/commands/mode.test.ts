@@ -1,4 +1,4 @@
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -69,10 +69,10 @@ describe("CLI run modes", () => {
 
   it("attempts the sensor boot on Blue entry and stays out on failure", async () => {
     vi.stubEnv("DECEPTICON_ENGAGEMENT", "tui-live");
-    vi.stubEnv("DECEPTICON_BLUE_WORKSPACE", "/tmp/mode-blue-config");
-    mkdirSync("/tmp/mode-blue-config", { recursive: true });
+    const configRoot = mkdtempSync(path.join(tmpdir(), "mode-blue-config-"));
+    vi.stubEnv("DECEPTICON_BLUE_WORKSPACE", configRoot);
     writeFileSync(
-      "/tmp/mode-blue-config/blue.json",
+      path.join(configRoot, "blue.json"),
       JSON.stringify({ version: 1, targets: [{ id: "local-target", upstream: "http://127.0.0.1:3000", enabled: true }] }),
     );
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
@@ -83,7 +83,7 @@ describe("CLI run modes", () => {
     // the failure surfaced — fail-closed, never a silent dead assistant.
     expect(messages.join("\n")).toContain("Blue unavailable");
     expect(selected).toEqual([]);
-    rmSync("/tmp/mode-blue-config", { recursive: true, force: true });
+    rmSync(configRoot, { recursive: true, force: true });
   });
 
   it("selects Red even without a scope file", async () => {
