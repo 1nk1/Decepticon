@@ -1,8 +1,12 @@
 # SKILL.md Corpus Cleanup — Phase 0 Process
 
+> Historical Phase 0 record. The completed migration is retained for context;
+> use the current [skill schema](../../skill-schema.md) and `make audit-skills`
+> for new changes. Counts and pending batch notes below are historical.
+
 Phase 0 of the Skillogy redesign normalizes 251 `SKILL.md` files against
 the canonical schema documented in
-[docs/skill-schema.md](skill-schema.md). The cleanup runs as a series of
+[docs/skill-schema.md](../../skill-schema.md). The cleanup runs as a series of
 co-design PR batches grouped by subdomain.
 
 ## Why batched
@@ -52,7 +56,7 @@ then `active-directory`, …):
 
 ## Where each batch's progress is tracked
 
-A running checklist lives in `docs/skill-cleanup-progress.md` (created
+A running checklist lives in `docs/archive/skill-cleanup/progress.md` (created
 on first batch). Each subdomain has a row: pending / in-progress / done,
 with PR number. The maintainer updates it per merge.
 
@@ -64,7 +68,7 @@ is structurally complete:
 1. Open the final PR that flips CI from `make audit-skills` to
    `make audit-skills-strict`. Now every future SKILL.md change is
    gated by the schema.
-2. Annotate `docs/skill-cleanup-progress.md` as complete.
+2. Annotate `docs/archive/skill-cleanup/progress.md` as complete.
 3. Phase 1a (graph builder) is unblocked.
 
 ## Body-rewrite work (out of scope for Phase 0)

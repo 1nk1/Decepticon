@@ -72,20 +72,27 @@ Use the [Feature Request](https://github.com/BitterSecurity/Decepticon/issues/ne
 - **Line length**: 100 characters
 - **Imports**: Absolute imports, public API re-exported through `__init__.py`
 - **Logging**: `from decepticon_core.utils.logging import get_logger; log = get_logger("module.sub")`
-- **Skills**: Markdown files in `decepticon/skills/` with YAML frontmatter
+- **Runtime knowledge skills**: `packages/decepticon/decepticon/skills/**/SKILL.md`
+- **External CLI wrapper skills**: see [external-agent integration](docs/integrations/external-agents.md)
 - **CLI (TypeScript)**: Ink.js components in `clients/cli/src/`
 
 ## Project Structure
 
 ```
-decepticon/          Python agents, core logic, backends
+packages/            Python core, framework, and SDK packages
+clients/launcher/    Go launcher (installed decepticon command)
 clients/cli/         Ink.js terminal UI (TypeScript)
-decepticon/skills/   Markdown knowledge base for agents
+clients/shared/      Shared TypeScript streaming support
+clients/web/         Optional Next.js dashboard
+benchmark/           Benchmark harnesses and adapters
 containers/          Dockerfiles
 config/              Runtime configuration
 scripts/             Installer and utilities
-docs/                Documentation
+docs/                Current guides and historical records (see docs/README.md)
 ```
+
+See [the documentation index](docs/README.md) for maintained entry points and
+the distinction between runtime knowledge and external-agent CLI wrappers.
 
 ## Authoring Skills
 
@@ -94,8 +101,8 @@ conform to the schema in [docs/skill-schema.md](docs/skill-schema.md).
 Before opening a PR, run `make audit-skills` locally and fix any
 reported violations. CI runs the same check on every PR.
 
-For the cleanup of legacy skills that pre-date the schema, see
-[docs/skill-cleanup-process.md](docs/skill-cleanup-process.md). New
+For the historical cleanup of skills that pre-dated the schema, see
+[archived Phase 0 process](docs/archive/skill-cleanup/process.md). New
 authors writing skills against the schema do not need to read the
 cleanup process — only the schema doc.
 

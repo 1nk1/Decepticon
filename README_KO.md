@@ -213,6 +213,8 @@ Tier 기반 자격증명-aware 폴백 체인. 사용 가능한 자격증명을 �
 |------|------|
 | 설치 및 첫 인게이지먼트 | [시작하기](docs/getting-started.md) |
 | 셋업 / OAuth / 프로바이더 / 대시보드 전체 | [셋업 가이드](docs/setup-guide.md) |
+| 코딩 에이전트용 CLI 래퍼 | [Decepticon 스킬](skills/decepticon/SKILL.md) |
+| 문서 및 저장소 구조 | [문서 인덱스](docs/README.md) |
 | 모든 CLI 커맨드와 단축키 | [CLI 레퍼런스](docs/cli-reference.md) |
 | 모든 `make` 타깃 | [Makefile 레퍼런스](docs/makefile-reference.md) |
 | 에이전트 목록 및 미들웨어 | [에이전트](docs/agents.md) |

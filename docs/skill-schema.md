@@ -106,8 +106,7 @@ the dead `kind` field.
 
 1. Write your SKILL.md with the schema above.
 2. Run `make audit-skills` locally. Fix any error before opening a PR.
-3. CI runs the validator on every PR. During Phase 0 it warns; after
-   Phase 0 completes, it blocks the merge.
+3. CI runs the validator on every PR and blocks schema violations.
 
-See [docs/skill-cleanup-process.md](skill-cleanup-process.md) for how
-existing files are being normalized.
+See [the archived Phase 0 process](archive/skill-cleanup/process.md) for the
+completed migration history.
