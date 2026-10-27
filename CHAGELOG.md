@@ -15,7 +15,7 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
-- Proposed launcher fix (PR pending): the self-update / consent prompts
+- Proposed launcher fix ([#1129](https://github.com/BitterSecurity/Decepticon/pull/1129)): the self-update / consent prompts
   (`huh.Select`) now give the active option its own background+foreground pair
   in `DecepticonTheme` instead of relying on the field base fill. This keeps the
   highlighted row legible when Huh mis-detects the terminal canvas (e.g. a WSL
