@@ -40,9 +40,11 @@ decepticon --resume=<thread-id> # resume a known session
 decepticon --continue           # continue the latest session
 ```
 
-New engagements prompt for a name and target URL. Use the user's authorized
-scope and exclusions; ask only for missing authorization or target information.
-Saved engagements retain their scope. Plan is optional. Enter `/help` inside
+New engagements prompt for a name, in-scope targets and exclusions, then show
+the normalized scope for review. Optional discovery suggestions are included
+only when selected. Use the user's authorization; ask only for missing scope
+information. Saved scopes are retained. There is no separate
+`/mode red approve` command or approval marker. Plan is optional. Enter `/help` inside
 the terminal for commands supported by that running version.
 
 Slash commands such as `/status`, `/sessions`, `/mode`, `/blue`, `/web`, and

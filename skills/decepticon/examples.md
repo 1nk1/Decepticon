@@ -20,9 +20,10 @@ update, or remove an installation to fix a connection failure.
 ## Open an authorized engagement
 
 Start `decepticon start` in a persistent PTY. Read the engagement picker, then
-select the intended saved workspace or create one with the user's name and
-approved target URL. Enter the requested objective in the conversation after
-startup completes. Preserve scope exclusions in the request.
+select the intended saved workspace or create one with its name, authorized
+targets and exclusions. Review the normalized scope and select any intended
+discovery suggestions before confirming. Creation writes the machine RoE;
+there is no separate `/mode red approve` step. Enter the objective after startup.
 
 To select a supported business workflow at launch:
 
@@ -32,7 +33,7 @@ decepticon start --workflow pentest --workflow-version 1
 
 Use `/help` inside the conversation to discover the installed slash commands.
 `/mode plan` enters optional planning; it does not authorize a Red run.
-`/mode red` returns to execution. Existing scope and approval gates still apply.
+`/mode red` returns to execution. Existing scope enforcement still applies.
 
 `decepticon start --background` prepares the workspace and services without
 opening the conversation. It can still prompt for setup/engagement input and
