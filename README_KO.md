@@ -43,7 +43,7 @@
 ## OSS 에이전트의 핵심 기능
 
 - **범위 검토 후 바로 Red 실행:** CLI에서 인게이지먼트 이름과 대상·제외 범위를
-  입력하면 RoE와 직접 승인이 자동으로 생성되고 Red / Decepticon으로 진입합니다.
+  검토하고 확인하면 기계 판독 RoE가 저장되고 Red / Decepticon으로 진입합니다.
   사전에 scope 파일을 준비하거나 별도 승인 명령을 실행할 필요가 없습니다.
   Soundwave의 Plan은 선택 사항이며 `/mode`로 자유롭게 전환할 수 있습니다.
   Blue에서는 연결된 로컬 센서 이벤트를 조사합니다. [인게이지먼트 흐름](docs/engagement-workflow.md).
