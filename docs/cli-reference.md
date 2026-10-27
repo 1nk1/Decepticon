@@ -115,7 +115,9 @@ New and existing engagements open in **Red / Decepticon**. Creating an engagemen
 asks for its name, targets and exclusions with an explicit scope preview.
 Selecting Red does not add targets; scope enforcement still applies. `/mode` opens a searchable Plan/Red/Blue
 picker. `/mode plan`, `/mode red`, and `/mode blue` are available; `/mode red approve`
-is a retired command. The footer distinguishes mode, agent and connection state.
+is a retired command. The footer shows mode, agent, session and model/runtime
+details when reported. Use `/status` for connection diagnostics; the old
+`connected` footer label is not a current readiness signal.
 
 Blue monitoring is independent of the selected conversation. While you talk to Red,
 Blue notices still arrive. Compact notices link to `/alerts`; full analysis appears

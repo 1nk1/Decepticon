@@ -176,7 +176,16 @@ func DecepticonTheme(isDark bool) *huh.Styles {
 		field.Title = field.Title.Foreground(lipgloss.Color(text)).Bold(true)
 		field.Description = field.Description.Foreground(lipgloss.Color(muted))
 		field.Option = field.Option.Foreground(lipgloss.Color(text))
-		field.SelectedOption = field.SelectedOption.Foreground(lipgloss.Color(focus)).Bold(true)
+		// Active (cursor) option carries its OWN background+foreground pair so
+		// it stays legible regardless of how Huh detects the terminal canvas.
+		// Relying on the field Base background alone fails when dark/light
+		// detection flips (e.g. a WSL terminal that doesn't answer the OSC 11
+		// background query): the ramp then paints near-black option text that
+		// never receives the light Base fill, leaving an unreadable row. A
+		// raised graphite fill + silver focus text mirrors the engagement
+		// picker's selected row (internal/engagement/picker.go) and reads in
+		// both ramps and on either real canvas.
+		field.SelectedOption = field.SelectedOption.Foreground(lipgloss.Color(focus)).Background(lipgloss.Color(raised)).Bold(true)
 		field.UnselectedOption = field.UnselectedOption.Foreground(lipgloss.Color(text))
 		field.SelectedPrefix = field.SelectedPrefix.Foreground(lipgloss.Color(focus))
 		field.UnselectedPrefix = field.UnselectedPrefix.Foreground(lipgloss.Color(muted))

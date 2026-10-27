@@ -66,6 +66,12 @@ claims should use the existing dated model-contract audit and a qualified runtim
   Reusing another worktree’s older virtualenv had produced a planning-tool
   import failure; the lockfile-synchronized environment passed without changing
   any enforcement or test expectation.
+- Full `make ci-lint` passed: Ruff check, all 883 Python files formatted, and
+  basedpyright reported 0 errors (912 existing warnings).
+- The retired `connected` footer label was also found in a real-terminal CI
+  test. PR #1135 replaced that readiness predicate while retaining PTY draft
+  persistence and no-run assertions; the original failed after 90 seconds and
+  all 75 web tests passed after correction.
 - Changes to executable source are docstrings/comments plus removal of the false
   2.0.0 deadline in the compatibility warning. Enforcement, package contracts,
   approval policy and deployment are not modified by this PR.
@@ -73,3 +79,13 @@ claims should use the existing dated model-contract audit and a qualified runtim
 Full live engagement, AutoBot sensor deployment and third-party provider/model
 qualification were not performed for this documentation audit. Final rerun and
 any environment-specific validation result are recorded in the PR description.
+
+## Integration review
+
+The final audit branch reconciles the retirement, CLI wrapper, terminal-test
+repair and launcher-contrast PR heads so their combined content is reviewed.
+Changelog and README conflicts retain both histories/discovery links; contributor
+conflicts retain canonical imports and the runtime/external-skill distinction.
+An open linked PR is still proposed until its merge is confirmed. The final
+merge sequence and CI results are recorded in the PR, not inferred from a local
+merge commit. This integration does not authorize a product release.
