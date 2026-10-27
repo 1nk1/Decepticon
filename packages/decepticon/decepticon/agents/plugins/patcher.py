@@ -54,6 +54,7 @@ from decepticon.agents.build import build_middleware, build_tools
 from decepticon.agents.prompts import load_prompt
 from decepticon.backends import build_sandbox_backend, make_agent_backend
 from decepticon.llm import LLMFactory
+from decepticon.middleware.step_budget import StepBudgetMiddleware
 from decepticon.tools.bash import BASH_TOOLS
 from decepticon.tools.bash.bash import set_sandbox
 from decepticon_core.plugin_loader import SubAgentSpec, is_bundle_enabled, load_plugin_callbacks
@@ -155,7 +156,10 @@ def create_patcher_agent(
         llm,
         system_prompt=system_prompt,
         tools=tools,
-        middleware=middleware,
+        middleware=[
+            *middleware,
+            StepBudgetMiddleware(total_steps=recursion_limit or _RECURSION_LIMIT),
+        ],
         name=_ROLE,
     ).with_config(
         {

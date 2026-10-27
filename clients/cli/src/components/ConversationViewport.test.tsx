@@ -5,6 +5,10 @@ import { expect, it } from "vitest";
 import { TerminalUIProvider } from "../terminal/TerminalUI.js";
 import { mouseEvents } from "../terminal/mouse.js";
 import { ConversationViewport } from "./ConversationViewport.js";
+
+// These tests exercise mouse-driven scrolling (wheel, click); the runtime
+// default is mouse OFF (copy-first), so opt in for the fixture.
+process.env.DECEPTICON_MOUSE = "1";
 import type { AgentEvent } from "../types.js";
 const wait = () => new Promise(resolve => setTimeout(resolve, 100));
 function screen(events: AgentEvent[]) { return <TerminalUIProvider initialMode="fullscreen"><Box height={12} width={80}><ConversationViewport events={events} sessionKey="fixture" modalActive={false} /></Box></TerminalUIProvider>; }

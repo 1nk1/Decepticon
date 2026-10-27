@@ -22,17 +22,15 @@ export function SessionFooter({ assistantId = "decepticon", activeAgent, engagem
   const working = runState === "streaming" || runState === "connecting";
   return <Box flexDirection="column" backgroundColor={PALETTE.surface} borderStyle="single" borderTop borderBottom={false} borderLeft={false} borderRight={false} borderColor={PALETTE.border} paddingX={1}>
     <Box flexWrap="wrap" columnGap={1}>
-      <Action label="" onClick={() => onCommand?.("/mode")}><Text bold backgroundColor={PALETTE.raised} color={PALETTE.focus}>{` ${mode} `}</Text></Action>
+      <Action label="Mode" onClick={() => onCommand?.("/mode")}><Text bold backgroundColor={PALETTE.raised} color={PALETTE.focus}>{` ${mode} `}</Text></Action>
       <Action label="Agent" onClick={() => onCommand?.("/mode")}>{labelForAgent(activeAgent ?? assistantId)}</Action>
       <Action label="Session" onClick={() => onCommand?.("/resume")}>{engagement || "default"}</Action>
-      <Action label="Model" onClick={() => onCommand?.("/model")}>{model || "automatic"}</Action>
-      <Action label="●" onClick={() => onCommand?.("/status")}>{connection || "unknown"} · {runState}</Action>
+      <Action label="Model" onClick={() => onCommand?.("/model")}>{model || runtime?.servedModel || "automatic"}</Action>
     </Box>
     {runtime && <Box flexWrap="wrap">
       <Action label={runtime.servedModel ? "Served" : "Route"}>{runtime.servedModel || runtime.route}</Action>
       <Action label="Effort">{runtime.effort} (requested)</Action>
-      <Action label="Context">{runtime.contextTokens === null ? "not reported" : `${runtime.estimated ? "≈" : ""}${runtime.contextTokens.toLocaleString("en-US")}`}</Action>
-      <Action label="Compact">{runtime.autocompact} · {runtime.compaction}</Action>
+      <Action label="Context">{runtime.contextTokens === null ? "not reported" : runtime.contextWindow ? `${runtime.contextTokens.toLocaleString("en-US")}/${runtime.contextWindow.toLocaleString("en-US")} (${Math.round(runtime.contextTokens / runtime.contextWindow * 100)}%)` : `${runtime.estimated ? "≈" : ""}${runtime.contextTokens.toLocaleString("en-US")}`}</Action>
       {runtime.fallbackAttempt > 0 && <Action label="Fallback">{runtime.fallbackAttempt}</Action>}
     </Box>}
     {budget && <Text color={PALETTE.text}>Budget <Text color={PALETTE.text} bold>{budget.pct}%</Text> · ${budget.spent} / ${budget.cap}</Text>}

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from decepticon.middleware.step_budget import StepBudgetMiddleware
 from decepticon_core.plugin_loader import SubAgentSpec, is_bundle_enabled
 
 _ROLE = "finding_reporter"
@@ -66,7 +67,10 @@ def create_finding_reporter(
         llm,
         system_prompt=system_prompt,
         tools=tools,
-        middleware=middleware,
+        middleware=[
+            *middleware,
+            StepBudgetMiddleware(total_steps=recursion_limit or _RECURSION_LIMIT),
+        ],
         name=_ROLE,
     ).with_config(
         {
