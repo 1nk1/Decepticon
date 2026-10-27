@@ -245,6 +245,7 @@ Configure via `decepticon onboard`. → **[Full model reference & fallback examp
 |-------|-----|
 | Installation and first engagement | [Getting Started](docs/getting-started.md) |
 | Complete setup, OAuth, providers, dashboard | [Setup Guide](docs/setup-guide.md) |
+| Documentation and repository map | [Documentation index](docs/README.md) |
 | All CLI commands and keyboard shortcuts | [CLI Reference](docs/cli-reference.md) |
 | All `make` targets | [Makefile Reference](docs/makefile-reference.md) |
 | Agent roster and middleware | [Agents](docs/agents.md) |
