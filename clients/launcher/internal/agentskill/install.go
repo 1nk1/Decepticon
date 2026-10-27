@@ -103,7 +103,7 @@ func fetch(ctx context.Context, client *http.Client, version, rawBase, releaseBa
 	}
 	bundle := make(map[string][]byte, len(files))
 	for _, name := range files {
-		path := "integrations/agent-skills/decepticon/" + name
+		path := "skills/decepticon/" + name
 		digest, ok := want[path]
 		if !ok {
 			return nil, fmt.Errorf("skill checksums missing %s", path)

@@ -93,6 +93,7 @@ jobs:
               - '.github/workflows/ci.yml'
             launcher:
               - 'clients/launcher/**'
+              - 'skills/**'
               - '.github/workflows/ci.yml'
             compose:
               - 'docker-compose*.yml'
