@@ -68,7 +68,7 @@ func TestFetchVerifiesReleaseManifest(t *testing.T) {
 	content := map[string][]byte{}
 	manifest := ""
 	for _, name := range files {
-		path := "integrations/agent-skills/decepticon/" + name
+		path := "skills/decepticon/" + name
 		content[path] = []byte("content of " + name)
 		digest := sha256.Sum256(content[path])
 		manifest += fmt.Sprintf("%s  %s\n", hex.EncodeToString(digest[:]), path)
