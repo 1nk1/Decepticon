@@ -87,6 +87,20 @@ def model_name(model: Any) -> str:
     return value[:256] if isinstance(value, str) else type(model).__name__
 
 
+def _context_window(model: str | None) -> int | None:
+    """Max input tokens for the model, from LiteLLM's cost map. None if unknown."""
+    if not model:
+        return None
+    try:
+        from litellm import model_cost  # noqa: PLC0415
+
+        entry = model_cost.get(model) or model_cost.get(model.split("/", 1)[-1])
+        window = (entry or {}).get("max_input_tokens")
+        return int(window) if window else None
+    except Exception:
+        return None
+
+
 def prepare_runtime_request(request: Any, role: str | None, *, host_policy: bool = False) -> Any:
     controls = read_run_controls(request)
     settings = dict(getattr(request, "model_settings", None) or {})
@@ -106,6 +120,7 @@ def prepare_runtime_request(request: Any, role: str | None, *, host_policy: bool
             "effort": settings.get("reasoning_effort") or "provider default",
             "autocompact": controls.autocompact,
             "context_tokens": context_tokens,
+            "context_window": _context_window(model_name(getattr(request, "model", None))),
         },
     )
     return request

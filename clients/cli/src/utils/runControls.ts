@@ -48,6 +48,7 @@ export interface RuntimeStatus {
   readonly servedModel?: string;
   readonly effort: string;
   readonly contextTokens: number | null;
+  readonly contextWindow?: number;
   readonly estimated: boolean;
   readonly autocompact: string | number;
   readonly fallbackAttempt: number;
@@ -59,6 +60,7 @@ export function runtimeEvent(current: RuntimeStatus | null, type: string, data: 
     return { agent: typeof data.agent === "string" ? data.agent.slice(0,128) : "", route: data.model,
       effort: typeof data.effort === "string" ? data.effort.slice(0,64) : "provider default",
       contextTokens: typeof data.context_tokens === "number" && Number.isFinite(data.context_tokens) && data.context_tokens >= 0 ? data.context_tokens : null,
+      contextWindow: typeof data.context_window === "number" && Number.isFinite(data.context_window) && data.context_window > 0 ? data.context_window : undefined,
       estimated: true, autocompact: typeof data.autocompact === "number" ? data.autocompact : "auto", fallbackAttempt: 0, compaction: "not checked" };
   }
   if (!current) return null;

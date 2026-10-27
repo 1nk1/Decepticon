@@ -16,6 +16,11 @@ export function TerminalUIProvider({ children, initialMode }: { children: React.
   const supported = Boolean(process.stdin.isTTY && process.stdout.isTTY && process.env.TERM !== "dumb");
   const [mode, setMode] = useState<TerminalMode>(initialMode ?? (supported && process.env.DECEPTICON_TUI !== "inline" ? "fullscreen" : "inline"));
   const [, redraw] = useState(0);
+  // Mouse tracking enables the click targets (footer actions, viewport jump)
+  // and wheel scrolling. Native text selection still works via the standard
+  // Shift+drag override that Windows Terminal / iTerm2 / VS Code honor while
+  // SGR mouse mode is active. DECEPTICON_MOUSE=0 opts out for terminals
+  // that don't implement the Shift override.
   const [mouse, setMouse] = useState(process.env.DECEPTICON_MOUSE !== "0");
   useEffect(() => {
     if (!supported) return;

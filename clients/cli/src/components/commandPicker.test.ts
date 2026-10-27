@@ -12,16 +12,16 @@ function context(requests: ChoicePickerRequest[]): CommandContext {
     openPicker: (request) => { requests.push(request); }, selectAssistant: () => true };
 }
 
-it("selects Blue through the no-argument mode picker", async () => {
+it("refuses Blue through the no-argument mode picker without a sensor", async () => {
   // Given a CLI context that presents choices
   const requests: ChoicePickerRequest[] = [];
   await mode.execute("", context(requests));
   const picker = requests[0];
   if (!picker) throw new Error("Mode picker was not opened");
-  // When the operator confirms Blue
+  // When the operator confirms Blue without a running sensor or a target
   await picker.onSelect("blue");
-  // Then the assistant routes to Blue
-  expect(getAssistantOverride()).toBe("autobot");
+  // Then Blue is refused — the operator stays in the current mode
+  expect(getAssistantOverride()).not.toBe("autobot");
 });
 
 it("selects a model through the no-argument model picker", async () => {

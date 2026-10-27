@@ -7,6 +7,7 @@ import { DiffResult } from "./DiffResult.js";
 import { useScreen } from "../shell/ScreenContext.js";
 import { CtrlOToExpand } from "../shell/CtrlOToExpand.js";
 import { PALETTE, GLYPH_DOT, GLYPH_HOOK } from "../../utils/theme.js";
+import { parseUntrustedEnvelope } from "../../utils/untrusted.js";
 
 const MAX_LINES_PROMPT = 5;
 const MAX_LINES_TRANSCRIPT = 50;
@@ -141,10 +142,19 @@ function ResultContent({
   content: string;
   maxLines: number;
 }) {
-  const display = truncateLines(content, maxLines);
-  const wasTruncated = content.split("\n").length > maxLines;
+  // The untrusted-output envelope is for the model; render the inner content
+  // with a compact badge instead of the raw tags.
+  const envelope = parseUntrustedEnvelope(content);
+  const body = envelope ? envelope.inner : content;
+  const display = truncateLines(body, maxLines);
+  const wasTruncated = body.split("\n").length > maxLines;
   return (
     <>
+      {envelope && (
+        <Text color={PALETTE.muted}>
+          {"  ⚠ untrusted output"}{envelope.origin ? ` · ${envelope.origin}` : ""}{envelope.risk ? ` · risk=${envelope.risk}` : ""}
+        </Text>
+      )}
       {display.map((line, i) => (
         <Text color={PALETTE.text} key={i} dimColor wrap="wrap">
           {i === 0 ? `  ${GLYPH_HOOK}  ` : "     "}{line}

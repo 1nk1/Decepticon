@@ -4,6 +4,7 @@ import { Box, Text, renderToString, measureElement, useInput, type DOMElement } 
 import { useTerminalSize } from "../hooks/useTerminalSize.js";
 import { useMouseTarget } from "../terminal/TerminalUI.js";
 import { PALETTE } from "../utils/theme.js";
+import { parseUntrustedEnvelope } from "../utils/untrusted.js";
 import type { AgentEvent } from "../types.js";
 import { EventItem } from "./EventItem.js";
 import { ScreenProvider } from "./shell/ScreenContext.js";
@@ -27,8 +28,10 @@ export function ConversationViewport({ events, modalActive, sessionKey, expanded
       for (const event of events) {
         ids.add(event.id); const full = expandedAll ? !expanded.has(event.id) : expanded.has(event.id); let item = cache.current.get(event.id);
         if (!item || item.event !== event || item.width !== columns || item.expanded !== full) {
+          const envelope = parseUntrustedEnvelope(event.content)
+          const body = envelope ? envelope.inner : event.content
           const content = full && (event.type === "tool_result" || event.type === "bash_result")
-            ? <Box flexDirection="column"><Text bold color={PALETTE.text}>{event.toolName || event.type} · expanded (click to collapse)</Text><Text color={PALETTE.text}>{terminalText(event.content)}</Text></Box>
+            ? <Box flexDirection="column"><Text bold color={PALETTE.text}>{event.toolName || event.type} · expanded (click to collapse)</Text>{envelope && <Text color={PALETTE.muted}>{"  ⚠ untrusted output"}{envelope.risk ? ` · risk=${envelope.risk}` : ""}</Text>}<Text color={PALETTE.text}>{terminalText(body)}</Text></Box>
             : <ScreenProvider value="prompt"><EventItem event={event} /></ScreenProvider>;
           item = { event, width: columns, expanded: full, lines: renderToString(content, { columns }).split("\n").map(text => ({ text, event })) };
           cache.current.set(event.id, item);
@@ -57,6 +60,6 @@ export function ConversationViewport({ events, modalActive, sessionKey, expanded
   useMouseTarget(latest, event => { if (event.type === "press" && event.button === 0) setOffset(null); }, !modalActive);
   return <Box ref={root} flexDirection="column" flexGrow={1} flexShrink={1} flexBasis={0} minHeight={2} overflowY="hidden">
     <Box ref={body} height={page} overflowY="hidden"><Text color={PALETTE.text}>{lines.length ? lines.slice(start, start + page).map(line => line.text).join("\n") : "Ready. Describe the engagement work you want to perform."}</Text></Box>
-    <Box ref={latest}><Text wrap="truncate-end" color={offset === null ? PALETTE.muted : PALETTE.focus}>{offset === null ? "Following latest" : `↑ Reviewing ${start + 1}–${Math.min(start + page, lines.length)} / ${lines.length} · click to jump to latest ↓`}{" · wheel / PgUp PgDn · Ctrl+Home/End"}</Text></Box>
+    {offset !== null && <Box ref={latest}><Text wrap="truncate-end" color={PALETTE.focus}>{`↑ Reviewing ${start + 1}–${Math.min(start + page, lines.length)} / ${lines.length} · click to jump to latest ↓`}</Text></Box>}
   </Box>;
 }

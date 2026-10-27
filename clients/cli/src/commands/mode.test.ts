@@ -1,3 +1,4 @@
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -50,12 +51,39 @@ describe("CLI run modes", () => {
     expect(messages.at(-2)).toContain("enforces the engagement scope");
   });
 
-  it("selects Blue without its sensor", async () => {
+  it("refuses Blue when no sensor runs and no target is configured", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+    const { ctx, messages } = context();
+    await mode.execute("blue", ctx);
+    expect(messages.join("\n")).toContain("Blue requires a running AutoBot sensor");
+    expect(getAssistantOverride()).not.toBe("autobot");
+  });
+
+  it("selects Blue when the sensor stack is already running", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true }));
     const { ctx, selected } = context();
     await mode.execute("blue", ctx);
     expect(selected).toEqual(["autobot"]);
     expect(getAssistantOverride()).toBe("autobot");
+  });
+
+  it("attempts the sensor boot on Blue entry and stays out on failure", async () => {
+    vi.stubEnv("DECEPTICON_ENGAGEMENT", "tui-live");
+    const configRoot = mkdtempSync(path.join(tmpdir(), "mode-blue-config-"));
+    vi.stubEnv("DECEPTICON_BLUE_WORKSPACE", configRoot);
+    writeFileSync(
+      path.join(configRoot, "blue.json"),
+      JSON.stringify({ version: 1, targets: [{ id: "local-target", upstream: "http://127.0.0.1:3000", enabled: true }] }),
+    );
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+    const { ctx, selected, messages } = context();
+    await mode.execute("blue", ctx);
+    // The boot attempt runs (blueUp → the sensor compose); in the test env
+    // it cannot complete, so the operator stays in the current mode with
+    // the failure surfaced — fail-closed, never a silent dead assistant.
+    expect(messages.join("\n")).toContain("Blue unavailable");
+    expect(selected).toEqual([]);
+    rmSync(configRoot, { recursive: true, force: true });
   });
 
   it("selects Red even without a scope file", async () => {
