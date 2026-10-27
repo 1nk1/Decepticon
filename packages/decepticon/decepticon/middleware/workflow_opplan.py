@@ -1,6 +1,6 @@
 """Enforce WORKFLOW contracts against the existing OPPLAN objective lifecycle."""
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import PurePosixPath
 
 from decepticon.workflows import WorkflowSnapshot, WorkflowStage
@@ -81,6 +81,84 @@ def _reachable_leaves(
     return tuple(row for row in _leaves(objectives) if row.id in visited and row.id != target.id)
 
 
+def _declared_component_stages(
+    objective: Objective, objectives: Sequence[Objective], facts: Sequence[PlanFact]
+) -> set[str]:
+    """Stages reachable from ``objective`` through declared DAG edges only.
+
+    Walks blocked-by references, every any-of alternative and fact producers,
+    regardless of objective status — this validates declared structure, not
+    current progress.
+    """
+    by_id = {row.id: row for row in objectives}
+    fact_by_id = {fact.id: fact for fact in facts}
+    pending = [objective.id]
+    visited: set[str] = set()
+    stages: set[str] = set()
+    while pending:
+        identifier = pending.pop()
+        if identifier in visited or identifier not in by_id:
+            continue
+        visited.add(identifier)
+        row = by_id[identifier]
+        stages.add(row.workflow_stage or "")
+        pending.extend(row.blocked_by)
+        pending.extend(ref for group in row.any_of for ref in group)
+        pending.extend(
+            fact_by_id[fact_id].producer_id
+            for fact_id in row.required_fact_ids
+            if fact_id in fact_by_id
+        )
+        pending.extend(child.id for child in objectives if child.parent_id == row.id)
+    return stages
+
+
+def _stage_depends_on_closure(stages: Mapping[str, WorkflowStage], stage_id: str) -> set[str]:
+    pending = list(stages[stage_id].depends_on)
+    closure: set[str] = set()
+    while pending:
+        predecessor_id = pending.pop()
+        if predecessor_id in closure:
+            continue
+        closure.add(predecessor_id)
+        pending.extend(stages[predecessor_id].depends_on)
+    return closure
+
+
+def _declared_edges_error(
+    snapshot: WorkflowSnapshot,
+    objectives: Sequence[Objective],
+    facts: Sequence[PlanFact],
+) -> str | None:
+    """Require executable leaves to declare DAG edges into prerequisite stages.
+
+    Without a declared edge the proof gate's reachable-leaf rule can never be
+    satisfied, so a plan that omits them commits successfully and then blocks
+    every dispatch with "workflow prerequisite stage incomplete". Reject such
+    plans at commit time with an actionable message instead.
+    """
+    stages = {stage.id: stage for stage in snapshot.document.metadata.stages}
+    if not stages:
+        return None
+    for objective in _leaves(objectives):
+        stage = stages.get(objective.workflow_stage or "")
+        if stage is None:
+            continue  # Binding errors are reported by validate_workflow_bindings.
+        needed = _stage_depends_on_closure(stages, stage.id)
+        if not needed:
+            continue
+        declared = _declared_component_stages(objective, objectives, facts)
+        missing = sorted(needed - declared)
+        if missing:
+            return (
+                f"objective {objective.id} (stage {stage.id}) declares no dependency edge "
+                f"into workflow stage(s) {', '.join(missing)}; declare blocked_by, any_of "
+                "or required_fact_ids referencing an objective in each prerequisite stage "
+                "so its proof is reachable"
+            )
+    return None
+
+
 def validate_workflow_transition(
     snapshot: WorkflowSnapshot,
     objectives: Sequence[Objective],
@@ -137,6 +215,9 @@ def validate_workflow_plan(
 ) -> str | None:
     """Prevent replanning from invalidating proof for already active work."""
     error = validate_workflow_bindings(snapshot, objectives)
+    if error:
+        return error
+    error = _declared_edges_error(snapshot, objectives, facts)
     if error:
         return error
     for objective in objectives:
