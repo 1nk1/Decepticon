@@ -15,6 +15,14 @@ Keep proposed and unmerged changes out of released sections.
 
 ## [Unreleased]
 
+- Proposed launcher fix (PR pending): the self-update / consent prompts
+  (`huh.Select`) now give the active option its own background+foreground pair
+  in `DecepticonTheme` instead of relying on the field base fill. This keeps the
+  highlighted row legible when Huh mis-detects the terminal canvas (e.g. a WSL
+  terminal that does not answer the OSC 11 background query selects the light
+  ramp on a dark screen, rendering near-black option text onto the real dark
+  background). Matches the engagement picker's selected-row styling. Regression
+  test added. No version bump or release implied.
 - Released v2.2.0 — 2026-10-27: the conservative Minor publication of the qualified candidate (the 3.0.0 draft tag was superseded before publication; no announcement, no artifacts). Compare: v2.1.1...v2.2.0.
 
 ## [2.2.0] — 2026-10-27
