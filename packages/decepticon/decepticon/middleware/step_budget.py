@@ -36,9 +36,7 @@ class StepBudgetMiddleware(AgentMiddleware):
         note = self._budget_note(request)
         if note is None:
             return handler(request)
-        return handler(
-            request.override(messages=[*request.messages, SystemMessage(content=note)])
-        )
+        return handler(request.override(messages=[*request.messages, SystemMessage(content=note)]))
 
     @override
     async def awrap_model_call(self, request: Any, handler: Any) -> Any:
