@@ -8,7 +8,7 @@ const Context = createContext<UI>({ mode: "inline", mouse: false, setMode() {}, 
 export const useTerminalUI = () => useContext(Context);
 const ENTER = "\x1b[?1049h\x1b[H";
 const LEAVE = "\x1b[?1049l";
-const MOUSE_ON = "\x1b[?1000h\x1b[?1006h";
+const MOUSE_ON = "\x1b[?1000h\x1b[?1002h\x1b[?1006h";
 const MOUSE_OFF = "\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l";
 
 export function TerminalUIProvider({ children, initialMode }: { children: React.ReactNode; initialMode?: TerminalMode }) {
@@ -16,11 +16,10 @@ export function TerminalUIProvider({ children, initialMode }: { children: React.
   const supported = Boolean(process.stdin.isTTY && process.stdout.isTTY && process.env.TERM !== "dumb");
   const [mode, setMode] = useState<TerminalMode>(initialMode ?? (supported && process.env.DECEPTICON_TUI !== "inline" ? "fullscreen" : "inline"));
   const [, redraw] = useState(0);
-  // Mouse tracking enables the click targets (footer actions, viewport jump)
-  // and wheel scrolling. Native text selection still works via the standard
-  // Shift+drag override that Windows Terminal / iTerm2 / VS Code honor while
-  // SGR mouse mode is active. DECEPTICON_MOUSE=0 opts out for terminals
-  // that don't implement the Shift override.
+  // Mouse tracking enables the click targets, wheel scrolling AND in-app
+  // drag selection (mode 1002 tracks motion while pressed) — release copies
+  // via OSC 52. Plain drag = in-app copy; Shift+drag = terminal-native
+  // selection. DECEPTICON_MOUSE=0 opts out entirely.
   const [mouse, setMouse] = useState(process.env.DECEPTICON_MOUSE !== "0");
   useEffect(() => {
     if (!supported) return;
