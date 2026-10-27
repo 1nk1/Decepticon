@@ -26,6 +26,12 @@ import time
 from pathlib import Path
 from typing import Any
 
+from langchain_core.runnables import RunnableConfig
+from langchain_core.tools import tool
+
+from decepticon.tools.research._state import _json, graph_transaction
+from decepticon_core.types.kg import Edge, EdgeKind, KnowledgeGraph, Node, NodeKind
+
 
 def _bluecell_sensor():
     """Resolve the AutoBot detection modules (optional dependency).
@@ -45,12 +51,6 @@ def _bluecell_sensor():
         ) from exc
     return rule_match, tap
 
-
-from langchain_core.runnables import RunnableConfig
-from langchain_core.tools import tool
-
-from decepticon.tools.research._state import _json, graph_transaction
-from decepticon_core.types.kg import Edge, EdgeKind, KnowledgeGraph, Node, NodeKind
 
 # Bundled baseline ruleset — schema reference + bootstrap coverage. Operators
 # point ``rules_path`` at their Detector-produced ruleset for real engagements.
