@@ -1,5 +1,7 @@
 # Blue Cell telemetry and evidence design
 
+> Historical 2026-10-04 sensor design before AutoBot extraction. Current Decepticon main does not contain the local sensor implementation described below. Use [current Blue integration](../features/blue-cell.md); dated observations below are not fresh deployment evidence.
+
 Status: initial OSS design, 2026-10-04. The implementation in this repository is a local web sensor. The production source adapters and Red/Blue learning loop below are design targets, not shipped features.
 
 ## Observation contract

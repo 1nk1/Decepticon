@@ -34,8 +34,10 @@ source routing when adding a skill; a directory alone does not guarantee access.
 `load_skill`. Virtual `/skills/` paths are resolved by the skill backend, not by
 shelling into the sandbox. Exact paths avoid ambiguous slugs.
 
-[Skillogy](skillogy.md) provides graph-backed discovery for compositions that
-install its middleware/backend. A local file edit or restart is not proof that a
+[Skillogy](skillogy.md) provides graph-backed discovery by default through the
+standard assembler’s middleware substitution. `DECEPTICON_USE_SKILLOGY=0`
+retains the in-process skill path (unless the legacy skillogy_brain selector is
+explicitly set). A local file edit or restart is not proof that a
 serving graph has updated. Audit the corpus, rebuild the graph/catalog, publish
 through the deployment's synchronization path, and verify identity, body hash,
 role access and actual retrieval. Keep source and generated catalog changes in

@@ -40,14 +40,15 @@ make dogfood
 ```
 packages/decepticon/decepticon/  # Framework Python package (LangGraph agents, middleware, tools)
 ├── agents/          # Agent factory functions (create_*_agent)
-├── core/            # Config, engagement document schemas, logging, streaming helpers
+├── core/            # Legacy compatibility paths; canonical shared types/utils are in core package
 ├── llm/             # Model profiles, LiteLLM configuration
-├── middleware/       # Skills, filesystem, OPPLAN, safe command, fallback, etc.
+├── middleware/       # Skill retrieval, filesystem, OPPLAN, RoE, fallback, etc.
 └── tools/           # Bash, research (KG, CVE, chain planning), reporting
 
 packages/decepticon/decepticon/skills/  # Reusable capability knowledge
 
 clients/
+├── launcher/        # Installed Go launcher
 ├── cli/             # TypeScript/Ink terminal UI
 ├── web/             # Next.js 16 web dashboard
 └── shared/          # Shared streaming utilities (@decepticon/streaming)

@@ -24,7 +24,7 @@ cd Decepticon
 make dev
 
 # In a separate terminal — open the interactive CLI
-make cli
+make cli-dev
 ```
 
 ### Running Tests & Linting
@@ -71,7 +71,7 @@ Use the [Feature Request](https://github.com/BitterSecurity/Decepticon/issues/ne
 - **Python**: Pydantic v2, Ruff for formatting/linting, basedpyright for type checking
 - **Line length**: 100 characters
 - **Imports**: Absolute imports, public API re-exported through `__init__.py`
-- **Logging**: `from decepticon.core.logging import get_logger; log = get_logger("module.sub")`
+- **Logging**: `from decepticon_core.utils.logging import get_logger; log = get_logger("module.sub")`
 - **Runtime knowledge skills**: `packages/decepticon/decepticon/skills/**/SKILL.md`
 - **External CLI wrapper skills**: see [external-agent integration](docs/integrations/external-agents.md)
 - **CLI (TypeScript)**: Ink.js components in `clients/cli/src/`

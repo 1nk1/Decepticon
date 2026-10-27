@@ -855,10 +855,10 @@ Once running, you have:
 
 ```bash
 # Decepticon shows the engagement picker after launch
-# Select "New engagement" and enter its name
-# The session defaults to Red; import reviewed scope and approve before execution
-# /scope import plan/roe-authorized.json --confirm
-# /mode red approve
+# Select "New engagement", enter its name, targets and exclusions
+# Review normalized scope and any selected discovery additions
+# Creation writes machine scope and opens Red; no separate approval command
+# Existing workspaces with missing scope can use /scope import <file> --confirm
 # Inside the session, use /mode plan, /mode red, or /mode blue
 ```
 

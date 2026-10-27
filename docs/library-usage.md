@@ -36,7 +36,7 @@ configured sandbox URL.
 
 ### 2. Factory with explicit overrides
 
-The 16 factories accept langchain-style keyword arguments. Provide a
+Agent factories accept langchain-style keyword arguments. Provide a
 value to replace the default for that field; leave `None` to keep the
 baseline (and apply any plugin overrides discovered via entry-points).
 
@@ -132,13 +132,14 @@ to ship their own service on top of Decepticon's agent code.
 ### 3b. Plugin orchestrator with the OSS slot system (`build_middleware(slots=...)`)
 
 When a downstream product wants to ship a **new orchestrator agent
-type** (not one of the OSS 16) but still wants Decepticon's slot
+type** (outside the built-in role set) but still wants Decepticon's slot
 system, safety gate, and plugin-override pipeline, pass an explicit
 ``slots`` set to ``build_middleware``:
 
 ```python
+from langchain.agents import create_agent
 from decepticon.agents.build import build_middleware, build_tools
-from decepticon.agents.middleware_slots import MiddlewareSlot
+from decepticon_core.contracts.slots import MiddlewareSlot
 from decepticon.agents.prompts import load_prompt
 from decepticon.llm import LLMFactory
 
@@ -172,7 +173,7 @@ def create_decepticon_pro_agent(**kwargs):
         skill_sources=PRO_SKILL_SOURCES,  # bypass OSS skills_sources_for() lookup
         backend=..., llm=llm, fallback_models=fallbacks, subagents=[...],
     )
-    return create_agent(..., middleware=middleware, ...)
+    return create_agent(llm, middleware=middleware, **kwargs)
 ```
 
 Three plugin-orchestrator escape hatches converge here:
@@ -181,8 +182,8 @@ Three plugin-orchestrator escape hatches converge here:
   unknown roles. Silent fallback to an empty stack would mask real
   bugs in plugin code.
 - ``skill_sources=`` — without it, the SKILLS slot calls
-  ``skills_sources_for(role)`` which only knows the 10 OSS standard
-  roles. Plugin specialists/orchestrators pass an explicit list.
+  ``skills_sources_for(role)`` derives a role-named default path. Plugin
+  specialists/orchestrators should pass their actual source paths explicitly.
 - ``default_role=`` on ``LLMFactory.get_model`` /
   ``LLMFactory.get_fallback_models`` — without it, the factory raises
   ``KeyError`` for roles not in ``AGENT_TIERS``. Plugin can inherit any
@@ -200,7 +201,7 @@ needed.
 
 ```python
 # vendor_pkg/bundles.py
-from decepticon.plugin_loader import PluginBundle
+from decepticon_sdk import PluginBundle
 from vendor_pkg.tools import vendor_slack_ask
 from vendor_pkg.middleware import vendor_skills_factory
 
@@ -281,7 +282,7 @@ A small allowlist of slots and tools is flagged safety-critical:
 | Middleware slot | `engagement-context` | Carries RoE constraints into every tool call |
 | Middleware slot | `sandbox-notification` | Tracks background-job completion — operator visibility |
 | Tool | `ask_user_question` | Operator-approval channel |
-| Tool | `complete_engagement_planning` | Mandatory engagement-handoff signal |
+| Tool | `complete_engagement_planning` | Optional Plan publication signal; never grants Red approval |
 
 Disabling or replacing any of these (whether via factory kwarg, plugin
 bundle, or both) raises `SafetyOverrideViolation` at agent-construction
@@ -302,11 +303,14 @@ to honor the original semantics.
 | Import | Purpose |
 |--------|---------|
 | `decepticon.agents.standard.*`, `decepticon.agents.plugins.*` | Pre-built per-role agent factories |
-| `decepticon_core.contracts.slots` | `MiddlewareSlot` enum, `SLOTS_PER_ROLE`, `DEFAULT_SLOT_FACTORIES` |
+| `decepticon_core.contracts.slots` | `MiddlewareSlot` enum, `SLOTS_PER_ROLE`, `SAFETY_CRITICAL_SLOTS` |
+| `decepticon.agents.middleware_slots` | Framework-bound `DEFAULT_SLOT_FACTORIES` |
 | `decepticon.agents.build` | `build_middleware`, `build_tools`, `resolve_prompt_overrides`, `SafetyOverrideViolation` |
 | `decepticon.agents.prompts` | `load_prompt`, `PromptBuilder` |
-| `decepticon.middleware` | `SkillsMiddleware`, `FilesystemMiddleware`, `EngagementContextMiddleware`, `OPPLANMiddleware`, `SandboxNotificationMiddleware`, `OpsControlNotificationMiddleware`, `KGMiddleware`, `SkillogyMiddleware`, … |
-| `decepticon.tools.bash` | `BASH_TOOLS` (the four bash tools), `set_sandbox` |
+| `decepticon.middleware` | `SkillsMiddleware`, `FilesystemMiddleware`, `EngagementContextMiddleware`, `OPPLANMiddleware`, `SandboxNotificationMiddleware`, `KGMiddleware`, `SkillogyMiddleware`, … |
+| `decepticon.tools.bash` | `BASH_TOOLS` (the four bash tools) |
+| `decepticon.tools.bash.bash` | `set_sandbox` |
+| `decepticon.middleware.opscontrol_notifications` | `OpsControlNotificationMiddleware` |
 | `decepticon.tools.research`, `decepticon.tools.references` | KG / CVE / payload tools |
 | `decepticon.tools.interaction` | `ask_user_question`, `complete_engagement_planning` |
 | `decepticon.tools.ops` | `ops_start`, `ops_stop`, `ops_status` (orchestrator-only, ADR-0006) |
@@ -316,7 +320,7 @@ to honor the original semantics.
 | `decepticon_core.types.kg` | `KnowledgeGraph`, `Node`, `Edge`, `EdgeKind` |
 | `decepticon_core.plugin_loader` | `PluginBundle`, `SubAgentSpec`, `is_bundle_enabled`, `load_plugin_*` |
 
-The schema / contract types live in **`decepticon-core`** (the contracts package); the framework re-exports them via the compat shim in `decepticon/__init__.py` for one minor cycle (`decepticon.core.schemas`, `decepticon.plugin_loader`, `decepticon.agents.middleware_slots`). New code should import from `decepticon_core.*` directly.
+The schema / contract types live in **`decepticon-core`** (the contracts package); the framework re-exports them via the compat shim in `decepticon/__init__.py` through legacy paths (`decepticon.core.schemas`, `decepticon.plugin_loader`, `decepticon.agents.middleware_slots`). Their earlier planned removal at 2.0.0 did not occur; prefer canonical imports rather than assuming a removal date. New code should import from `decepticon_core.*` directly.
 
 ---
 
@@ -366,7 +370,7 @@ Library path (full control):
 ### Disable a non-critical slot for one agent
 
 ```python
-from decepticon.agents.middleware_slots import MiddlewareSlot
+from decepticon_core.contracts.slots import MiddlewareSlot
 from decepticon.agents.standard.soundwave import create_soundwave_agent
 
 # Drop AnthropicPromptCachingMiddleware (we have our own cache layer).
@@ -382,18 +386,18 @@ os.environ["DECEPTICON_ALLOW_SAFETY_OVERRIDES"] = "0"  # default — only non-cr
 
 ## Versioning
 
-Decepticon-core follows SemVer 0.x semantics until the API has settled
-through real commercial integrations. Public surface listed above is
-the intended stability target; internals (`_resolve_overrides`,
-private factory helpers, etc.) may change without notice.
+Released packages follow the stable compatibility policy in
+[RELEASE.md](../RELEASE.md). The historical 0.x policy is not current. Prefer
+canonical core/SDK imports, qualify upgrades across public contracts and pin
+compatible package versions. Private factory helpers remain implementation details.
 
 Install from PyPI and pin a compatible range in your `pyproject.toml`:
 
 ```toml
 [project]
 dependencies = [
-    "decepticon>=1.0,<2",           # core SDK
-    # "decepticon[neo4j]>=1.0,<2",  # add the extra for the KG graph tools
+    "decepticon>=2.2,<3",           # framework; qualify your chosen release
+    # "decepticon[neo4j]>=2.2,<3",  # add the extra for the KG graph tools
 ]
 ```
 

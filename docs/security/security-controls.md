@@ -9,8 +9,8 @@
 Every agent assembles its middleware stack by walking `MiddlewareSlot` in
 declaration order; a role only instantiates the slots in its
 `SLOTS_PER_ROLE` set. Five of those slots are the runtime security
-guards. Two are always-on and `SAFETY_CRITICAL` (cannot be silently
-disabled by a plugin); the rest opt in.
+guards, with role-specific slots and optional HITL. The safety-critical set
+is defined in code; plugins cannot silently replace those slots.
 
 Source of record:
 [`contracts/slots.py`](../../packages/decepticon-core/decepticon_core/contracts/slots.py)
@@ -23,8 +23,8 @@ and
 
 | Control (slot) | Default posture | Knob | How to verify |
 |----------------|-----------------|------|---------------|
-| **RoE guardrail** (`roe-guardrail`) | Always enforced; out-of-scope calls are refused. Safety-critical. Pre-rename alias `roe-enforcement` valid until 2.0.0. | `mode` in `<workspace>/plan/roe.json:machine_enforcement` (`audit`/`warn`/`enforce`) | Add an out-of-scope target under `enforce`; expect a `[ROE_REFUSED]` `ToolMessage` and an `OUT_OF_SCOPE` row in the [audit ledger](./audit-ledger.md). |
-| **RoE egress guardrail** (network) | Always active when an in-scope allowlist is present; authoritative scope boundary. | Automatic when `machine_enforcement.mode=enforce` (compiles → sandbox nftables + DNS allowlist); opt out with `DECEPTICON_EGRESS_DISABLE=1`. | Under `enforce`, an out-of-scope connect-by-IP from the sandbox is dropped at the network edge even when the command parser is bypassed (live-verified: `ping 8.8.8.8` blocked, in-scope + management reachable). |
+| **RoE guardrail** (`roe-guardrail`) | Gated calls enforce machine rules; missing/invalid configuration is refused. Safety-critical. | `<workspace>/plan/roe.json:machine_enforcement`; legacy `mode` values are ignored | Add a target excluded by the reviewed rules; expect a `[ROE_REFUSED]` `ToolMessage` and an `OUT_OF_SCOPE` row in the [audit ledger](./audit-ledger.md). |
+| **RoE egress guardrail** (network) | Separate network policy; provisioning is best-effort, not proof of confinement. | The middleware attempts sandbox nftables/DNS provisioning from the machine rules; opt out with `DECEPTICON_EGRESS_DISABLE=1`. | Inspect the daemon policy result and test the actual boundary. Provisioning errors are logged and execution continues; a parser refusal does not prove network policy was applied. |
 | **Untrusted-output quarantine** (`untrusted-output`) | Always on, every role. Safety-critical. | None — in `_BASE_SLOTS`; only a plugin with `DECEPTICON_ALLOW_SAFETY_OVERRIDES=1` can replace it. | Read a hostile banner; tool output is wrapped in the `<UNTRUSTED_TOOL_OUTPUT>` envelope. See [prompt-injection-defense](./prompt-injection-defense.md). |
 | **Prompt-injection shield** (`prompt-injection-shield`) | Always on, every role. Safety-critical. | None — in `_BASE_SLOTS`; same override gate as above. | Deny-listed payloads in tool output are wrapped before reaching the next model call. |
 | **HITL approval** (`hitl-approval`) | Off by default — opt-in. Safety-critical when enabled. | `DECEPTICON_HITL__ENABLED` (truthy enables) | Enable it, trigger a `T1003` objective or a `sliver_*` tool; the run pauses for an approval written to `<workspace>/approvals/requests.jsonl`. See [hitl-approval](./hitl-approval.md). |
@@ -35,7 +35,7 @@ and
 `SAFETY_CRITICAL_SLOTS` lists the slots a plugin can only replace or
 disable when `DECEPTICON_ALLOW_SAFETY_OVERRIDES=1` is set: engagement
 context, RoE enforcement, untrusted-output, prompt-injection shield,
-sandbox notification, and HITL approval. The gate exists so an
+sandbox notification, opscontrol notification, and HITL approval. The gate exists so an
 accidentally-installed plugin cannot silently subvert the safety story.
 `DECEPTICON_ALLOW_SAFETY_OVERRIDES` is documented in the
 [library-usage](../library-usage.md) and
@@ -58,9 +58,13 @@ read in `budget.py` and the audit sink.
 The middleware is a no-op unless `ENGAGEMENT_USD` or `PER_AGENT_USD` is
 positive. It blocks LLM calls only, never tool calls — an in-flight tool
 round-trip and a final synthesis message can still complete before the
-next inference fails. Spend comes from LiteLLM's `spend_logs` table
-(requires `DATABASE_URL`); a provider error is treated as "no data this
-turn, don't enforce" rather than a hard stop.
+next inference fails. Spend is read through LiteLLM's `/spend/tags` API using the configured
+proxy URL/key; the middleware does not query its internal SQL tables. Spend
+lookup errors can yield zero/no enforcement for that turn. Separately, with a
+positive cap, an unpriced metered Cheaper Inference/Kimi credential chain or
+a failed credential-chain check blocks the model call. These are different
+failure boundaries; do not describe all budget failures as fail-open or all as
+fail-closed.
 
 ### Audit ledger
 

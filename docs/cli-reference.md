@@ -8,33 +8,41 @@
 | `decepticon onboard` | Interactive setup wizard (provider, API key, model profile, LangSmith) |
 | `decepticon onboard --reset` | Reconfigure even if `.env` already exists |
 | `decepticon stop` | Stop all services |
-| `decepticon status` | Show service status |
+| `decepticon status [--json]` | Show service status |
+| `decepticon engagements` | List local engagement workspaces |
+| `decepticon attach <name> [--continue]` | Open a saved workspace in the interactive terminal |
+| `decepticon logs --engagement <name-or-thread-id> --limit 20` | Replay recent conversation messages |
+| `decepticon cancel <name-or-thread-id>` | Request cancellation of the active run; services stay up |
+| `decepticon skill install [--client codex\|claude\|both]` | Install the external coding-agent wrapper skill |
 | `decepticon doctor [--json]` | Read-only installation and connection diagnostics |
 | `decepticon logs [service]` | Follow service logs (default: `langgraph`) |
 | `decepticon kg-health` | Diagnose the Neo4j knowledge graph |
 | `decepticon update` | Explicitly refresh config files, Docker images, and the launcher binary when a release is available |
-| `decepticon remove` | Uninstall Decepticon completely |
+| `decepticon remove` | Confirm removal and choose whether to preserve workspace data |
+| `decepticon remove --preserve-workspace` | Back up engagement data before removing the installation |
 | `decepticon --version` | Show installed version |
 
 > **Web dashboard** is *dynamic-spawn* — it does **not** come up with the default stack. Start it from inside the CLI with the `/web` slash command (which runs `docker compose --profile web up -d web`), then open `http://localhost:3000` (configurable via `WEB_PORT` in `.env`). See [Web Dashboard](web-dashboard.md).
 
 ### Scope and workflow selection
 
-New engagements ask for a name and target web URL. The launcher generates and
-approves the matching RoE, then opens Red ready for the first request. Plan is
-optional; no scope JSON or separate approval step is needed for new engagements.
+New engagements ask for a name, in-scope targets and exclusions, then preview
+the normalized machine scope. Optional discovery suggestions are selected by
+the operator; they do not silently expand authorization. Creation writes
+`plan/roe.json` and opens Red. Plan is optional; no approval marker or separate
+`/mode red approve` step exists.
 
 Saved workspaces keep their existing scope. For legacy name-only workspaces that
 have no scope file, the manual recovery path remains:
 
 ```text
 /scope import plan/roe-authorized.json --confirm
-/mode red approve
+/mode red
 ```
 
-Import validates the reviewed JSON and creates missing scope without granting
-approval. The second command approves the canonical current RoE; no optional
-Plan documents are required. `/mode plan` explicitly opens Soundwave; publishing
+Import validates the reviewed JSON and creates only missing scope. Red enforces
+the machine block; there is no additional approval command. No optional Plan
+documents are required. `/mode plan` explicitly opens Soundwave; publishing
 its seven documents leaves you in Plan. See [RoE provisioning](roe-provisioning.md)
 for path handling, the canonical schema and the Python/container alternative.
 
@@ -104,10 +112,12 @@ remains dependent on the user's terminal; use Ctrl+G for longer input if needed.
 ### Modes and monitoring
 
 New and existing engagements open in **Red / Decepticon**. Creating an engagement
-asks only for its name. Selecting Red does not authorize operations: existing
-scope validation and approval still apply. `/mode` opens a searchable Plan/Red/Blue
-picker. `/mode plan`, `/mode red`, `/mode blue`, and `/mode red approve` remain
-available. The footer distinguishes mode, agent and connection state.
+asks for its name, targets and exclusions with an explicit scope preview.
+Selecting Red does not add targets; scope enforcement still applies. `/mode` opens a searchable Plan/Red/Blue
+picker. `/mode plan`, `/mode red`, and `/mode blue` are available; `/mode red approve`
+is a retired command. The footer shows mode, agent, session and model/runtime
+details when reported. Use `/status` for connection diagnostics; the old
+`connected` footer label is not a current readiness signal.
 
 Blue monitoring is independent of the selected conversation. While you talk to Red,
 Blue notices still arrive. Compact notices link to `/alerts`; full analysis appears
@@ -144,7 +154,7 @@ remain available through `/blue incidents` and the monitor's APIs.
 | `/file <path>` | Read a prompt from a file |
 | `/resume [message]` | Continue a paused run, or choose an existing conversation |
 | `/sessions [all \| legacy]` | Browse saved conversations |
-| `/mode [plan \| red [approve] \| blue]` | Select the conversation mode |
+| `/mode [plan \| red \| blue]` | Select the conversation mode |
 | `/plan` | Enter optional Plan mode; send the planning message afterward |
 | `/model [model-id \| clear]` | Search the model catalog and select an override |
 | `/agent` | Inspect or select an orchestrator |
@@ -300,7 +310,8 @@ backup contains secrets and is written with owner-only permissions.
 | `WEB_PORT` | `3000` | Web dashboard port |
 | `TERMINAL_PORT` | `3003` | Terminal WebSocket bridge for the embedded CLI |
 
-Neo4j ports (`7474` browser, `7687` bolt) are fixed in `docker-compose.yml`.
+Neo4j host ports are configurable with `NEO4J_HTTP_PORT` (default `7474`) and
+`NEO4J_BOLT_PORT` (default `7687`); both bind to loopback in Compose.
 
 ### C2 Framework
 

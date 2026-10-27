@@ -1,22 +1,61 @@
-# Blue Cell in OSS
+# Blue Cell integration
 
-Blue Cell is an independent defensive agent for a user's local web service. It continuously consumes target observations from a local sensor, opens incidents for suspicious activity, investigates the evidence with read-only tools, and sends findings into the interactive CLI chat during a Red engagement. This stage does not automatically block or remediate.
+The defensive runtime and local sensor moved to
+[BitterSecurity/AutoBot](https://github.com/BitterSecurity/AutoBot). Current
+Decepticon source retains operator/client integration, not a built-in
+`decepticon.agents.standard.blue_cell` factory or local sensor implementation.
 
-The current path is:
+## Installation and graph ownership
+
+`decepticon[blue]` declares the optional `bs-autobot` dependency. AutoBot supplies
+its agent graph through plugin entry points; `/mode blue` selects `autobot`.
+Graph discovery must find that installed graph before a client can use it.
+The base Decepticon installation alone is not evidence that Blue is available.
+
+The Compose LangGraph startup has an opt-in `DECEPTICON_ENABLE_BLUE=1` branch
+that installs AutoBot and rebuilds the graph manifest. This is a startup install
+path, not a claim that every published default image already includes the extra.
+Consumers should verify their exact package/image versions and graph catalog.
+
+## Sensor and CLI integration
+
+The client `/blue` commands consume the AutoBot sensor and monitor APIs.
+For example, inside the terminal:
 
 ```text
-local web service → Caddy ingress and body spool → Fluent Bit → SQLite receiver
-                                          target logs ────────┘
-SQLite receiver → incident monitor → Blue Cell agent → CLI notification feed
-Red Cell ──────────────────→ monitored proxy ───────→ local web service
+/blue up 127.0.0.1:3000 --logs /absolute/host/log-directory
+/blue status
+/blue verify
+/blue sources
+/blue incidents
+/blue analyze
+/blue stop
 ```
 
-The proxy observes only requests sent through its listener. Fluent Bit also tails the target log directory; the included process wrapper captures stdout and stderr for a service launched through it. The agent's `blue_sensor_scan`, `blue_sensor_events`, `blue_sensor_search`, `blue_sensor_timeline`, and `blue_sensor_body` tools read the receiver and monitor. Blue's default graph has no shell or containment tools. Its prompt treats HTTP and target log content as untrusted evidence.
+The upstream is a local service; the optional log directory is a Docker-host
+path. Sensor Compose files default to `/app/blue-sensor/compose.runtime.yaml`,
+selected by `BLUE_SENSOR_COMPOSE_FILE`; supporting overlays must also exist.
+The current CLI image copies only a relocation README there. `/blue up` cannot
+start the old bundled example without separately provisioning AutoBot's sensor
+files. Follow [AutoBot's sensor setup](https://github.com/BitterSecurity/AutoBot/tree/main/examples/local-sensor)
+for the matching revision and configure the client paths accordingly.
 
-The receiver now retains raw target log lines and extracts common fields from JSON logs, including severity, trace, span, request ID, and event time. Its `/metrics` endpoint also reports Fluent Bit skip, drop, retry failure, and paused-input counters when the collector is reachable. See the [telemetry and evidence design](blue-cell-telemetry-design.md) for the coverage contract and the path from local sensors to production sources.
+`/blue engagement create --label <label> --target 127.0.0.1:3000` previews a
+Blue-owned configuration; `--confirm` materializes it. The Python configuration
+adapter loads `autobot.bluecell.engagement_config` and reports an install hint
+when AutoBot is unavailable. Existing reviewed configuration is not overwritten.
 
-Start a local service, then use `/blue up 127.0.0.1:3000 --logs /absolute/host/log-directory` in the interactive CLI when its logs are available. Omit `--logs` for proxy-only mode. Send Red in its Docker sandbox to `http://host.docker.internal:18080`. The CLI receives immediate `[Blue Cell]` detection messages, `[Blue Cell 조사]` agent assessments, and separate collection-gap notices in the same conversation. `/blue status` shows the enrolled log source and known collector loss; `/blue verify` distinguishes files opened from records delivered during the current collector run, and `/blue sources` lists files that produced retained events. `/blue incidents`, `/blue events`, `/blue metrics`, and `/blue analyze` expose incident details, telemetry, health, and manual investigation. The complete setup, APIs, retention settings, and coverage limits are in [the local sensor README](../../examples/blue-local-sensor/README.md).
+## Evidence and limits
 
-Detection rules are currently generic web attack indicators and target log anomaly terms. A rule match creates an investigation lead. It cannot alone prove exploit success or full target coverage. The proxy cannot observe bypass traffic and the log collector cannot read events the application never exposes. Additional local log sources can be attached with `BLUE_TARGET_LOG_DIR`; broader telemetry integrations and response tools are later steps.
+The proxy sees traffic routed through its listener; target log sources only
+cover records the application exposes and the collector can read. Read sensor,
+collector and monitor health before interpreting absent events. A rule match is
+an investigation lead, not proof of exploitation or complete target coverage.
+Cursors, event IDs, incident IDs and actual evidence preserve continuity.
 
-Legacy `decepticon.blue_cell` session and rule replay modules remain available as library code, but they are not the runtime evidence source for the Blue agent described here.
+The legacy `decepticon.tools.defense.blue_cell` replay tool imports AutoBot's
+rule/tap modules on demand. It is a separate optional path; selecting the Blue
+graph does not itself execute replay or populate detection edges. The broader
+automatic attack/defend/verify loop remains a [planned direction](../offensive-vaccine.md).
+The [2026-10-04 telemetry design](../archive/blue-cell-telemetry-20261004.md) is
+historical source evidence, not current deployment qualification.

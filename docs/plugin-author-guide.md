@@ -135,7 +135,7 @@ files as package data:
 "skills/my-plugin/" = "skills/my-plugin/"
 ```
 
-### Prompt fragment (new in this release)
+### Prompt fragment
 
 ```python
 from decepticon_sdk import PromptContribution
@@ -165,8 +165,8 @@ from decepticon_sdk import PluginBundle
 
 def get_bundle() -> PluginBundle:
     return PluginBundle(
-        name="my-plugin-v1",
-        activation_label="my-plugin",
+        bundle="my-plugin",
+        roles=("recon",),
         # ...
     )
 ```
@@ -179,7 +179,7 @@ my-plugin-v1 = "my_plugin:get_bundle"
 Operators enable your bundle:
 
 ```bash
-DECEPTICON_PLUGINS=standard,my-plugin python -m decepticon ...
+DECEPTICON_PLUGINS=standard,my-plugin python your_agent_app.py
 ```
 
 ### Safety-critical overrides

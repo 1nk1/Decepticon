@@ -19,19 +19,16 @@ Neo4j) see the umbrella [`README.md`](../README.md).
 
 ## 2. Use the public API
 
-Spec §6.2 defines the SemVer-stable surface plugin authors and
-library consumers can rely on from v1.1.2 onward (the current
-release series — see [CHAGELOG.md](../CHAGELOG.md)):
+Use the installed version’s public exports and the compatibility policy in
+[RELEASE.md](../RELEASE.md). The following imports match current source:
 
 ```python
 from decepticon.agents import (
     create_decepticon_agent,
     create_soundwave_agent,
     create_recon_agent,
-    # ... 16 factories total
-    build_middleware,
-    build_tools,
 )
+from decepticon.agents.build import build_middleware, build_tools
 from decepticon.backends import (
     HTTPSandbox,
     build_sandbox_backend,
@@ -43,8 +40,8 @@ from decepticon.middleware import (
     OPPLANMiddleware,
     SandboxNotificationMiddleware,
     SkillsMiddleware,
-    ModelOverrideMiddleware,
 )
+from decepticon.middleware.model_override import ModelOverrideMiddleware
 from decepticon.llm import LLMFactory, create_llm
 ```
 
@@ -75,7 +72,7 @@ agent = create_recon_agent(backend=backend)
 
 ## 4. Override middleware
 
-The 16 agent factories accept langchain-style kwargs that fully
+Agent factories accept langchain-style kwargs that fully
 replace the OSS baseline for that surface. Useful when your product
 ships a Slack-aware human-in-the-loop tool instead of OSS's CLI
 prompt:
@@ -96,10 +93,9 @@ from decepticon_sdk import PluginBundle
 
 
 VENDOR_OVERLAY = PluginBundle(
-    name="vendor-overlay",
-    activation_label="vendor",
-    # Drop OSS prompt caching; ship a vendor-aware one in its place
-    middleware=...,  # MiddlewareContribution
+    bundle="vendor",
+    roles=("recon",),
+    disabled_middleware=("prompt-caching",),
 )
 ```
 
@@ -199,8 +195,8 @@ if resolution is not None:
 Spec §16 documents the forward-compat design that keeps the contract
 layer suitable for B2B Enterprise integration:
 
-- Pin to `decepticon-core==X.Y.*` for stable integration code (zero
-  runtime deps, survives framework refactors for years).
+- Pin compatible core/framework/SDK versions and qualify upgrades. Core avoids
+  framework dependencies but still depends on Pydantic and typing support.
 - Use `RoleRegistry` to ship per-tenant role catalogs without forking.
 - Use `make_agent_backend(extra_routes=...)` for per-tenant asset
   isolation (longest-prefix-wins).

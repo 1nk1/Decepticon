@@ -1,25 +1,9 @@
-"""decepticon-sdk — plugin author entrypoint for the Decepticon framework.
+"""Plugin author entry point with core contracts, registries and helpers.
 
-A complete Decepticon plugin can be written importing only from this
-package: every protocol, contract, registry, and helper plugin authors
-need is exported here. No underscore-prefixed framework internals are
-required.
-
-Phase 3 surface:
-
-  * ``decepticon_sdk`` (this module) — re-exports the public
-    ``decepticon-core`` API (types, protocols, contracts, registries,
-    plugin loader). Tracks the framework's release version (current
-    series: 1.1.x → 1.1.2 with this redesign; shim removal at 2.0.0).
-    Public names listed in ``__all__`` are SemVer-stable.
-  * ``decepticon_sdk.testing`` — pytest fixtures and fakes
-    (``FakeBackend``, ``FakeLLM``, ``FakeSandbox``) for hermetic
-    plugin tests that don't need a live framework.
-
-Deferred from Phase 3 (follow-up commits):
-
-  * ``decepticon-sdk plugin new --kind=...`` scaffolding CLI
-  * Runnable example plugin per ``kind`` under ``examples/``
+Public exports follow the installed distribution version. The SDK also ships
+scaffolding and runnable example plugins; decepticon_sdk.testing provides
+optional pytest fixtures and fakes. Legacy framework compatibility shims remain
+in source; old package-split phase and removal dates are not release guarantees.
 """
 
 from __future__ import annotations

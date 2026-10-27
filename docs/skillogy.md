@@ -1,20 +1,67 @@
 # Skillogy
 
-Skillogy is Decepticon's knowledge-graph-backed skill discovery system. It replaces text-matching autoload with a typed Neo4j graph built at CI time and exposed to agents through five tools. Skills are still authored as `SKILL.md` files — Skillogy is the discovery layer on top of them.
+Skillogy is the graph-backed retrieval service for runtime SKILL.md knowledge.
+Its current implementation is distinct from the older five-tool and
+`agent_config.yaml:skill_backend` design proposals. Those proposals are retained
+in [design history](design/skillogy.md); use this guide and the source below for
+current behavior.
 
-For current ownership and extension rules, see the
-[extension contract](design/extension-contract.md) and
-[canonical skill schema](skill-schema.md). The detailed graph design below
-contains historical phase proposals; validate supported graph edges and tools
-against the installed revision rather than assuming every proposed feature ships.
-Standard factories use their configured skill middleware; graph-backed client
-compositions install Skillogy explicitly.
+## Selection and role access
+
+[maybe_install_skillogy](../packages/decepticon/decepticon/middleware/skillogy.py)
+substitutes `SkillogyMiddleware` for an existing `SkillsMiddleware` in the
+assembled stack. It does not append knowledge tools to arbitrary middleware.
+Unset `DECEPTICON_USE_SKILLOGY` enables the substitution; `0`, `false`, `no` or
+`off` disables it. The legacy `DECEPTICON_SKILL_BACKEND=skillogy_brain` selector
+still explicitly enables it, including when the newer flag is falsy.
+
+The middleware resolves per-role source prefixes and passes them to the REST
+backend for `find_skill`, `load_skill` and `traverse`. A role-aware construction
+rejects empty, unrestricted `/skills/`, or malformed source prefixes. This application-level path restriction
+is separate from service authentication; the service's `SKILLOGY_API_KEY` is
+optional and a standalone caller can omit a path-prefix filter. Do not expose
+an unauthenticated service to untrusted callers or treat caller-supplied filters
+as credentials.
+
+Explicit opt-out retains in-process knowledge reads through the CompositeBackend
+`/skills/` route. Operational filesystem reads still use the sandbox backend.
+See [skills](skills.md) and the [extension contract](design/extension-contract.md).
+
+## Agent and service surfaces
+
+| Agent tool | Purpose |
+| --- | --- |
+| `find_skill(query?, subdomain?, mitre_id?, tag?, tactic_id?, limit=20)` | Relationship-aware discovery |
+| `load_skill(name_or_path)` | Fetch the full body/frontmatter for one skill |
+| `traverse(from_path, edge_types?, depth=2)` | Traverse related catalog records |
+
+There are no current agent tools named `get_prereqs`, `suggest_next` or
+`get_skill_chain`. The middleware injects navigation/schema guidance before model
+calls; tool retrieval is not target authorization or workflow selection.
+
+The [REST app](../packages/decepticon/decepticon/skillogy/server/app.py) serves:
+
+- `GET /v1/health`
+- `POST /v1/skills:find`, `/v1/skills:load`, `/v1/skills:traverse`
+- `POST /v1/skills:moc` for phase summaries
+- generated `/openapi.json`
+
+The old list/ingest endpoints and gRPC server are not supported. The client is
+[RestSkillogyClient](../packages/decepticon/decepticon/skillogy/client/rest.py).
+`DECEPTICON_SKILLOGY_URL` selects its service URL. In the default Compose stack,
+Skillogy uses `bolt://neo4j:7687`, the same Neo4j service as the engagement KG;
+there is no dedicated Skillogy Neo4j container.
 
 ## Source and serving catalog synchronization
 
-The current builder lives in
-[`skillogy/builder/`](../packages/decepticon/decepticon/skillogy/builder/), and
-[`catalog_sync.py`](../packages/decepticon/decepticon/skillogy/catalog_sync.py)
+The builder lives in
+[skillogy/builder](../packages/decepticon/decepticon/skillogy/builder/).
+Its schema, taxonomy inputs, emitted relations and validation code define the
+supported catalog; historical proposals are not evidence that an inferred edge
+or claimed ranking feature ships. Do not use skill counts or old version tables
+as a schema contract.
+
+[catalog_sync.py](../packages/decepticon/decepticon/skillogy/catalog_sync.py)
 reconciles the bundled generated graph. It compares the catalog digest, applies
 changes and the release marker in one transaction, and verifies the skill count.
 Managed updates retire bundle-owned records; first adoption archives unmatched
@@ -24,223 +71,11 @@ data must be preserved.
 Updating SKILL.md alone does not update serving retrieval. Audit source metadata,
 rebuild the packaged graph with the pinned STIX input, inspect identity/body
 hash changes, deploy the catalog-bearing image, and verify the serving digest
-and retrieval. Production overlays can use their own synchronization adapter;
-verify that adapter's contract separately. Neither a local build nor an old
-review report proves a live graph has synchronized.
+and retrieval. Production overlays may use another synchronization adapter;
+verify that adapter separately. A local build does not establish deployment.
 
----
-
-## Why a Graph?
-
-The legacy `SkillsMiddleware` injects all 146+ skill `name + description` strings into the system prompt at agent boot, then relies on the LLM to read this catalog and pick the right skill by keyword match. This breaks down at scale:
-
-- LLM tool selection drops to ~49 % accuracy past 100 tools.
-- Skill descriptions are flat text — no machine-readable prerequisite, composition, or RoE constraints.
-- Routing skills (e.g. `exploit/web/SKILL.md`) hand-list dozens of sub-skills; adding a sub-skill requires editing the parent.
-- "Why did the agent pick X?" is unaudits — the choice is opaque LLM reasoning.
-
-Skillogy moves the routing signal out of text and into a typed graph: phase, MITRE technique, asset type, prerequisite skill, RoE constraint, capability, and Map-of-Concepts category all become first-class nodes connected by typed edges. The agent calls `find_skill(...)`; the graph traversal returns ranked candidates with reasoning paths.
-
-The LLM stays autonomous. Its tools get smarter.
-
----
-
-## How It Works
-
-### Build time (CI)
-
-```
-SKILL.md (146+) ─┐
-MITRE STIX v19.1 ┼─► graph_builder ─► skills/.graph/skills.cypher
-AssetType seed ──┘                    (checked into repo, reviewable in PR diff)
-```
-
-A Python pipeline (`packages/decepticon/decepticon/skillogy/builder/`) parses every `SKILL.md` frontmatter, imports the pinned MITRE STIX bundle, seeds asset type / phase / agent / MoC nodes, runs an LLM pass to infer prerequisite and applicability edges, validates the result with SHACL-like Cypher rules, and emits a deterministic Cypher dump. The dump is checked into the repo so changes show up in PR diffs.
-
-### Runtime (agent)
-
-```
-SkillogyMiddleware
-  before_agent():
-    - load skills.cypher idempotently
-    - inject ~300-token MoC summary for the current phase
-  get_tools(): registers 5 tools
-```
-
-The agent's system prompt no longer carries a 4 KB catalog. It sees a tiny navigation map for its current phase (e.g. "you are in reconnaissance; concepts available: passive-recon, active-recon, web-recon, ad-recon — call `find_skill(...)` for specifics") and reaches into the graph on demand.
-
----
-
-## Node Types
-
-| Label | Purpose | Example |
-|---|---|---|
-| `:Skill` | One `SKILL.md` file | `passive-recon`, `sqli`, `kerberoasting` |
-| `:Tactic` | MITRE ATT&CK tactic | `TA0043 Reconnaissance`, `TA0005 Stealth` |
-| `:Technique` | MITRE technique | `T1190 Exploit Public-Facing App` |
-| `:SubTechnique` | MITRE sub-technique | `T1595.001 Active Scanning: IP Blocks` |
-| `:AssetType` | Engagement-asset taxonomy | `web-service`, `mysql`, `active-directory`, `aws-s3` |
-| `:Capability` | Abstract output a skill produces / consumes | `valid-credential`, `shell-on-target`, `ai-provider-access` |
-| `:Tool` | External tool | `nmap`, `sqlmap`, `bloodhound` |
-| `:Phase` | Kill-chain phase | `reconnaissance`, `initial-access`, `lateral-movement` |
-| `:MoC` | Map-of-Concepts navigation category | `web-exploitation`, `ad-attacks`, `cloud-pivot` |
-| `:Agent` | Decepticon specialist agent | `soundwave`, `recon`, `exploit`, `decepticon` |
-| `:RoEConstraint` | Explicit Rules-of-Engagement constraint | `no-data-exfil`, `scope-internal-only` |
-
----
-
-## Edge Types
-
-### From `SKILL.md` frontmatter (explicit, no LLM)
-
-| Edge | Meaning |
-|---|---|
-| `(:Skill)-[:IN_PHASE]->(:Phase)` | Skill belongs to a kill-chain phase |
-| `(:Skill)-[:IMPLEMENTS]->(:Technique \| :SubTechnique)` | MITRE mapping |
-| `(:Skill)-[:USES_TOOL]->(:Tool)` | Skill invokes an external tool |
-| `(:Skill)-[:BELONGS_TO]->(:MoC)` | Skill is in a navigation category |
-| `(:Agent)-[:CAN_USE]->(:Skill)` | Agent is the default caller |
-| `(:Tactic)-[:HAS_TECHNIQUE]->(:Technique)` | MITRE hierarchy |
-| `(:Technique)-[:HAS_SUBTECHNIQUE]->(:SubTechnique)` | MITRE hierarchy |
-| `(:AssetType)-[:HAS_SUBTYPE]->(:AssetType)` | Asset taxonomy hierarchy |
-
-### LLM-inferred (v0.1)
-
-| Edge | Meaning |
-|---|---|
-| `(:Skill)-[:REQUIRES]->(:Skill)` | Prerequisite skill (`lateral-movement-smb` requires `credential-dump-lsass`) |
-| `(:Skill)-[:APPLICABLE_TO]->(:AssetType)` | Skill targets this kind of asset (`web-recon` → `web-service`) |
-
-Every LLM-inferred edge carries `confidence`, `provenance`, `justification`, `inferred_at`, `inferrer_model` properties — every routing decision can be traced back to its evidence.
-
-### Reserved for v0.2
-
-`PRODUCES` / `CONSUMES` (capability plane), `COMPOSES_WITH`, `SUBSTITUTES`, `FORBIDDEN_BY` (RoE filtering), `IMPLEMENTS_ATLAS` (MITRE ATLAS dual-tag for AI-target skills).
-
-### Runtime bridge to the attack graph
-
-| Edge | Created by |
-|---|---|
-| `(:Service)-[:IS_OF]->(:AssetType)` | DetectionRule when a service is discovered |
-| `(:Credential)-[:REALIZES]->(:Capability)` | Post-exploit when a credential is verified |
-| `(:Agent)-[:OBTAINS]->(:Capability)` | Startup, e.g. Decepticon obtains `ai-provider-access` (T1588.007) |
-
-These bridges let `find_skill` reason over engagement state without leaving Neo4j.
-
----
-
-## Tools Exposed to the Agent
-
-All five tools are registered by `SkillogyMiddleware.get_tools()`. The graph returns pointers; bodies stay on disk.
-
-| Tool | What it does | v0.1 |
-|---|---|---|
-| `find_skill(query, phase?, asset_hint?)` | Top-K skills for the current task, with reasoning path | ✅ |
-| `load_skill(name_or_path)` | Read the full `SKILL.md` body from disk | ✅ |
-| `get_prereqs(skill_name)` | Prerequisite skills (via `REQUIRES`) | ✅ |
-| `suggest_next(last_skill)` | Likely next skill (via `COMPOSES_WITH` + capability chain) | v0.2 |
-| `get_skill_chain(target_capability)` | Backward-chained skill sequence to reach a capability | v0.2 |
-
-`find_skill` example response:
-
-```json
-[
-  {
-    "name": "web-recon",
-    "path": "/skills/standard/recon/web-recon/SKILL.md",
-    "score": 0.92,
-    "reasoning": [
-      "phase:reconnaissance",
-      "implements:T1595.002",
-      "applicable_to:web-service (specificity=1)"
-    ],
-    "prereqs_met": true,
-    "roe_compliant": true
-  }
-]
-```
-
-The reasoning path makes every routing decision auditable. RoE-violating skills are filtered out by `FORBIDDEN_BY` edges (v0.2) — they never appear in results.
-
----
-
-## MITRE ATT&CK Version
-
-Skillogy pins **MITRE ATT&CK Enterprise v19.1** (released 2026-05-12). The STIX bundle URL is hard-coded; bumping the version is an explicit PR. Two v19 changes are handled by the importer:
-
-- **Defense Evasion split** — `TA0005` was renamed to "Stealth"; new tactic `TA0112` "Defense Impairment" was introduced. STIX consumers that only check IDs silently mis-interpret. The importer applies a known-rename map.
-- **AI-adversary techniques** (relevant because Decepticon *is* an AI attacker):
-  - `T1682` — Query Public AI Services
-  - `T1683.001` — Generate Content: Written Content (mapped to Soundwave's planning artifacts)
-  - `T1588.007` — Obtain Capabilities: AI (mapped to LLMFactory)
-
-The build pipeline validates that no skill maps to a tactic ID (`TA0xxx`) — only techniques and sub-techniques. It also fails on deprecated / revoked technique mappings.
-
-For the audit that led to this work, see the project's MITRE mapping review notes (out-of-tree in the knowledge vault).
-
----
-
-## What Doesn't Change
-
-- **`SKILL.md` format** — frontmatter, body, `references/`, `scripts/` are unchanged. Plugin authors continue to write skills the same way.
-- **The 10 specialist agents** and the orchestrator. Their code is unmodified except for the middleware swap.
-- **Neo4j infrastructure** — the skill graph and the existing attack graph ([docs/knowledge-graph.md](knowledge-graph.md)) share one instance, distinguished by node labels.
-
----
-
-## Migration
-
-Skillogy ships behind a feature flag:
-
-```python
-# agent_config.yaml
-skill_backend: skills        # default — text-matching SkillsMiddleware
-# or:
-skill_backend: skillogy      # opt-in — graph-backed SkillogyMiddleware
-```
-
-Steps:
-
-1. v0.1 lands with `skills` as default; `skillogy` is opt-in.
-2. Benchmark on a 50-case failure set + NESTFUL-style multi-hop. Compare token cost, routing accuracy, latency.
-3. Once benchmark passes, flip the default to `skillogy`.
-4. After one release cycle, remove `SkillsMiddleware`.
-
-Plugin SDK authors are unaffected at every step.
-
----
-
-## Source Code Layout (planned)
-
-```
-packages/decepticon/decepticon/
-├── middleware/
-│   ├── skills.py              # legacy SkillsMiddleware (kept until deprecation)
-│   └── skillogy.py            # NEW — SkillogyMiddleware
-├── graph_builder/             # NEW — build-time pipeline
-│   ├── build_skill_graph.py   # CLI entry point
-│   ├── extract_frontmatter.py
-│   ├── import_mitre_stix.py
-│   ├── seed_asset_types.py
-│   ├── seed_phases_mocs_agents.py
-│   ├── infer_relations.py
-│   ├── validate_graph.py
-│   ├── emit_cypher.py
-│   └── emit_manifest.py
-└── tools/
-    └── skillogy_tools.py      # NEW — find_skill, get_prereqs, etc.
-
-skills/.graph/                  # NEW — build artifacts (checked in)
-├── skills.cypher
-└── manifest.json
-```
-
----
-
-## Related Docs
-
-- **[docs/design/skillogy.md](design/skillogy.md)** — full design specification (schema, Cypher, build stages, validation rules, prior art)
-- **[docs/skills.md](skills.md)** — current text-matching skill system (still production until migration completes)
-- **[docs/knowledge-graph.md](knowledge-graph.md)** — existing attack graph that Skillogy shares Neo4j with
-- **[docs/design/attack-graph-schema.md](design/attack-graph-schema.md)** — attack graph label conventions Skillogy follows
-- **[docs/agents.md](agents.md)** — the 10 specialist agents represented as `:Agent` nodes
+The normal build entry points are `make audit-skills`, `make build-skill-graph`
+and `make check-skill-graph`; inspect their current prerequisites before running.
+Embedding/backfill behavior and fallback search depend on the serving revision
+and configured provider credentials, not on the presence of an embedding flag
+alone.

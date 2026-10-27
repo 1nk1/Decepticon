@@ -1,22 +1,8 @@
-"""Backward-compatibility shim layer for the core/framework/sdk split.
+"""Retained legacy import shims for the core/framework/SDK split.
 
-Per spec §7.3 of
-``docs/superpowers/specs/2026-05-23-core-framework-sdk-split-design.md``,
-this module ships the one-release migration shim:
-
-  * Legacy import paths (``decepticon.core.schemas``,
-    ``decepticon.llm.models``, ``decepticon.tools.research.graph``,
-    ``decepticon.plugin_loader``, ``decepticon.core.config``,
-    ``decepticon.core.logging``) keep working via the per-file
-    re-export modules in Phase 1.
-  * ``register_legacy_imports()`` (default-on, opt-out via
-    ``DECEPTICON_NO_COMPAT=1``) raises ``DeprecationWarning`` once on
-    first call to surface the migration list in test logs.
-
-The shim is REMOVED at ``2.0.0``. Phase 2 of the redesign rewrites
-all internal framework call sites to import from
-``decepticon_core.*`` directly; downstream consumers we don't know
-about are the audience for this shim layer.
+The planned 2.0.0 removal did not occur. New integrations should import core
+contracts directly. Registration emits a migration warning; DECEPTICON_NO_COMPAT
+suppresses that warning and does not remove the per-file re-export modules.
 """
 
 from __future__ import annotations
@@ -49,8 +35,7 @@ def register_legacy_imports() -> None:
 
     Emits a single ``DeprecationWarning`` per process listing the
     legacy → canonical path mapping so test logs surface the migration
-    list. The legacy paths keep working until ``2.0.0`` — the warning
-    is informational, not blocking.
+    list. The legacy paths remain available; the warning is informational, not blocking.
     """
     global _REGISTERED
     if _REGISTERED:
@@ -59,7 +44,7 @@ def register_legacy_imports() -> None:
         _REGISTERED = True
         return
 
-    lines = ["Decepticon Phase 1 compat shims active. Migrate the following paths before 2.0.0:"]
+    lines = ["Decepticon Phase 1 compat shims active. Prefer the following canonical paths:"]
     for legacy, canonical in _LEGACY_PATH_NOTES:
         lines.append(f"  - {legacy}  ->  {canonical}")
     warnings.warn(

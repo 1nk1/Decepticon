@@ -1,8 +1,13 @@
 # Migration: `decepticon` 0.0.x → core/framework/sdk split
 
+This guide records the completed split. Current source retains the legacy shims
+and aggregate PluginBundle; earlier removal targets were not executed at 2.0.0.
+Use canonical imports in new integrations and follow [RELEASE.md](../../RELEASE.md)
+for current compatibility policy.
+
 The Decepticon OSS package split into three coordinated wheels in the
 post-0.0.x cycle. The redesign is documented in full at
-[`docs/superpowers/specs/2026-05-23-core-framework-sdk-split-design.md`](../superpowers/specs/2026-05-23-core-framework-sdk-split-design.md);
+[the current extension contract](../design/extension-contract.md);
 this guide is the consumer-facing migration list.
 
 ## What changed
@@ -33,7 +38,7 @@ Pin-and-install advice:
 | End-user running the stack | unchanged — Docker images bundle all three | identical UX |
 | Library consumer (commercial product, downstream framework) | `pip install decepticon` | composes agents, ships custom bundles |
 | Plugin author (community / commercial) | `pip install decepticon-sdk` | protocols + scaffolding + fixtures |
-| Type-check-only context | `pip install decepticon-core` | zero runtime deps; cheapest pin |
+| Type-check-only context | `pip install decepticon-core` | no framework runtime dependency |
 
 ## Import-path mapping
 
@@ -60,7 +65,8 @@ The framework's `decepticon.agents.middleware_slots` module keeps the
 `DEFAULT_SLOT_FACTORIES` and `skills_sources_for()` exports (those
 need langchain at import time, so they stay framework-side).
 
-The shims are **removed at `2.0.0`** — migrate before then.
+The shims are still present in current source. Their planned removal at 2.0.0
+did not occur. Migrate to canonical imports; no new removal version is promised here.
 
 ## New public surface for plugin authors
 
@@ -197,10 +203,10 @@ Six plugin kinds are supported: `tool`, `middleware`, `agent`,
 `callback`, `skill`, `prompt`. Runnable examples per kind live under
 [`packages/decepticon-sdk/examples/`](../../packages/decepticon-sdk/examples/).
 
-## Removal timeline
+## Retained compatibility surfaces
 
-| Cleanup | Earliest version |
+| Surface | Current source status |
 |---------|------------------|
-| `decepticon.compat` shims (legacy import paths) | `2.0.0` |
-| `PluginBundle` aggregate shape (replaced by focused contributions) | `2.0.0` |
-| `decepticon.agents.middleware_slots.MiddlewareSlot` re-export | `2.0.0` |
+| `decepticon.compat` shims (legacy import paths) | Retained, deprecated |
+| `PluginBundle` aggregate shape | Retained; focused contributions are separate types |
+| `decepticon.agents.middleware_slots.MiddlewareSlot` re-export | Retained; prefer the core contract import |

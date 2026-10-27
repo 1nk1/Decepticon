@@ -1,239 +1,122 @@
-# RoE Machine Enforcement
+# RoE machine enforcement
 
-> How the machine-readable Rules of Engagement block out-of-scope and
-> forbidden tool calls at the moment the agent tries to run them.
+The operator/client owns reviewed `plan/roe.json`. Soundwave can prepare a
+separate candidate; it cannot rewrite that protected scope. See
+[provisioning](../roe-provisioning.md) and the
+[extension contract](../design/extension-contract.md).
 
-## TL;DR
+This guide follows the current
+[MachineEnforcement schema/evaluators](../../packages/decepticon-core/decepticon_core/types/roe.py)
+and [RoEGuardrailMiddleware](../../packages/decepticon/decepticon/middleware/roe.py).
+Some source comments and older design notes describe an audit/warn/enforce
+migration. Those comments do not describe the current executable policy.
 
-The human-readable RoE (`in_scope`, `out_of_scope`, `prohibited_actions`)
-that an authorized operator provisions defines the reviewed scope. Soundwave
-can draft a separate candidate but cannot write the protected RoE; see
-[operator provisioning](../roe-provisioning.md). A
-separate, OPTIONAL `machine_enforcement` block inside the same
-`roe.json` drives the **RoE-enforcement middleware**, which evaluates
-every gated tool call against allowlist + denylist + forbidden-command
-rules at tool-call time.
+## Missing configuration and legacy modes
 
-The block lives at `<workspace>/plan/roe.json`. When it is **absent**,
-the middleware runs in audit-only mode: every gated tool call is logged
-to the [audit ledger](./audit-ledger.md) but nothing is ever refused.
+Gated tool calls are refused with `ROE_CONFIG_MISSING` when the workspace is
+unset, the RoE is missing/unreadable/malformed, or `machine_enforcement` is not
+an object. They do not fall back to audit-only execution.
 
-Source of record:
-[`types/roe.py`](../../packages/decepticon-core/decepticon_core/types/roe.py)
-(schema + evaluator) and
-[`middleware/roe.py`](../../packages/decepticon/decepticon/middleware/roe.py)
-(the gate).
+`MachineEnforcement` has no `mode` field. A legacy `mode: audit`, `warn`, or
+`enforce` key is ignored when parsing the block; it does not disable enforcement
+or select a warning-only path. Remove reliance on these obsolete mode values
+when upgrading. Operator authorization remains required; there is no separate Red approval marker.
 
-## Enforcement modes
+An empty object is a configured block with default rules. An empty `in_scope`
+list does not itself deny all targets: after default/explicit denials, unmatched
+targets are allowed by the evaluator. Provision an explicit reviewed allowlist;
+do not confuse syntactically present configuration with adequate scope.
 
-`mode` is one of three values; the default is `audit` for backward
-compatibility (an engagement that never opts in keeps running).
+## Supported fields
 
-| Mode | Behavior on a refused call |
-|------|----------------------------|
-| `audit` | Logged, allowed to proceed. **Default.** |
-| `warn` | Logged; a `[ROE_WARN]` `ToolMessage` is prepended to the tool's output so the model sees it failed RoE, but the call still executes. |
-| `enforce` | Logged; the call short-circuits with a `[ROE_REFUSED]` `ToolMessage`. No bytes leave the sandbox. |
+| Field | Default | Runtime use |
+| --- | --- | --- |
+| `in_scope` | empty list | A nonempty list requires a matching target |
+| `out_of_scope` | empty list | Denials take precedence over allows |
+| `forbidden_destinations` | empty list | Additional denied hosts/IPs/CIDRs |
+| `forbidden_command_patterns` | empty list | Regex refusals on literal command text |
+| `allow_cloud_metadata` | false | Allows omission of built-in IMDS denials |
+| `allow_sensitive_tlds` | false | Controls default `.gov`, `.mil`, `.edu`, `.int` denial |
+| `max_concurrent_connections` | null | Bounds concurrent gated tool invocations using middleware semaphores |
+| `min_inter_request_delay_ms` | 0 | Spaces tool invocation cadence, with optional extra jitter |
+| `authorized_windows` | empty list | When nonempty, calls need a matching time interval |
+| `blackout_windows` | empty list | Calls within a blackout interval are refused |
 
-The mode parses case-insensitively; an unrecognized string falls back to
-`audit` rather than erroring.
+Concurrency and cadence limits apply to middleware calls, not to every socket or
+HTTP request created inside a shell command. They are no longer mere advisory
+schema fields. Window entries accept `{ "start": "<ISO datetime>", "end":
+"<ISO datetime>" }` or a two-element pair; intervals include the start and exclude
+the end. Invalid or nonpositive intervals are skipped by the parser, so review
+materialized rules rather than assuming every authored interval was accepted.
 
-## The `machine_enforcement` block
+Scope lists accept strings or `{ "target": "...", "type": "..." }` objects.
+The auto kind infers networks, domain globs or literal hosts. `*` matches one
+DNS label, not the apex or arbitrary deeper descendants; `?` matches one
+character. Host matching is case/trailing-dot tolerant. Target normalization is
+host-scoped: a URL path or port is not an independent network permission.
 
-Fields and defaults (`MachineEnforcement`):
+## Decisions and precedence
 
-| Field | Type | Default | Meaning |
-|-------|------|---------|---------|
-| `mode` | `audit` \| `warn` \| `enforce` | `audit` | Enforcement mode (above). |
-| `in_scope` | list of scope rules | empty | Allowlist. When non-empty, a target must match one entry. |
-| `out_of_scope` | list of scope rules | empty | Denylist. Takes precedence over `in_scope`. |
-| `forbidden_destinations` | list of strings | empty | Extra denied hosts/IPs/CIDRs, merged with the default IMDS list. |
-| `forbidden_command_patterns` | list of regex strings | empty | Commands matching any pattern are refused. |
-| `allow_cloud_metadata` | bool | `false` | When `false`, the default cloud-metadata denylist is appended. |
-| `max_concurrent_connections` | int or null | `null` | Carried in the schema; advisory. |
-| `min_inter_request_delay_ms` | int | `0` | Carried in the schema; advisory. |
+For a gated call the middleware checks the `.abort` marker, configured rules,
+and testing windows, then evaluates the tool's target arguments or literal shell
+command. Target denials include forbidden destinations, sensitive TLDs,
+`out_of_scope`, then a nonempty `in_scope` allowlist. Command regex refusals
+precede parsed shell targets. Invalid command regexes are skipped.
 
-`from_dict` reads the block; each scope list is parsed by `_parse_rules`,
-which accepts **either** a bare string (`"*.acme.com"`) **or** an object
-(`{"target": "10.0.0.0/24", "type": "cidr"}`). Any other shape is
-skipped.
+Built-in IMDS denials are `169.254.169.254`, `fd00:ec2::254`,
+`metadata.google.internal`, `metadata.azure.com`, and `100.100.100.200`.
+`allow_cloud_metadata: true` removes these defaults, not explicit denials.
 
-### Scope rules and `resolved_kind`
+The current `GATED_TOOL_NAMES` set is:
 
-A `ScopeRule` has a `pattern` and a `kind` (default `"auto"`). When the
-kind is `"auto"`, `resolved_kind()` infers it from the pattern shape:
-
-- parses as an IP network → `cidr`
-- contains `*` or `?` → `domain-glob` (`*` matches one label, `?` matches
-  one character)
-- a bare IP literal → `ip`
-- otherwise → `host` (literal, case-insensitive match)
-
-### Cloud-metadata defaults
-
-When `allow_cloud_metadata` is `false` (the default), five IMDS endpoints
-are appended to the forbidden-destinations list:
-
-```
-169.254.169.254
-fd00:ec2::254
-metadata.google.internal
-metadata.azure.com
-100.100.100.200
+```text
+bash, bash_output, bash_kill, http_request, proxy_send_request,
+browser_action, web_fetch, web_search, detect_tech_stack
 ```
 
-Setting `allow_cloud_metadata: true` drops these defaults and leaves only
-the operator's explicit `forbidden_destinations`.
+`web_search` is target-exempt OSINT but still passes configuration/time/cadence
+checks. Other network tools use their registered URL/argument extractors.
+`bash_status` is outside this set. A custom `gated_tools` set changes coverage;
+a tool outside the active set passes through the guardrail.
 
-## How a target is evaluated
+Refusals return an error ToolMessage with `[ROE_REFUSED]`; the handler is not
+called. Decisions and throttle/abort events are written through the configured
+[audit sink](audit-ledger.md). Sink errors are logged and do not stop execution.
 
-`evaluate_target` runs in this precedence order (denylist wins):
+## Example machine block
 
-1. **Forbidden destinations** (operator list + IMDS defaults) → refuse
-   with `FORBIDDEN_DESTINATION`.
-2. **Out-of-scope** entries → refuse with `OUT_OF_SCOPE`.
-3. **In-scope** entries (only checked when `in_scope` is non-empty):
-   - a match → allow with `IN_SCOPE`;
-   - no match → refuse with `NOT_IN_SCOPE` (risk `medium`).
-4. When `in_scope` is empty, an unmatched target is allowed by default.
-
-### Trailing-dot normalization
-
-A trailing dot is DNS-equivalent (`host.` resolves identically to
-`host`). The matcher strips a trailing dot from **both** the rule pattern
-and the target before comparing. Without this, the FQDN form
-(`metadata.google.internal.`) or the IMDS IP written as
-`169.254.169.254.` slipped past the forbidden-destination and
-out-of-scope checks — a verified scope bypass that enabled
-cloud-credential exfil in enforce mode.
-
-## How a command is evaluated
-
-`evaluate_command` runs each `forbidden_command_patterns` regex against
-the literal command string with `re.search`. A match refuses with
-`FORBIDDEN_COMMAND`. Patterns that fail to compile are skipped (the
-evaluator never raises on a bad regex). Patterns are matched against the
-command string, not the full tool-arguments dict.
-
-## What gets gated
-
-The middleware only evaluates tool calls whose name is in
-`GATED_TOOL_NAMES` (`decepticon/middleware/roe.py`):
-
-```
-bash
-bash_output
-bash_kill
-http_request
-proxy_send_request
-browser_action
-```
-
-Any other tool call passes through as an allow-default and is not
-recorded. For a gated call, the middleware reads the engagement RoE from
-`state["workspace_path"]/plan/roe.json` **per iteration**, so an
-operator can hot-edit the RoE without restarting the run. It extracts the
-intended targets from the command text (best-effort regex extraction over
-~30 kill-chain tools), evaluates the command regexes first, then each
-target, and records the decision regardless of mode.
-
-If `workspace_path` is unset, the RoE fails open to a default
-`MachineEnforcement()` — i.e. audit-only, no rules — and a malformed or
-unreadable `roe.json` logs a warning and degrades the same way.
-
-## Worked example — enforce mode
-
-`<workspace>/plan/roe.json`:
+This is the machine block within a complete, operator-provisioned RoE, not a
+complete planning-document schema:
 
 ```json
 {
-  "in_scope": ["*.acme.com", "10.10.0.0/24"],
-  "out_of_scope": ["billing.acme.com"],
   "machine_enforcement": {
-    "mode": "enforce",
-    "in_scope": ["*.acme.com", "10.10.0.0/24"],
-    "out_of_scope": ["billing.acme.com"],
-    "forbidden_command_patterns": ["\\bhydra\\s.*-t\\s*[5-9]\\d+"]
+    "in_scope": ["*.example.test", "192.0.2.0/24"],
+    "out_of_scope": ["billing.example.test"],
+    "forbidden_command_patterns": ["\\bhydra\\s.*-t\\s*[5-9]\\d+"],
+    "max_concurrent_connections": 2,
+    "min_inter_request_delay_ms": 250
   }
 }
 ```
 
-With this in place:
+`app.example.test` matches the allowlist; the apex and deeper names do not.
+`billing.example.test` is refused even though it matches the wildcard.
+A command targeting another address is refused when parsed by the guardrail.
+The real target authorization comes from the operator, not these example values.
 
-- `curl https://app.acme.com/` → **allow** (`IN_SCOPE`, matches
-  `*.acme.com`).
-- `curl https://billing.acme.com/` → **refuse** (`OUT_OF_SCOPE`); the
-  out-of-scope denylist wins over the in-scope glob.
-- `curl http://169.254.169.254/latest/meta-data/` → **refuse**
-  (`FORBIDDEN_DESTINATION`); the IMDS IP is on the default denylist
-  because `allow_cloud_metadata` defaults to `false`.
-- `nmap 192.0.2.10` → **refuse** (`NOT_IN_SCOPE`); a target outside the
-  allowlist, while `in_scope` is non-empty.
-- `hydra -t 64 ssh://app.acme.com` → **refuse** (`FORBIDDEN_COMMAND`);
-  the command matches the >50-thread Hydra pattern before any target is
-  evaluated.
+## Network enforcement and limits
 
-In each refusal the agent receives a `[ROE_REFUSED]` `ToolMessage`
-explaining the block and is told to change target/technique rather than
-re-issue the command. The PASS for `app.acme.com` and every refusal above
-are written to the audit ledger.
+The middleware attempts to compile and provision a separate sandbox egress
+policy from the same rules. `DECEPTICON_EGRESS_DISABLE=1` opts out. Provisioning
+is best-effort: exceptions are logged and a later turn can retry. A successful
+model/tool call therefore does not prove nftables/DNS rules were installed.
+Inspect the daemon's reported policy state and exercise the relevant network
+boundary before claiming confinement.
 
-## Two enforcement points
-
-RoE enforcement is layered (defense-in-depth), and the names reflect it:
-
-1. **RoE Guardrail Middleware** (parser, this document) — reads the
-   literal command text, extracts the target hosts, and refuses early in
-   `enforce` mode. This is a **fast-fail UX signal**: it tells the model
-   before a wasted round-trip with a clear `[ROE_REFUSED]` reason. It is
-   a guardrail, not the authoritative boundary — a determined agent can
-   hide a target behind variable indirection (`H=evil; ping "$H"`),
-   command substitution, encodings, or out-of-band DNS the parser never
-   sees.
-2. **RoE Egress Guardrail** (network) — compiles the *same*
-   `machine_enforcement` block into a sandbox nftables connect-allowlist
-   + DNS allowlist (`decepticon.middleware.egress` →
-   `decepticon.sandbox_kernel.egress`). A packet to an out-of-scope host
-   cannot leave the sandbox even when the parser missed the target. One
-   scope definition, two enforcement points. **On by default** for
-   `enforce` mode — no extra config; the operator can opt out with
-   `DECEPTICON_EGRESS_DISABLE=1`. The sandbox discovers its own
-   management subnet locally (from `/proc/net/route`, needing no `ip`
-   binary) so a scope rule can never sever the agent↔management (Neo4j /
-   daemon) link.
-
-The parser's `[ROE_REFUSED]` short-circuit happens before the tool
-handler runs, so in the common case no bytes leave the sandbox. The
-guarantee that they *cannot* leave for an out-of-scope destination is
-the egress layer's job.
-
-## Limitations
-
-- Target extraction in the parser layer is fail-closed but best-effort:
-  any host/IP/CIDR-shaped command token is treated as a candidate target
-  unless it is a known non-target, so it errs toward **more** targets
-  than the command reaches (spurious target → refused, operator-
-  overridable), never toward dropping a real one. The authoritative
-  boundary for what a packet can actually reach is the egress layer
-  above, not the command parse.
-- `max_concurrent_connections` and `min_inter_request_delay_ms` are
-  carried in the schema but are advisory — they are not throttled by this
-  middleware.
-- Enforcement covers the six `GATED_TOOL_NAMES` tools by default — the three
-  bash tools plus `http_request`, `proxy_send_request`, and `browser_action`.
-  A caller may pass a custom `gated_tools` set to the middleware to narrow or
-  extend that list; any tool name outside the active set passes through as an
-  allow-default and is not recorded.
-
-## See also
-
-- [Audit Ledger](./audit-ledger.md) — where every RoE decision is
-  recorded and how to verify the chain.
-- [Security Controls](./security-controls.md) — the full runtime-guard
-  knob/default table.
-- [HITL Approval](./hitl-approval.md) — the operator-approval gate that
-  sits above RoE; operator approval cannot override an RoE refusal.
-- [Threat Model](./decepticon-threat-model.md) — Decepticon's own attack
-  surface.
-- [Engagement Workflow](../engagement-workflow.md) — where `plan/roe.json`
-  comes from.
+Shell target extraction is best-effort and can miss indirection, encodings or
+traffic initiated by an invoked program. Parser refusal prevents that handler
+from running; it cannot guarantee that every out-of-scope packet is blocked.
+Network policy, topology, daemon privileges and any trusted native transport
+must be assessed separately. An operator's HITL allow decision does not disable
+the RoE guardrail.

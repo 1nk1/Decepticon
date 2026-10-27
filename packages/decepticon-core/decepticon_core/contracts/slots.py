@@ -56,7 +56,7 @@ class MiddlewareSlot(StrEnum):
     PROMPT_CACHING = "prompt-caching"
     PATCH_TOOL_CALLS = "patch-tool-calls"
 
-    # ── Compat alias (removed at 2.0.0) ──
+    # ── Retained compatibility alias; no removal version is assigned ──
     # The slot was renamed ``ROE_ENFORCEMENT`` → ``ROE_GUARDRAIL`` when
     # enforcement became genuinely layered (advisory command-parse +
     # authoritative sandbox egress); the parser is one guardrail among

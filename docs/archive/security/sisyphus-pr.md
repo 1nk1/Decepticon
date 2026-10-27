@@ -1,5 +1,7 @@
 # Sisyphus PR — security hardening + Offensive Vaccine completion
 
+> Historical security-PR narrative, not a current control reference. Its audit/warn modes and claim of an implemented closed Offensive Vaccine loop are superseded. Use [current RoE enforcement](../../security/roe-machine-enforcement.md) and [Blue integration](../../features/blue-cell.md).
+
 > Massive PR addressing all six tiers from the gap analysis:
 > prompt-injection defense, RoE audit log, per-engagement Neo4j
 > scoping, sandbox hardening, three new specialist agents, and the
@@ -40,7 +42,7 @@ the fallback `label = kind if kind in _ALL_NODE_LABELS else kind`
 interpolated caller-supplied labels into the Cypher template. Now
 raises `ValueError` on unknown kinds.
 
-[docs/security/neo4j-hardening.md](./neo4j-hardening.md)
+[docs/security/neo4j-hardening.md](../../security/neo4j-hardening.md)
 
 ### Tier 1 — Prompt-injection defense (commit 3)
 
@@ -63,7 +65,7 @@ agent reads from the network or workspace.
   is set: every `risk="high"` event appended with SHA-256 fingerprint,
   match excerpts, and engagement context.
 
-[docs/security/prompt-injection-defense.md](./prompt-injection-defense.md)
+[docs/security/prompt-injection-defense.md](../../security/prompt-injection-defense.md)
 
 ### Tier 2 — RoE enforcement + tamper-evident audit (commit 4)
 
@@ -132,7 +134,7 @@ every write. The web `engagements/[id]/graph` route's
 `WHERE n.engagement = $engagement` filter now returns real data
 instead of empty.
 
-[docs/security/decepticon-threat-model.md](./decepticon-threat-model.md) —
+[docs/security/decepticon-threat-model.md](../../security/decepticon-threat-model.md) —
 full STRIDE walk: three trust planes, four bridges, per-asset tables
 covering Neo4j, LiteLLM, Sandbox, LangGraph, Web dashboard, Plugin
 author surface. Five highest-impact compromise chains ranked by
@@ -149,7 +151,7 @@ realistic damage.
   within the container.
 - `mem_limit: 4g` — caps a runaway fuzzer at 4 GiB.
 
-[docs/security/sandbox-isolation.md](./sandbox-isolation.md) documents
+[docs/security/sandbox-isolation.md](../../security/sandbox-isolation.md) documents
 the per-engagement-container design (named
 `decepticon-sandbox-<slug>`, per-engagement Docker network,
 per-acquire SANDBOX_TOKEN rotation, archive-on-release lifecycle)
@@ -190,7 +192,7 @@ the legal coverage that makes paid phishing engagements possible.
   Pass-the-Hash, web shell drop, PowerShell download cradle,
   password spray, aggressive nmap, mimikatz, curl-piped-to-bash.
 
-[docs/features/blue-cell.md](../features/blue-cell.md) walks the
+[docs/features/blue-cell.md](../../features/blue-cell.md) walks the
 architecture, the rule schema, the knowledge-graph integration
 (`DetectionFired` node + `DETECTED`/`USES_RULE` edges), the
 adaptive-feedback loop spec, and the Defense Brief format.
@@ -242,7 +244,7 @@ re-enable prior behavior:
 
 ## Reviewer checklist
 
-- [ ] Read [docs/security/sisyphus-pr.md](./sisyphus-pr.md) (this file).
+- [ ] Read [docs/security/sisyphus-pr.md](sisyphus-pr.md) (this file).
 - [ ] Run `pytest packages/decepticon/tests/unit/research/ packages/decepticon/tests/unit/middleware/test_roe.py packages/decepticon/tests/unit/middleware/test_untrusted_output.py packages/decepticon/tests/unit/blue_cell/` — expect 296 pass, 0 fail.
 - [ ] Verify Tier 4a hardening: `docker compose exec neo4j cypher-shell -u neo4j -p "$NEO4J_PASSWORD" "CALL apoc.cypher.runFile('file:///etc/passwd')"` should fail.
 - [ ] Verify Tier 3 sandbox hardening: `docker exec decepticon-sandbox cat /proc/1/status | grep CapEff` should show a tiny set, NOT 0x000001ffffffffff.

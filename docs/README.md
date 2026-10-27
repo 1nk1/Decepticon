@@ -48,6 +48,7 @@ Business processes use `WORKFLOW.md` under the framework workflow catalog.
 | `clients/cli/` | Interactive Ink terminal UI |
 | `clients/shared/` | Shared client libraries |
 | `clients/web/` | Optional web dashboard |
+| `skills/` | External coding-agent wrapper skills; separate from runtime Skillogy knowledge |
 | `benchmark/` | Benchmarks, including the canonical `benchmark.terminal_bench` adapter |
 | `containers/`, `config/` | Container builds and runtime configuration |
 | `scripts/` | Installer and development utilities |
@@ -72,3 +73,7 @@ retired Electron package and remain supported.
 
 Retain ADRs and release/security evidence. Move or remove historical material
 only after checking its callers and updating maintained links.
+
+The [2026-10-27 main-content audit](verification/2026-10-27-main-content-audit.md)
+records source-backed corrections and its verification scope. It is not a claim
+that every historical artifact or technical skill was requalified.

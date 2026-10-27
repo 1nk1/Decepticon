@@ -1,5 +1,7 @@
 # Decepticon Context Engineering Architecture
 
+> Historical pre-HTTP/Python-CLI design. DockerSandbox, StreamingEngine and the /compact workflow below are retired. Use [current architecture](../../architecture.md), [runtime controls](../../runtime-controls.md), and [skills](../../skills.md).
+
 > Decepticon 에이전트 프레임워크의 컨텍스트 엔지니어링 설계 문서.
 > 적용 스킬: context-fundamentals, context-optimization, context-compression,
 > tool-design, filesystem-context, deep-agents-core, deep-agents-memory
