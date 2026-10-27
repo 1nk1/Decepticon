@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import { stripVTControlCharacters } from "node:util";
 import { WebSocket } from "ws";
 
-test("web terminal boots the real CLI and renders its connected composer", { timeout: 120_000 }, async () => {
+test("web terminal boots the real CLI and persists PTY input without starting a run", { timeout: 120_000 }, async () => {
   const root = await mkdtemp(join(tmpdir(), "terminal-cli-boot-"));
   await mkdir(join(root, "workspace", "loader-test", "plan"), { recursive: true });
   await writeFile(join(root, "workspace", "loader-test", "plan", "roe.json"), JSON.stringify({ machine_enforcement: { in_scope: ["example.com"] } }));
@@ -60,10 +60,10 @@ test("web terminal boots the real CLI and renders its connected composer", { tim
       socket!.on("message", data => {
         output += data.toString();
         const plain = stripVTControlCharacters(output);
-        if (plain.includes("connected") && plain.includes("Enter send")) { clearTimeout(timer); resolve(plain); }
+        if (plain.includes("loader-test") && plain.includes("Enter send")) { clearTimeout(timer); resolve(plain); }
       });
       socket!.once("error", error => { clearTimeout(timer); reject(error); });
-      socket!.once("close", () => { clearTimeout(timer); reject(new Error(stripVTControlCharacters(output).slice(-1200))); });
+      socket!.once("close", (code, reason) => { clearTimeout(timer); reject(new Error(`Terminal closed (${code}: ${reason.toString()}): ${stripVTControlCharacters(output).slice(-1200) || serverOutput}`)); });
     });
     assert.match(text, /loader-test/);
     assert.doesNotMatch(text, /SyntaxError|Unexpected token|EACCES/);
