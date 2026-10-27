@@ -843,7 +843,7 @@ Schema-additive. CI build produces embeddings; runtime middleware registers `rec
 | `packages/decepticon/decepticon/skillogy/builder/` | **New** package — CI-time graph compiler. Lives next to the runtime package since it produces the artifact the runtime consumes. |
 | `packages/decepticon/decepticon/tools/skillogy.py` | **New** — agent tool factories that wrap the `SkillogyClient`. |
 | `packages/decepticon/decepticon/skill_audit/` | Phase 0 validator package — **DONE (PR #519)**. Used by CI as `make audit-skills-strict`. |
-| `docs/skill-schema.md`, `docs/skill-cleanup-process.md`, `docs/skill-cleanup-progress.md` | Phase 0 docs — **DONE (PR #519)**. |
+| `docs/skill-schema.md`, `docs/archive/skill-cleanup/process.md`, `docs/archive/skill-cleanup/progress.md` | Phase 0 docs — **DONE (PR #519)**. |
 | `CONTRIBUTING.md` "Authoring Skills" section | **DONE (PR #519)**. |
 | `docs/design/skillogy.md` | Annotated with a "Superseded" notice pointing to `docs/design/skillogy-brain-redesign.md`; kept in tree for history and diff review. |
 
