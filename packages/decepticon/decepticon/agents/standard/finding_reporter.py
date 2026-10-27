@@ -69,7 +69,7 @@ def create_finding_reporter(
         tools=tools,
         middleware=[
             *middleware,
-            StepBudgetMiddleware(total_steps=recursion_limit or _RECURSION_LIMIT),
+            StepBudgetMiddleware(total_steps=recursion_limit or 150),
         ],
         name=_ROLE,
     ).with_config(
