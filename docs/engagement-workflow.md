@@ -9,23 +9,24 @@ Use `/mode` for a searchable selector. Blue monitoring continues independently o
 
 ## Start an engagement
 
-The CLI starts in Red. Creating a new engagement asks for its name and the target
-web URL. Submitting the authorized target automatically creates `plan/roe.json`
-and its direct approval; the first Red request can execute without a prewritten
-scope, `/scope import`, `/mode red approve` or any Plan documents. The generated
-scope uses the same seven-day direct testing window as prod. Current host-level
-URL enforcement supports exact root HTTP/HTTPS URLs on their default ports; paths,
-custom ports, credentials, queries, fragments and wildcards are rejected rather
-than silently broadening the target.
+The CLI starts in Red. Creation asks for a name, in-scope targets and exclusions.
+The launcher normalizes targets and shows the exact resulting scope for review.
+Passive discovery may offer suggestions; only operator-selected additions join
+the scope. It writes `plan/roe.json` with machine rules and a seven-day authorized
+window. Targets are network assets; host normalization does not enforce a URL
+path or port as a separate permission.
 
-Saved engagements retain their existing scope and approval. Creation never
-replaces an existing workspace. For legacy name-only workspaces with missing
-scope, use [operator RoE provisioning](roe-provisioning.md); no engagement or
-volume reset is needed. Changing scope still invalidates the old approval.
+Creation is the scope authorization input. There is no `.red-approved` marker,
+`/mode red approve` command or required Plan bundle. Saved scopes are not
+rewritten by creation. For an existing workspace with missing scope, use the
+create-only [operator importer](roe-provisioning.md). Changing an existing
+scope remains a separate operator task; switching mode does not broaden it.
 
-The web dashboard has its own creation form for the target and authorization
-reference. A direct approved RoE allows execution without Soundwave or the seven
-optional planning documents. Scope changes invalidate the old approval.
+The web form has its own root-HTTP(S)-URL/default-port or IP/CIDR validator and
+writes a minimal machine scope. Its generated document does not include the
+launcher's seven-day window. Do not describe the CLI and web creation schemas
+as identical. The runtime refuses missing machine configuration regardless of
+which surface created the thread.
 
 ## Optional Plan
 
@@ -48,8 +49,8 @@ for review and seven planning documents:
 
 Publication validates these seven documents plus the operator-provisioned RoE
 and records a draft-ready digest. It leaves the operator in Plan. Publication
-neither approves Red nor starts execution. Review and approve the current scope,
-then explicitly select Red when ready. The execution orchestrator creates OPPLAN;
+neither changes scope authorization nor starts execution. Review the current
+scope and explicitly select Red when ready. The execution orchestrator creates OPPLAN;
 it can do so directly from approved scope without this optional bundle.
 See [planning workflow](design/planning-workflow.md).
 
@@ -79,7 +80,7 @@ negative results, untested coverage and limitations.
 Use `/mode plan`, `/mode red`, or `/mode blue` to select a conversation. Mode
 threads preserve their messages and checkpoints. Switching an active run waits
 for its pause acknowledgement; `/resume` continues a paused conversation.
-Authorization remains checked on Red submission/resume. Blue needs a connected
+The machine scope remains enforced on gated tool calls. Blue needs a connected
 local sensor; the broader automated attack/defend/verify loop remains planned.
 See [Blue Cell](features/blue-cell.md) and [Offensive Vaccine](offensive-vaccine.md).
 

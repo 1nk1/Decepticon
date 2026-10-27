@@ -86,13 +86,16 @@ The [engagement session contract](engagement-session-contract.md) defines shared
 thread/run identity, lifecycle operations and observation cursors for client
 adapters.
 
-Red execution needs operator-approved scope. Plan is optional and is entered
+Red execution needs operator-provided machine scope. Engagement creation is
+the trusted authorization input; current main has no separate Red approval
+marker or `/mode red approve` command. Missing machine configuration is refused.
+Plan is optional and is entered
 explicitly; it is not an execution prerequisite. An operator provisions canonical
 `plan/roe.json`; Soundwave reads it and may draft a separate candidate but cannot
 rewrite it. The seven optional planning documents use that approved scope.
 Publication validates the eight-document bundle (RoE plus seven documents), emits
-`planning_draft_ready`, and leaves the operator in Plan. It neither grants Red
-approval nor switches modes automatically. OPPLAN is created by the execution
+`planning_draft_ready`, and leaves the operator in Plan. It neither changes
+scope authorization nor switches modes automatically. OPPLAN is created by the execution
 orchestrator, not Soundwave.
 
 Clients translate their launch context into trusted configuration and preserve
@@ -110,7 +113,7 @@ one planner name; unknown roles default to execution, preserving the approval
 gate. Declaring a planning/observation role is a trusted plugin decision and must
 match its actual capabilities.
 
-Operator scope writes and approvals must stay outside agent tools. A validation
+Operator scope writes must stay outside agent tools. A validation
 endpoint may check a candidate without writing authority or approval state.
 See [engagement operation](../engagement-workflow.md) and
 [operator RoE provisioning](../roe-provisioning.md) for concrete commands.
@@ -154,7 +157,7 @@ a deployment and SaaS image versions are independent of OSS package versions.
    and independent verification by another role.
 4. **New client adapter:** map operator launch choices to registered IDs; retain
    the pinned workflow across resume. Exercise direct approved Red without Plan,
-   missing/invalid approval rejection, explicit Plan publication without a mode
+   missing/invalid machine-scope rejection, explicit Plan publication without a mode
    switch, cross-purpose rejection and conflicting resume selection. Capture the
    actual client surface and resulting run configuration/checkpoint.
 

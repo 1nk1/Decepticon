@@ -42,7 +42,7 @@
 
 ## OSS 에이전트의 핵심 기능
 
-- **이름과 target URL 입력 후 바로 Red 실행:** CLI에서 인게이지먼트 이름과 대상 웹 URL을
+- **범위 검토 후 바로 Red 실행:** CLI에서 인게이지먼트 이름과 대상·제외 범위를
   입력하면 RoE와 직접 승인이 자동으로 생성되고 Red / Decepticon으로 진입합니다.
   사전에 scope 파일을 준비하거나 별도 승인 명령을 실행할 필요가 없습니다.
   Soundwave의 Plan은 선택 사항이며 `/mode`로 자유롭게 전환할 수 있습니다.
@@ -150,7 +150,7 @@ AI + 해킹 도구들은 대부분 nmap 돌리고 리포트 출력하는 데모�
 
 **Decepticon은 전문 자율 레드팀 에이전트입니다.** 실제 공격자처럼 현실적인 공격 체인을 실행합니다 — 정찰, 초기 침투, 권한 상승, 횡이동, C2 — 스캐너가 아닌 실제 공격자의 방식으로.
 
-모든 Red 작업은 운영자가 가져오고 명시적으로 승인한 RoE에서 시작합니다. `/scope import <file> --confirm` 다음 `/mode red approve`로 승인하며 Plan은 선택 사항입니다. Soundwave는 ConOps·디컨플릭션 등 계획 문서를 작성하고, OPPLAN은 Red 실행 오케스트레이터가 구성합니다.
+Red는 생성 시 운영자가 검토한 `plan/roe.json`의 기계 판독 범위를 적용합니다. 누락된 범위는 `/scope import <file> --confirm`으로 가져올 수 있으며, 별도 `/mode red approve` 명령이나 승인 마커는 없습니다. Plan은 선택 사항입니다. Soundwave는 ConOps·디컨플릭션 등 계획 문서를 작성하고, OPPLAN은 Red 실행 오케스트레이터가 구성합니다.
 
 → **[인게이지먼트 워크플로 상세](docs/engagement-workflow.md)**
 

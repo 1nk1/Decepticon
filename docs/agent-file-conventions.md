@@ -69,7 +69,7 @@ middleware, not agents:
 - `events.jsonl` — append-only structured event log (`EventLogMiddleware`,
   `runtime/event_log.py`): engagement start, agent turns, LLM/tool calls,
   findings, OPPLAN updates. Failures here never break the agent.
-- `audit.jsonl` — HMAC-chained RoE decision ledger (`_audit_sink.py`).
+- `audit/roe-decisions.jsonl` — HMAC-chained RoE decision ledger (`_audit_sink.py`).
   Every RoE pass/refuse is stamped with `seq`, `hash`, `prev_hash`, `hmac`;
   tampering with record N invalidates all later records.
 
@@ -151,7 +151,7 @@ The filesystem middleware exposes these tools to every agent that mounts it:
 | `download_files(...)` | Pull files out of the sandbox |
 
 There is no `execute`/shell tool in the filesystem middleware — all command
-execution flows through the single bash tool (`DockerSandbox.execute_tmux`),
+execution flows through the four bash tools using `HTTPSandbox` and the sandbox kernel,
 which runs in persistent tmux sessions and logs to `.sessions/<name>.log`.
 
 **The `${WORKSPACE}` anchor (hard rule).** Operational agents'
@@ -169,8 +169,8 @@ directory mid-task. Agents must not assume `pwd` equals the engagement root
 after any `cd`.
 
 **The orchestrator (decepticon) has no bash tool at all.** It only has
-OPPLAN CRUD tools (`add_objective`, `update_objective`, `get_objective`,
-`list_objectives`) plus the workspace file tools (`read_file`, `write_file`,
+versioned OPPLAN tools (`commit_opplan`, `update_objective`, `get_objective`,
+`list_objectives`, plan-fact operations) plus the workspace file tools (`read_file`, `write_file`,
 `ls`) for reading sub-agent artifacts. All offensive work is delegated via
 `task(subagent, prompt)`. The filesystem tools on the orchestrator are for
 workspace artifacts only — `grep`/`glob`/`ls`/`read_file` against a remote
@@ -301,8 +301,9 @@ carry the engagement label.
   Secret / Entrypoint / CrownJewel / Hypothesis / AttackPath` nodes via
   `kg_record` / `kg_ingest`.
 - The chain planner queries the KG for attack paths.
-- Blue Cell (read-only, no bash) records `DetectionFired` nodes linked via
-  `USES_RULE` / `DETECTED` edges and emits a `defense_brief`.
+- The optional legacy `blue_cell_scan` replay tool can record detection nodes
+  using AutoBot rule/tap modules. This is separate from the current AutoBot Blue
+  observation graph; selecting Blue does not itself populate detection edges.
 
 Flat files are the human-facing, grep-friendly handoff channel; the KG is
 the queryable, relationship-aware channel. Findings exist in both: a
@@ -321,7 +322,7 @@ two generic rules are intentionally suspended:
   report.
 
 On a verified flag/flag-equivalent credential, the orchestrator marks
-remaining objectives `passed` and its **very next response must re-echo the
+remaining applicable objectives using the live OPPLAN lifecycle and its **very next response must re-echo the
 flag verbatim** (e.g. `Flag captured: FLAG{...}`) — the harness scans only
 the orchestrator's final message. CTF flag-path conventions
 (`/tmp/flag_sweep.txt` from a single batched filesystem sweep) live **only**
@@ -354,10 +355,10 @@ The host-mounted workspace tree is what the clients render.
 - **Survival across summarization** — agents write SUMMARY/credentials/probe
   logs to disk *before* anything else precisely so the next cold-context
   cycle can resume from files rather than memory.
-- **Graceful shutdown** — on SIGINT/SIGTERM, `runtime/shutdown.py` flushes
-  in-flight `findings/FIND-*.md`, the `plan/opplan.json` checkpoint, a
-  partial `report/report_partial_executive.md`, and `events.jsonl`, so a
-  killed engagement still leaves a coherent workspace.
+- **Shutdown helper** — `runtime/shutdown.py` provides bounded best-effort
+  flushing for callers that explicitly install its handler/state provider. It
+  is not wired into the current server startup; do not assume every SIGINT or
+  SIGTERM produces a partial report or flushes in-flight evidence.
 - **Orphan reaping** — on daemon startup, decepticon-named tmux sockets from
   a crashed prior run are reaped before new sessions start.
 

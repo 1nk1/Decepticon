@@ -1,5 +1,7 @@
 # OSS PyPI Distribution — Strategic Value to Downstream Products
 
+> Historical pre-publication proposal. The three-package release workflow now builds/publishes wheels; statements below that PyPI publication is unavailable are obsolete. Use [release policy](../../RELEASE.md) and [library consumption](../library-consumer-guide.md).
+
 > Analysis of what publishing the OSS `decepticon` core to PyPI buys a
 > downstream commercial product built on the SDK. Grounded in the current
 > packaging and plugin architecture, with risks and execution prerequisites.

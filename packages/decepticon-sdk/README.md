@@ -8,7 +8,7 @@ A complete plugin can be written importing only from `decepticon_sdk`:
 no underscore-prefixed framework internals required.
 
 See the umbrella [`README.md`](../../README.md) and the design spec at
-[`docs/superpowers/specs/2026-05-23-core-framework-sdk-split-design.md`](../../docs/superpowers/specs/2026-05-23-core-framework-sdk-split-design.md).
+[current extension contract](../../docs/design/extension-contract.md).
 
 ## Install
 

@@ -52,7 +52,7 @@ Bridges between planes are the highest-impact compromise paths.
             └────────────────────────────┘
 ```
 
-The four bridges, in decreasing blast radius:
+The following bridges are relevant to the threat model (not a proof of current isolation):
 
 | Bridge | Carries | Compromised → |
 |--------|---------|----------------|
@@ -60,6 +60,15 @@ The four bridges, in decreasing blast radius:
 | **LiteLLM** | OAuth files + provider API keys | full LLM-provider compromise; engagement spend; cross-customer cred theft |
 | **Plugin entry-points** | Arbitrary Python on `import decepticon` | `pip install` of one malicious bundle → agent-startup RCE |
 | **Web dashboard** | OPPLAN edits, operator overrides, engagement state | full agent control if web is exposed without auth (PR #338) |
+
+LangGraph also joins `sandbox-net` to reach the HTTP daemon. The diagram above
+omits that direct network membership; Neo4j is not the only cross-plane network
+surface. The operator CLI still mounts Docker's socket for service control.
+Use [current architecture](../architecture.md) and the actual Compose networks,
+ports, authentication and mounts when assessing reachability. “Done” labels in
+this historical STRIDE table refer to individual changes, not proof that a threat
+class has been eliminated. Current defaults are in
+[security controls](security-controls.md).
 
 ## STRIDE walk
 
@@ -97,7 +106,7 @@ Per-asset analysis.
 | **Tampering** | Out-of-scope target reached | RoEEnforcementMiddleware refuses + chained audit log | Done ([RoE schema + middleware](../../packages/decepticon-core/decepticon_core/types/roe.py)) |
 | **Repudiation** | Operator denies engagement actions | HMAC-chained audit ledger (`<workspace>/audit/roe-decisions.jsonl`) | Done |
 | **Information disclosure** | One Kali container shared across engagements | Per-engagement sandbox containers (planned, see Tier 3) | Open |
-| **Denial of service** | Sandbox `pids_limit: 1024` exists; mem unbounded | `mem_limit` per service (planned) | Open |
+| **Denial of service** | Tool processes can exhaust resources within their limits | Compose enforces `mem_limit: 4g` and `pids_limit: 4096` for the sandbox | Bounded, not eliminated |
 | **Elevation of privilege** | Sandbox kernel exploit → host | Firecracker microVM per objective (planned, multi-tenant deployments only) | Open |
 
 ### Asset: LangGraph orchestrator
@@ -138,15 +147,15 @@ Per-asset analysis.
 
 The chains that matter, ranked by realistic damage:
 
-1. **Hostile banner → APOC → mgmt env exfil.** A target webpage returns text that influences the agent's next `kg_query` call. Pre-hardening, agent issues `CALL apoc.cypher.runFile('file:///proc/self/environ')`; the response carries PostgreSQL creds, LiteLLM master key, OAuth tokens. **Closed** by allowlist-only APOC + UntrustedOutput envelope (Tier 1, Tier 4a).
+1. **Hostile banner → APOC → mgmt env exfil.** A target webpage returns text that influences the agent's next `kg_query` call. Pre-hardening, agent issues `CALL apoc.cypher.runFile('file:///proc/self/environ')`; the response carries PostgreSQL creds, LiteLLM master key, OAuth tokens. The APOC allowlist reduces the procedure surface; output quarantine reduces instruction confusion. Neither is proof that every injection/pivot chain is closed.
 
 2. **Cross-engagement data leak via web dashboard.** Any authenticated user opens `engagements/<their-id>/graph`; the route ran `MATCH (n) OPTIONAL MATCH (n)-[r]->(m)` against the shared Neo4j. Hostile customer reads competitor's findings. **Closed** by Prisma ownership + per-engagement label scoping (Tier 4b).
 
-3. **Operator workstation → LiteLLM OAuth file read.** Operator's `~/.claude/.credentials.json` is bind-mounted RO into LiteLLM. Compromised host with read on that file gets the OAuth token. **Mitigation**: the file is RO mounted only into LiteLLM, not into sandbox; standard OS file perms (600) apply to operator host. **Status**: partial — relies on operator host hygiene.
+3. **Operator workstation → LiteLLM OAuth file read.** Operator's `~/.claude/.credentials.json` is bind-mounted RO into LiteLLM. Compromised host with read on that file gets the OAuth token. **Mitigation**: the file is RO mounted into LiteLLM and LangGraph, not into the sandbox; standard OS file perms (600) apply to operator host. **Status**: partial — relies on operator host hygiene.
 
-4. **Plugin entry-point poisoning.** Operator runs `pip install decepticon-plugin-foo` from a typosquat. Bundle's `__init__.py` exfiltrates `.env` at agent startup. **Closed** by `DECEPTICON_PLUGINS` allowlist; **Open** signed-bundle verification.
+4. **Plugin entry-point poisoning.** Operator runs `pip install decepticon-plugin-foo` from a typosquat. Bundle's `__init__.py` exfiltrates `.env` at agent startup. **Not closed by bundle activation filtering**: installed Python entry-point code can execute during loading, and unlabelled contributions can be always-load. Treat plugin installation as trusted code; signed-bundle verification remains separate.
 
-5. **Prompt-injection-driven RCE via docker socket.** The old `DockerSandbox` transport mounted `/var/run/docker.sock` into the LangGraph container; any agent-controlled command could escape to the host. **Closed** by the HTTP-only sandbox transport rewrite (predates this PR; see [`backends/factory.py`](../../packages/decepticon/decepticon/backends/factory.py)).
+5. **Prompt-injection-driven RCE via docker socket.** The old `DockerSandbox` transport mounted `/var/run/docker.sock` into the LangGraph container; any agent-controlled command could escape to the host. The LangGraph socket mount was removed by the HTTP-only sandbox transport rewrite (predates this PR; see [`backends/factory.py`](../../packages/decepticon/decepticon/backends/factory.py)).
 
 ## Future hardening
 

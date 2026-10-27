@@ -34,7 +34,7 @@ from decepticon.middleware.prompt_injection_shield import (
     PromptInjectionShieldMiddleware,
 )
 from decepticon.middleware.roe import (
-    RoEEnforcementMiddleware,  # compat alias, removed at 2.0.0
+    RoEEnforcementMiddleware,  # retained compatibility alias
     RoEGuardrailMiddleware,
 )
 from decepticon.middleware.scan_resume import ScanResumeManager

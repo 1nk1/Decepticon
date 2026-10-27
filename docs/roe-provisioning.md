@@ -2,41 +2,37 @@
 
 An authorized operator provisions `plan/roe.json`. Soundwave can draft a
 candidate such as `plan/roe-authorized.json`, but its filesystem tools cannot
-create or modify the operator-confirmed `plan/roe.json`. New CLI engagements generate and approve their RoE from the entered target URL
+create or modify the operator-confirmed `plan/roe.json`. New CLI engagements
+generate their machine RoE from reviewed targets/exclusions
 and open Red immediately. This import procedure is for legacy or externally
 created workspaces with missing scope, not a prerequisite for normal creation.
 The web creation form provisions a direct
 RoE only for new engagements. Neither recreating the engagement nor restarting
 its services is required to import a missing RoE.
 
-The original importer was introduced in PR #1000. The explicit direct-approval
-option and portable CLI commands below belong to this proposed source revision;
-older installed images may not include them. Merging a change does not update an
-installed container.
-
 ## Portable terminal procedure
 
 Pause active work, review the candidate against the signed authorization, then
-use the operator commands inside the engagement's CLI session:
+use the operator command inside the existing engagement:
 
 ```text
 /scope import plan/roe-authorized.json --confirm
-/mode red approve
+/mode red
 ```
 
-The source path can be relative to the engagement workspace or an absolute path
-readable by the CLI process. Import canonically validates the candidate, creates
-only a missing `plan/roe.json` with mode `0600`, clears stale approval markers and
-does not grant Red approval. `/mode red approve` separately validates and approves
-the current RoE bytes. It requires none of the seven optional Plan documents; if
-a complete validated Plan bundle exists, its bundle digest is preserved.
-`/mode red` selects execution after approval. `/mode plan` remains optional.
+The source can be relative to the workspace or an absolute path readable by the
+CLI. Import uses the canonical operator validator and creates only missing
+`plan/roe.json`, preserving the reviewed bytes and refusing an existing file or
+symlinked destination. The `plan` directory must be real. The terminal importer
+can create that directory; the Python command requires it already to exist.
 
-The CLI uses `POST /_decepticon/roe/validate` for canonical validation only. That
-endpoint receives the selected file bytes at `DECEPTICON_API_URL` (default
-`http://localhost:2024`). Redirects are refused; configure the final server URL
-directly. It does not write files or grant authority; the operator CLI owns import
-and approval writes. It is not an agent capability.
+Red enforces the installed machine block. `/mode red approve` and the Python
+`--approve-red` flag are retired; neither is supported by current main. No extra
+approval marker or optional Plan bundle is required after scope creation.
+
+`POST /_decepticon/roe/validate` validates candidate bytes without writing files.
+The CLI refuses redirects; use the final server URL. Operator import is outside
+the agent tool surface and is not an authorization bypass.
 
 ## Operator procedure
 
@@ -73,31 +69,15 @@ and approval writes. It is not an agent capability.
      --file /absolute/path/to/reviewed-roe.json --confirm
    ```
 
-4. For direct execution, approve the current scope with `/mode red approve`.
-   If you chose optional Plan, continue that conversation and ask Soundwave to
-   read the provisioned RoE. The seven planning documents and conversation are
-   preserved; their `engagement_name` must agree with the RoE. Publishing them
-   leaves the operator in Plan and does not approve execution.
+4. Select `/mode red` to execute under the installed scope, or `/mode plan`
+   for optional discussion/documents. Soundwave cannot edit protected scope or
+   own execution OPPLAN. A missing machine block still causes gated execution
+   to fail, even if a human planning RoE passed the importer’s schema validator.
 
-To explicitly approve direct Red scope in the Python operator command, add
-`--approve-red` together with `--confirm`:
-
-```bash
-DECEPTICON_SKIP_BOOT=1 uv run python -m decepticon.provision_roe \
-  --workspace /absolute/path/to/existing/itps \
-  --file /absolute/path/to/reviewed-roe.json --confirm --approve-red
-```
-
-Without `--approve-red`, import never grants Red approval. The explicit option
-can approve an existing canonical RoE only if the reviewed source bytes match
-exactly; it does not overwrite existing scope. A different existing RoE is
-rejected. Existing scope revisions remain a separate operator task.
-
-The importer validates before writing, preserves reviewed bytes and refuses
-symlinked planning paths. Before publishing a restored document it clears stale
-`.planning-draft-ready` and `.red-approved` markers. Invalid input exits with
-status 2; successful provisioning exits with status 0. The command is not an
-agent tool and exposes no HTTP mutation endpoint.
+The Python importer validates reviewed bytes before create-only publication;
+existing `plan/roe.json` is refused. It neither overwrites scope nor adds an
+approval marker. Invalid input exits with status 2. Successful creation exits
+with status 0. There is no HTTP mutation endpoint for this operation.
 
 ## Required JSON and validation boundary
 
@@ -122,7 +102,7 @@ For example, adapt this local-only scope to your actual signed authorization:
   "in_scope": [{"target": "127.0.0.1", "type": "ip-range"}],
   "out_of_scope": [],
   "authorization_reference": "Signed authorization reference",
-  "machine_enforcement": {"mode": "enforce", "in_scope": ["127.0.0.1"]}
+  "machine_enforcement": {"in_scope": ["127.0.0.1"]}
 }
 ```
 
@@ -139,5 +119,8 @@ extensions during validation. Import preserves the **original bytes**, including
 The command validates the planning schema, not the semantics of signed
 contracts, dates, scope patterns, or machine enforcement. Review the
 [machine enforcement schema and behavior](security/roe-machine-enforcement.md)
-separately: without that block the runtime defaults to audit-only, and an invalid
-mode also falls back to audit. Provisioning does not change those runtime rules.
+separately: missing or non-object machine configuration causes gated calls to
+be refused with `ROE_CONFIG_MISSING`. Legacy `mode` keys are ignored; they no
+longer select audit-only or warning-only execution. A present empty block still
+has an empty allowlist, so review actual scope rules. Provisioning does not
+replace the runtime guardrail or prove that egress policy was applied.

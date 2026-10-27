@@ -1,41 +1,13 @@
-"""Machine-readable Rules of Engagement schema.
+"""Machine-readable RoE rules and target/command/time-window evaluators.
 
-The human-readable RoE (``roe.json:in_scope``, ``out_of_scope``,
-``prohibited_actions``) is authored by Soundwave for the operator's
-review. This schema extends it with a ``machine_enforcement`` block
-that drives the RoE-enforcement middleware at tool-call time.
+Operator/client creation supplies the machine scope in plan/roe.json.
+The runtime guardrail refuses gated tools when configuration is missing.
+Legacy mode keys are ignored: audit/warn/enforce are not runtime switches.
 
-The extension is OPTIONAL: a roe.json without ``machine_enforcement``
-runs in *audit-only* mode - every tool call is logged but nothing is
-refused. Operators opt in by adding the ``machine_enforcement`` block
-and setting ``mode`` to ``"enforce"``.
-
-Design choices:
-
-  * **Allowlist + denylist.** Targets must match ``scope.in_scope_*``
-    AND must NOT match ``scope.out_of_scope_*``. The denylist takes
-    precedence: an in-scope CIDR with an out-of-scope host inside it
-    is correctly blocked on the host.
-
-  * **CIDR + glob + literal.** CIDRs (``10.0.0.0/24``), domain globs
-    (``*.acme.com``), and literal hostnames/IPs are all accepted.
-    The evaluator picks the matching algorithm based on the entry
-    shape.
-
-  * **Forbidden command patterns are regex.** Per-engagement custom
-    patterns let the operator forbid e.g.
-    ``\\bhydra\\s.*-t\\s*[5-9]\\d+`` (Hydra with more than 50 parallel
-    threads). Patterns are anchored to the command string, not the
-    full tool arguments dict.
-
-  * **Cloud metadata services are denied by default.** A default
-    forbidden-destinations list catches the AWS / Azure / GCP IMDS
-    endpoints unless the engagement opts out (``allow_cloud_metadata: true``).
-
-  * **Mode = audit | warn | enforce.** Audit logs everything but
-    never blocks. Warn logs + injects a ToolMessage warning into the
-    transcript but lets the call proceed. Enforce blocks AND logs.
-    Default is ``audit`` for backward compatibility.
+Explicit denials precede a nonempty allowlist. Rules support host/IP/CIDR,
+single-label domain globs, forbidden-command regexes and testing windows.
+Concurrency and cadence are consumed by the middleware, not this evaluator.
+An empty allowlist retains the evaluator's allow-default after denials.
 """
 
 from __future__ import annotations

@@ -1,5 +1,7 @@
 # Decepticon 레드팀 인프라 아키텍처
 
+> Historical five-agent/docker-exec design. The mandatory Planner-to-kill-chain sequence, Planner-owned RoE/OPPLAN and sandbox user/PID values below are not current. Use [architecture](../../architecture.md) and [the extension contract](../../design/extension-contract.md).
+
 > Decepticon의 레드팀 인프라 구성과 현업 레드팀 인프라와의 매핑을 정의하는 설계 문서.
 > 분리형 C2(Command & Control) 모듈 아키텍처를 포함한 전체 공격 인프라 토폴로지를 다룬다.
 
@@ -647,4 +649,4 @@ graph LR
 
 ### 10.3 Purple Team 확장
 
-Blue Team 에이전트를 추가하여 Red-Blue 피드백 루프를 구현할 수 있다. 상세는 별도 문서([purple-team-architecture.md](purple-team-architecture.md))에서 다룬다.
+Blue Team 에이전트를 추가하여 Red-Blue 피드백 루프를 구현할 수 있다. 상세는 별도 문서(the historical purple-team proposal (no corresponding document is retained))에서 다룬다.

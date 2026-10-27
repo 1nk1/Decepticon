@@ -1,40 +1,13 @@
-"""RoE guardrail middleware - the advisory command-parse RoE gate.
+"""Enforce machine RoE on configured tool calls and record decisions.
 
-This middleware sits between the LLM and the tool surface. Every
-``bash`` (and other tool) call is evaluated against the engagement's
-``roe.json:machine_enforcement`` block. The outcome is one of:
+Rules are loaded from the request workspace's plan/roe.json. Missing or invalid
+machine configuration is refused; legacy mode keys do not enable audit-only or
+warning-only execution. Abort, time windows, command/target rules, concurrency
+and cadence are checked around gated calls.
 
-  * **PASS** in audit mode - logged, allowed to proceed.
-  * **WARN** in warn mode - logged, a SystemMessage is appended to the
-    tool's return so the model sees it failed RoE, but the call still
-    executes.
-  * **REFUSE** in enforce mode - logged, the tool call short-circuits
-    with a ``[ROE_REFUSED]`` ToolMessage before the handler runs.
-
-Defense-in-depth: this middleware is a *guardrail*, not the sole gate.
-It parses the literal command text for target hosts, which is a strong
-**fast-fail UX signal** (it tells the model early, before a wasted
-round-trip) but cannot be the authoritative boundary — a determined
-agent can hide a target behind variable indirection, command
-substitution, or DNS resolution the parser never sees. The
-authoritative scope boundary is the sandbox's network **egress**
-(``middleware/egress.py`` → DNS allowlist + nftables connect
-allowlist), compiled from the *same* ``machine_enforcement`` rules, so
-the packet cannot leave even when the parse misses. One scope
-definition, two enforcement points.
-
-Every decision (PASS too, not just REFUSE) lands in the HMAC-chained
-audit ledger via :class:`RoEAuditSink`. The ledger is the legal record
-of "what the agent tried, what was approved, what was blocked" - the
-key artifact for paid / regulated engagement out-briefs.
-
-Reading the RoE:
-
-  * Default location: ``<workspace>/plan/roe.json``.
-  * Resolved per-iteration from ``state["workspace_path"]`` so the
-    middleware can hot-reload an operator-edited RoE without restart.
-  * ``machine_enforcement`` block is optional - when absent, the
-    middleware logs every tool call but never blocks (``mode=audit``).
+Target extraction is best-effort. Separate sandbox egress provisioning is
+attempted unless disabled, but provisioning errors are logged and retried rather
+than terminating a run. Parser refusal is not proof of network confinement.
 """
 
 from __future__ import annotations
@@ -457,12 +430,11 @@ class RoEGuardrailMiddleware(AgentMiddleware):
             log.error("roe: audit sink write failed: %s", exc)
 
     def _maybe_provision_egress(self, state) -> None:
-        """Compile + push the Layer-2 egress guardrail, once per workspace.
+        """Attempt network-policy provisioning once per workspace.
 
-        Default ON for ``enforce`` mode: skipped only when the operator
-        opts out via ``DECEPTICON_EGRESS_DISABLE``. audit / warn modes
-        never reach here (guarded below). Best-effort: any failure is
-        logged and never propagates into agent execution.
+        The operator can disable provisioning. Failures are logged and the
+        workspace is unmarked so a later turn can retry; errors do not stop the
+        run. Legacy machine mode keys do not select provisioning behavior.
         """
         if _egress_disabled():
             return
@@ -632,9 +604,10 @@ def build_default_sink(workspace_path: str | None) -> RoEAuditSink | None:
     return RoEAuditSink(path=Path(workspace_path) / "audit" / "roe-decisions.jsonl")
 
 
-# Compat alias (removed at 2.0.0). The class was renamed
+# Retained compatibility alias; the planned 2.0.0 removal did not occur.
+# The class was renamed
 # ``RoEEnforcementMiddleware`` → ``RoEGuardrailMiddleware`` when RoE
 # enforcement became genuinely layered (advisory command-parse here +
 # authoritative sandbox egress). Downstream plugins / downstream subagents
-# that import the old name keep working for one minor cycle.
+# that import the old name still resolve it; new code uses RoEGuardrailMiddleware.
 RoEEnforcementMiddleware = RoEGuardrailMiddleware
