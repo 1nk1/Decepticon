@@ -1,5 +1,9 @@
 # Phase 0 Cleanup Progress — **COMPLETE** (2026-06-03)
 
+> Historical Phase 0 record. The completed migration is retained for context;
+> use the current [skill schema](../../skill-schema.md) and `make audit-skills`
+> for new changes. Counts and pending batch notes below are historical.
+
 `make audit-skills-strict` exits 0 on all 251 SKILL.md files. CI is
 flipped to strict mode in the same PR. Phase 1a (graph builder) is
 unblocked.
@@ -55,7 +59,7 @@ _None yet._
 
 ## How to advance
 
-Per [docs/skill-cleanup-process.md](skill-cleanup-process.md):
+Per [the archived process](process.md):
 dispatch a sub-agent per batch, review the proposed PR, merge. Update
 this file with the PR number and the new violation total after each
 batch.

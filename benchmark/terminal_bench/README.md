@@ -16,9 +16,10 @@ Use the Make target from the repository root; it preserves that root on
 The canonical Harbor entry is
 `benchmark.terminal_bench:DecepticonTerminalBenchAgent`. Its package initializer
 sets Decepticon's single-component import guard before importing the agent,
-preventing the unrelated 16-agent graph from entering the run. The root
-`decepticon_tbench_agent.py` remains as a compatibility entry for existing
-Harbor job configs that may store the older path.
+preventing the unrelated 16-agent graph from entering the run. The obsolete
+root-level compatibility module has been removed. Update saved Harbor job
+configs from `decepticon_tbench_agent:DecepticonTerminalBenchAgent` to
+`benchmark.terminal_bench:DecepticonTerminalBenchAgent`.
 
 ## Prerequisites
 
