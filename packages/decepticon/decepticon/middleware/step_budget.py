@@ -33,24 +33,35 @@ class StepBudgetMiddleware(AgentMiddleware):
 
     @override
     def wrap_model_call(self, request: Any, handler: Any) -> Any:
+        note = self._budget_note(request)
+        if note is None:
+            return handler(request)
+        return handler(
+            request.override(messages=[*request.messages, SystemMessage(content=note)])
+        )
+
+    @override
+    async def awrap_model_call(self, request: Any, handler: Any) -> Any:
+        note = self._budget_note(request)
+        if note is None:
+            return await handler(request)
+        return await handler(
+            request.override(messages=[*request.messages, SystemMessage(content=note)])
+        )
+
+    def _budget_note(self, request: Any) -> str | None:
         messages = getattr(request, "state", {}).get("messages") or []
         steps = len(messages)
         if steps >= self._total:
-            note = (
+            return (
                 f"[step budget] HARD STOP REACHED — {steps} of {self._total} steps. "
                 "Do not call any more tools. Return your final answer now with the "
                 "findings and uncertainty collected so far."
             )
-            return handler(
-                request.override(messages=[*request.messages, SystemMessage(content=note)])
-            )
         if steps >= self._total * self._warn_at:
-            note = (
+            return (
                 f"[step budget] {steps} of {self._total} steps used — approaching the "
                 "hard stop. Conclude the current line of work and move to delivering "
                 "your result."
             )
-            return handler(
-                request.override(messages=[*request.messages, SystemMessage(content=note)])
-            )
-        return handler(request)
+        return None
