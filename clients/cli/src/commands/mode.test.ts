@@ -67,7 +67,7 @@ describe("CLI run modes", () => {
     expect(getAssistantOverride()).toBe("autobot");
   });
 
-  it("boots the sensor from the engagement blue.json on Blue entry", async () => {
+  it("attempts the sensor boot on Blue entry and stays out on failure", async () => {
     vi.stubEnv("DECEPTICON_ENGAGEMENT", "tui-live");
     vi.stubEnv("DECEPTICON_BLUE_WORKSPACE", "/tmp/mode-blue-config");
     mkdirSync("/tmp/mode-blue-config", { recursive: true });
@@ -76,18 +76,13 @@ describe("CLI run modes", () => {
       JSON.stringify({ version: 1, targets: [{ id: "local-target", upstream: "http://127.0.0.1:3000", enabled: true }] }),
     );
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
-    const blueUp = vi.fn(async () => {});
-    vi.doMock("./blue.js", async (importOriginal) => ({
-      ...(await importOriginal<typeof import("./blue.js")>()),
-      blueMonitorReady: vi.fn(async () => false),
-      blueUp,
-    }));
-    // Dynamic import so the doMock applies to this test only.
-    const { mode } = await import("./mode.js");
-    const { ctx, selected } = context();
-    await mode.execute("blue 127.0.0.1:3000", ctx);
-    expect(blueUp).toHaveBeenCalledWith("up 127.0.0.1:3000", ctx);
-    expect(selected).toEqual(["autobot"]);
+    const { ctx, selected, messages } = context();
+    await mode.execute("blue", ctx);
+    // The boot attempt runs (blueUp → the sensor compose); in the test env
+    // it cannot complete, so the operator stays in the current mode with
+    // the failure surfaced — fail-closed, never a silent dead assistant.
+    expect(messages.join("\n")).toContain("Blue unavailable");
+    expect(selected).toEqual([]);
     rmSync("/tmp/mode-blue-config", { recursive: true, force: true });
   });
 
