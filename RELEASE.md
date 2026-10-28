@@ -85,8 +85,8 @@ authorization to publish; follow the user's or maintainer's actual release scope
 6. **Publication readiness.** Verify all three PyPI packages, launcher assets,
    config and skill checksums, eight image versions/platforms, image digests and
    image signing/SBOM job results. Review any attestation warning explicitly;
-   attach evidence of what succeeded and what did not. Approve the normal protected
-   environment; do not bypass failed gates. Drafts/tags alone are not a release.
+   attach evidence of what succeeded and what did not. Do not bypass failed
+   gates. Drafts/tags alone are not a release.
 
 ## 4. Publication and change history
 
@@ -99,8 +99,11 @@ authorization to publish; follow the user's or maintainer's actual release scope
    git tag -a vX.Y.Z <verified-main-sha> -F <reviewed-release-notes-file>
    git push origin refs/tags/vX.Y.Z
    ```
-   The tag starts [release.yml](.github/workflows/release.yml). Reviewers may need
-   to approve its `pypi-release` environment again for downstream jobs.
+   The tag starts [release.yml](.github/workflows/release.yml). Tagging is itself
+   the publish authorization — the `pypi-release` environment no longer requires
+   manual reviewer approval (retired 2026-10-28; the environment stays for PyPI
+   Trusted Publishing and its branch policy), so tag only after the pre-tag
+   gates above pass.
 3. Keep GitHub's release draft until candidate-artifact verification and all
    publication gates succeed. Verify the PyPI job separately: the current
    `publish-release` dependency list waits for Docker/launcher jobs, **not PyPI**.
