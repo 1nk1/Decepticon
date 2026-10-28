@@ -1,6 +1,87 @@
 # syntax=docker/dockerfile:1
 # Pin digest for reproducible builds and stable GHA cache layers.
 # To update: docker pull kalilinux/kali-rolling:latest && docker inspect --format='{{index .RepoDigests 0}}' kalilinux/kali-rolling:latest
+
+# ── Pinned Go tool versions (fetched in the go-tools stage below) ──
+# These ship as static release binaries instead of kali-rolling apt
+# packages: kali re-resolves versions on every build, so the tool layer
+# changed — and was re-pushed to GHCR in full — on every release even
+# when no tool was bumped. Pinned releases make the tool layers stable
+# across builds (a bump re-pushes only that tool's layer) and make
+# engagement evidence reproducible. Bump = change the ARG here; the
+# checksums.txt shipped with each release is verified during fetch.
+ARG SUBFINDER_VERSION=v2.17.0
+ARG HTTPX_VERSION=v1.12.0
+ARG KATANA_VERSION=v1.8.0
+ARG NUCLEI_VERSION=v3.11.1
+ARG NAABU_VERSION=v2.6.1
+ARG GOBUSTER_VERSION=v3.8.2
+
+# ── go-tools fetch stage ──────────────────────────────────────────
+# Downloads the pinned release archives, verifies each against the
+# project's checksums.txt, and unpacks the binaries to /out. The final
+# stage COPYs them one per layer so a single-tool bump only re-pushes
+# that tool. Asset and checksum file naming is NOT consistent across
+# projects (katana uses dashes, naabu drops the version, gobuster
+# omits it from the archive name), so the checksum filename is passed
+# explicitly per tool:
+#   ProjectDiscovery archives: <tool>_<ver>_linux_<amd64|arm64>.zip
+#   gobuster archive:          gobuster_Linux_<x86_64|arm64>.tar.gz
+FROM kalilinux/kali-rolling@sha256:ab7f9873e9d976d62f59e172350604dd980339f567bfb2eaa5c2bdfaa2dc42b7 AS go-tools
+ARG TARGETARCH
+ARG SUBFINDER_VERSION
+ARG HTTPX_VERSION
+ARG KATANA_VERSION
+ARG NUCLEI_VERSION
+ARG NAABU_VERSION
+ARG GOBUSTER_VERSION
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked,id=sandbox-apt-cache \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked,id=sandbox-apt-lists \
+    apt-get update && \
+    apt-get install -y --no-install-recommends --no-install-suggests \
+        ca-certificates curl unzip
+RUN set -eu; \
+    case "$TARGETARCH" in \
+        amd64) PD_ARCH=amd64; GOB_ARCH=x86_64 ;; \
+        arm64) PD_ARCH=arm64; GOB_ARCH=arm64 ;; \
+        *) echo "unsupported TARGETARCH: $TARGETARCH" >&2; exit 1 ;; \
+    esac; \
+    fetch() { \
+        repo="$1"; ver="$2"; asset="$3"; sums="$4"; out="$5"; \
+        curl -fsSL --retry 3 -o "/tmp/$asset" \
+            "https://github.com/$repo/releases/download/$ver/$asset"; \
+        curl -fsSL --retry 3 -o /tmp/checksums.txt \
+            "https://github.com/$repo/releases/download/$ver/$sums"; \
+        ( cd /tmp && grep -F "$asset" checksums.txt | sha256sum -c - ); \
+        mkdir -p /tmp/x /out; \
+        case "$asset" in \
+            *.zip) unzip -j -o "/tmp/$asset" -d /tmp/x >/dev/null ;; \
+            *.tar.gz) tar -xzf "/tmp/$asset" -C /tmp/x ;; \
+            *) echo "unknown archive type: $asset" >&2; exit 1 ;; \
+        esac; \
+        mv "$(find /tmp/x -type f -name "$out" | head -1)" "/out/$out"; \
+        rm -rf /tmp/x /tmp/checksums.txt "/tmp/$asset"; \
+    }; \
+    fetch projectdiscovery/subfinder "$SUBFINDER_VERSION" \
+        "subfinder_${SUBFINDER_VERSION#v}_linux_${PD_ARCH}.zip" \
+        "subfinder_${SUBFINDER_VERSION#v}_checksums.txt" subfinder; \
+    fetch projectdiscovery/httpx "$HTTPX_VERSION" \
+        "httpx_${HTTPX_VERSION#v}_linux_${PD_ARCH}.zip" \
+        "httpx_${HTTPX_VERSION#v}_checksums.txt" httpx; \
+    fetch projectdiscovery/katana "$KATANA_VERSION" \
+        "katana_${KATANA_VERSION#v}_linux_${PD_ARCH}.zip" \
+        "katana-${KATANA_VERSION#v}-checksums.txt" katana; \
+    fetch projectdiscovery/nuclei "$NUCLEI_VERSION" \
+        "nuclei_${NUCLEI_VERSION#v}_linux_${PD_ARCH}.zip" \
+        "nuclei_${NUCLEI_VERSION#v}_checksums.txt" nuclei; \
+    fetch projectdiscovery/naabu "$NAABU_VERSION" \
+        "naabu_${NAABU_VERSION#v}_linux_${PD_ARCH}.zip" \
+        "naabu-checksums.txt" naabu; \
+    fetch OJ/gobuster "$GOBUSTER_VERSION" \
+        "gobuster_Linux_${GOB_ARCH}.tar.gz" \
+        "gobuster_${GOBUSTER_VERSION#v}_checksums.txt" gobuster; \
+    ls -la /out
+
 FROM kalilinux/kali-rolling@sha256:ab7f9873e9d976d62f59e172350604dd980339f567bfb2eaa5c2bdfaa2dc42b7
 
 # Consolidated package install — one RUN layer to maximize cache hits
@@ -37,26 +118,24 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked,id=sandbox-apt-cache
         python3-pip \
         tmux \
         # ── Recon ──
+        # subfinder / httpx(-toolkit) / katana / nuclei / naabu moved to
+        # the pinned go-tools stage above (kali-rolling re-resolves them
+        # on every build, forcing a full tool-layer re-push per release).
         nmap \
         dnsutils \
         whois \
         netcat-openbsd \
         iputils-ping \
-        subfinder \
-        httpx-toolkit \
-        katana \
-        nuclei \
-        naabu \
         whatweb \
         masscan \
         # ── Exploit & post-exploitation ──
+        # exploitdb lives in its own flag-gated layer below; gobuster in
+        # the pinned go-tools stage.
         hydra \
         sqlmap \
         nikto \
         smbclient \
-        exploitdb \
         dirb \
-        gobuster \
         # SSH client + sshpass for lateral movement / multi-host scenarios
         # (e.g., MHBench OpenStack topologies — attacker pivots through a
         # jump host via ProxyJump to reach internal ring hosts).
@@ -79,7 +158,38 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked,id=sandbox-apt-cache
         adb \
         apktool \
         # ── YARA (DFIR validation; complements yara-x on the host) ──
-        yara
+        yara && \
+    # Strip non-English locales in the SAME layer that installed them —
+    # deletions only reclaim image MB within the layer itself.
+    (find /usr/share/locale -mindepth 1 -maxdepth 1 -type d ! -name 'en*' \
+        -exec rm -rf {} + 2>/dev/null || true)
+
+# ── Exploit-DB local corpus (searchsploit + ~290 MB exploit data) ──
+# Flag-gated like INSTALL_REVERSING / INSTALL_BROWSER so lean CI /
+# release-verify builds can drop it. A shared-volume variant (one corpus
+# volume mounted into N sandboxes) would save the same MBs for release
+# images too, but needs a decision on first-run population versus the
+# sandbox egress allowlist lifecycle — proposed, not wired yet.
+ARG INSTALL_EXPLOITDB=true
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked,id=sandbox-apt-cache \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked,id=sandbox-apt-lists \
+    if [ "$INSTALL_EXPLOITDB" = "true" ]; then \
+        apt-get update && \
+        apt-get install -y --no-install-recommends --no-install-suggests exploitdb ; \
+    else \
+        echo "INSTALL_EXPLOITDB=false — skipping exploitdb corpus (~290 MB)" ; \
+    fi
+
+# ── Pinned Go tools (fetched + checksum-verified in the go-tools stage) ──
+# One COPY per tool: a single-tool version bump only re-pushes its own
+# layer. httpx ships as `httpx` upstream; kali's package name — and the
+# name operators invoke — is `httpx-toolkit`.
+COPY --from=go-tools --chmod=0755 /out/subfinder /usr/local/bin/subfinder
+COPY --from=go-tools --chmod=0755 /out/httpx /usr/local/bin/httpx-toolkit
+COPY --from=go-tools --chmod=0755 /out/katana /usr/local/bin/katana
+COPY --from=go-tools --chmod=0755 /out/nuclei /usr/local/bin/nuclei
+COPY --from=go-tools --chmod=0755 /out/naabu /usr/local/bin/naabu
+COPY --from=go-tools --chmod=0755 /out/gobuster /usr/local/bin/gobuster
 
 # ── Tools NOT yet wired into apt-install ──
 # Deliberately deferred to follow-up PRs because they need either a
@@ -163,9 +273,24 @@ RUN pip3 install --break-system-packages --no-cache-dir --ignore-installed \
 # Chromium WITH its runtime libs resolved by the distro; the templates launch it
 # via executablePath (INSANE_CHROMIUM_PATH). Headless by default (no X server);
 # INSANE_HEADLESS=0 + xvfb is the headful path for headless-detecting WAFs.
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends chromium \
-    && rm -rf /var/lib/apt/lists/*
+#
+# Gated by a build ARG so lean builds (CI / release-verify) stay ~1 GB
+# lighter; enable explicitly with:
+#   docker build --build-arg INSTALL_BROWSER=true ...
+# Default is `true` so release images keep the WAF-escalation tier. When
+# disabled, the ENV below still points at the (absent) binary on purpose —
+# a stray browser-tier invocation then fails immediately with a
+# missing-executable error instead of falling back to Playwright's Chrome
+# download inside the sandbox.
+ARG INSTALL_BROWSER=true
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked,id=sandbox-apt-cache \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked,id=sandbox-apt-lists \
+    if [ "$INSTALL_BROWSER" = "true" ]; then \
+        apt-get update && \
+        apt-get install -y --no-install-recommends chromium ; \
+    else \
+        echo "INSTALL_BROWSER=false — skipping Chromium (~1 GB)" ; \
+    fi
 ENV INSANE_CHROMIUM_PATH=/usr/bin/chromium
 
 # ── Reverse Engineering: Ghidra 12.1 + radare2 + binwalk (opt-in) ──

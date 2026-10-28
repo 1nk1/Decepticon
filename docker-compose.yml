@@ -204,6 +204,14 @@ services:
     build:
       context: .
       dockerfile: containers/sandbox.Dockerfile
+      args:
+        # Opt out of the ~1 GB Chromium WAF-escalation tier for lean
+        # CI / release-verify builds:
+        #   INSTALL_BROWSER=false docker compose build sandbox
+        INSTALL_BROWSER: ${INSTALL_BROWSER:-true}
+        # Opt out of the ~290 MB Exploit-DB corpus the same way:
+        #   INSTALL_EXPLOITDB=false docker compose build sandbox
+        INSTALL_EXPLOITDB: ${INSTALL_EXPLOITDB:-true}
     container_name: decepticon${DECEPTICON_STACK_NAME:+-${DECEPTICON_STACK_NAME}}-sandbox
     networks:
       - sandbox-net

@@ -59,7 +59,7 @@ export CODEX_AUTH_VOLUME ?= $(shell test -f $(HOME)/.codex/auth.json && echo $(H
         quality quality-strict quality-cli test test-local lint lint-fix \
         ci-lint ci-test ci-test-coverage ci-test-coverage-report \
         web-build web-hotswap web-lint web-test web-migrate \
-        status logs health clean \
+        status logs health clean clean-dev-images \
         node-install web-db-ensure \
         benchmark terminal-bench terminal-bench-full recreate-litellm
 
@@ -101,6 +101,7 @@ help:
 	@echo "  make logs [SVC=]  Follow logs (default: langgraph)"
 	@echo "  make health       KG + Neo4j; Web when running"
 	@echo "  make clean        Full teardown (compose volumes + .dogfood/)"
+	@echo "  make clean-dev-images  Remove :dev images + dangling layers (release-verify leftovers)"
 	@echo ""
 	@echo "Other:"
 	@echo "  make benchmark [ARGS=\"--level 1\"]"
@@ -377,6 +378,20 @@ clean:
 	$(COMPOSE) $(PROFILES_ALL) down --volumes --remove-orphans
 	@rm -rf $(DOGFOOD_HOME)
 	@echo "OK — compose volumes purged, .dogfood/ removed"
+
+## Remove :dev-tagged images + dangling layers left behind by dogfood /
+## release-verify runs. Locally built :dev images share almost no layers
+## with the GHCR release images, so every release-verify cycle otherwise
+## parks a full second copy (~10 GB for the sandbox alone) on disk. Safe
+## to run while a stack is up: docker rmi skips images still in use.
+.PHONY: clean-dev-images
+clean-dev-images:
+	@echo "[clean-dev-images] Removing :dev-tagged decepticon images..."
+	@docker images --format '{{.Repository}}:{{.Tag}}' \
+		| grep -E '^ghcr\.io/bittersecurity/decepticon-[a-z-]+:dev$$' \
+		| xargs -r -n1 docker rmi 2>/dev/null || true
+	@docker image prune -f
+	@echo "[clean-dev-images] OK — run 'make dogfood' or 'make smoke' to rebuild :dev"
 
 # ── Internal idempotent helpers ──────────────────────────────────
 
